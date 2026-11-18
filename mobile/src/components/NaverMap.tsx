@@ -11,7 +11,11 @@ declare global {
 }
 
 let loader: Promise<any> | null = null;
+// 인증 실패(콘솔에 앱 주소 미등록 등)는 SDK 를 다 불러온 뒤에 따로 온다 → 지도를 도식 지도로 바꾸게 알림
+let authFailed = false;
+const authListeners = new Set<() => void>();
 function loadNaver(clientId: string): Promise<any> {
+  if (authFailed) return Promise.reject(new Error('auth'));
   if (window.naver?.maps) return Promise.resolve(window.naver);
   if (loader) return loader;
   loader = new Promise((resolve, reject) => {
@@ -20,7 +24,12 @@ function loadNaver(clientId: string): Promise<any> {
     s.async = true;
     s.onload = () => (window.naver?.maps ? resolve(window.naver) : reject(new Error('naver')));
     s.onerror = () => reject(new Error('naver'));
-    window.navermap_authFailure = () => reject(new Error('auth'));
+    window.navermap_authFailure = () => {
+      authFailed = true;
+      console.warn('[WellFAIR] 네이버 지도 인증 실패: 네이버 클라우드 콘솔 Web 서비스 URL 에 지금 주소(' + location.origin + ')를 등록해 주세요.');
+      authListeners.forEach((fn) => fn());
+      reject(new Error('auth'));
+    };
     document.head.appendChild(s);
   }).catch((e) => { loader = null; throw e; });
   return loader;
@@ -65,7 +74,9 @@ export default function NaverMap({
         draw();
       })
       .catch(() => alive && setFailed(true));
-    return () => { alive = false; };
+    const onAuthFail = () => { map.current = null; if (alive) setFailed(true); };
+    authListeners.add(onAuthFail);
+    return () => { alive = false; authListeners.delete(onAuthFail); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
 
@@ -117,7 +128,12 @@ export default function NaverMap({
   useEffect(draw); // props 가 바뀔 때마다
 
   if (failed) return <>{fallback}</>;
-  return <div ref={el} className={`nvmap ${className}`} />;
+  // 네이버 지도는 넘겨준 div 를 position: relative 로 바꾼다 → 위치 잡는 바깥 div 와 지도 div 를 나눠야 높이가 0 이 되지 않음
+  return (
+    <div className={`nvmap ${className}`}>
+      <div ref={el} className="nvmap__canvas" />
+    </div>
+  );
 }
 
 function escapeHtml(s: string) {

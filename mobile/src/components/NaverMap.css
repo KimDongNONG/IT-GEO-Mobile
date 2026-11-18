@@ -1,4 +1,5 @@
 .nvmap { position: absolute; inset: 0; }
+.nvmap__canvas { width: 100%; height: 100%; }
 /* 어두운 화면에 맞춰 지도 타일만 반전 (마커 · 경로선은 그대로) */
 .nvmap img { filter: invert(92%) hue-rotate(180deg) brightness(0.95) contrast(0.9); }
 .nvpin { position: relative; width: 32px; height: 32px; display: grid; place-items: center; }
