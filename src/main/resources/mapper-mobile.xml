@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mapper-mobile">
+
+	<!-- ================================================================
+	     모바일 앱 현장 기록 상세 · 사진 (reference/db/06_mobile_record.sql)
+	     survey_record 1건에 detail 0~1건, photo 0~N건
+	     ================================================================ -->
+
+	<insert id="addRecordDetail" parameterType="wellfair.to.RecordDetailTO">
+		INSERT INTO survey_record_detail (record_id, resident_status, scores, supports, source)
+		VALUES (#{recordId}, #{residentStatus}, #{scores}, #{supports}, #{source})
+	</insert>
+
+	<select id="getRecordDetails" resultType="wellfair.to.RecordDetailTO">
+		SELECT record_id, resident_status, scores, supports, source
+		  FROM survey_record_detail
+		 WHERE record_id IN <foreach collection="list" item="id" open="(" separator="," close=")">#{id}</foreach>
+	</select>
+
+	<insert id="addPhoto" parameterType="wellfair.to.PhotoTO" useGeneratedKeys="true" keyProperty="photoId">
+		INSERT INTO survey_photo (record_id, file_name, label)
+		VALUES (#{recordId}, #{fileName}, #{label})
+	</insert>
+
+	<select id="getPhotos" resultType="wellfair.to.PhotoTO">
+		SELECT photo_id, record_id, file_name, label, DATE_FORMAT(created_at, '%Y-%m-%d %H:%i') created_at
+		  FROM survey_photo
+		 WHERE record_id IN <foreach collection="list" item="id" open="(" separator="," close=")">#{id}</foreach>
+		 ORDER BY photo_id
+	</select>
+
+	<!-- 사진 1장 + 어느 건물 기록인지 (보기 권한 확인) -->
+	<select id="getPhoto" parameterType="long" resultType="wellfair.to.PhotoTO">
+		SELECT p.photo_id, p.record_id, p.file_name, p.label, v.bld_id
+		  FROM survey_photo p
+		  JOIN survey_record r ON r.record_id = p.record_id
+		  JOIN visit_history v ON v.visit_id = r.visit_id
+		 WHERE p.photo_id = #{photoId}
+	</select>
+
+	<!-- 사진을 붙일 기록이 내 것인지 (기록한 사람 = 나). 맞으면 bld_id -->
+	<select id="getMyRecordBld" resultType="String">
+		SELECT v.bld_id
+		  FROM survey_record r
+		  JOIN visit_history v ON v.visit_id = r.visit_id
+		 WHERE r.record_id = #{recordId} AND v.user_id = #{userId}
+	</select>
+</mapper>

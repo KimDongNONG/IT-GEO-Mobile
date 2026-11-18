@@ -1,0 +1,571 @@
+/* 취약공간 분석 지도 (Figma WellFAIR-02 계열, 다크)
+   2026-11-08 설계 화면에 맞춤 : 레이어 패널을 지도 위에 뜬 카드로, 지도 위 요소 간격 12/24 */
+
+:root { --wp-w: 320px; --lp-gap: 12px; --lp-w: 300px; --lp-right: calc(var(--lp-gap) * 2 + var(--lp-w)); /* 324px : 패널 오른쪽 + 12 */ }
+
+.map-layout {
+  position: relative;
+  display: flex;
+  height: calc(100vh - var(--header-h));
+  overflow: hidden;
+}
+
+/* ---------- 왼쪽 레이어 패널 ---------- */
+/* 지도 위에 떠 있는 카드 (가장자리 12px) */
+.layer-panel {
+  position: absolute;
+  left: var(--lp-gap); top: var(--lp-gap); bottom: var(--lp-gap);
+  width: var(--lp-w);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  z-index: 12;
+  transition: transform .26s ease;
+}
+.map-layout.left-closed .layer-panel { transform: translateX(calc(-100% - var(--lp-gap) - 2px)); }
+
+/* 상황 버튼 (피그마 02 "상황 버튼") : 기본값 · 폭우 · 폭염 · 한파. 카드 위 12 · 좌우 8, 높이 40 (안쪽 4), 고른 칸 = 메인 컬러 + 흰 글자 */
+.scn-tabs {
+  display: flex; flex: 0 0 auto;
+  height: 40px; margin: 11px 7px 0; padding: 3px;
+  background: var(--bg-card); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.scn-tab {
+  flex: 1 1 0; min-width: 0;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  height: 32px; padding: 0; border: 0; border-radius: var(--radius);
+  background: transparent; color: var(--text);
+  font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer;
+}
+.scn-tab:not(.on):hover { background: var(--bg-hover); }
+.scn-tab.on { background: var(--primary); color: #fff; }
+
+/* 요인 목록 + 잠금 필터 (피그마 02 "잠금 필터" rgba(0,0,0,.7), 오른쪽 아래 [직접 조정 >]) */
+.layer-body { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.layer-scroll { flex: 1; overflow-y: auto; padding: 8px 7px 0; }
+.layer-lock { display: none; position: absolute; left: 7px; right: 7px; top: 8px; bottom: 0; z-index: 3; background: var(--lock-bg); }
+.layer-panel.locked .layer-lock { display: block; }
+.lock-unlock { position: absolute; right: 8px; bottom: 11px; padding: 0; border: 0; background: none; color: var(--primary); font-size: 13px; font-weight: 500; line-height: 19px; cursor: pointer; }
+.lock-unlock:hover { text-decoration: underline; }
+
+.sec { margin-bottom: 8px; }
+.sec-head {
+  display: flex; align-items: center; gap: 6px;
+  height: 30px;
+  padding: 0 8px;
+  background: var(--bg-card);
+  border-radius: 0;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+.sec-head .caret { width: 0; height: 0; border: 3px solid transparent; border-top: 4px solid var(--text); margin-top: 3px; transition: transform .2s; }
+.sec.collapsed .sec-head .caret { transform: rotate(-90deg); margin-top: 0; }
+.sec.collapsed .sec-body { display: none; }
+.sec-head .badge { margin-left: auto; margin-right: -4px; font-size: 11px; font-weight: 500; padding: 3px 10px; background: var(--line-soft); border: 0; border-radius: var(--radius); color: var(--text); }
+.sec-head .badge.gw { color: var(--primary); cursor: pointer; }
+.sec-head .badge.gw.off { color: var(--text-3); }
+
+/* 슬라이더 (기준값 .f-rng · 가중치 팝업) : 막대 4px 테두리 없음, 손잡이 왼쪽 primary · 오른쪽 어두운 회색, 손잡이 14px 원.
+   map-layer.js 가 input 때마다 --pct 를 넣어 linear-gradient 로 채운다 */
+.f-rng, .wp-row input[type=range] {
+  -webkit-appearance: none; appearance: none;
+  height: 4px; border: 0; outline: 0; border-radius: 2px; padding: 0; margin: 0;
+  background: linear-gradient(to right, var(--primary) 0 var(--pct, 50%), var(--line-soft) var(--pct, 50%) 100%);
+  cursor: pointer;
+}
+.f-rng::-webkit-slider-runnable-track, .wp-row input[type=range]::-webkit-slider-runnable-track { height: 4px; background: transparent; border: 0; }
+.f-rng::-webkit-slider-thumb, .wp-row input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 12px; height: 12px; margin-top: -4px; border-radius: 50%;
+  background: var(--primary); border: 0; box-shadow: none; transition: box-shadow .15s;
+}
+.f-rng::-moz-range-track, .wp-row input[type=range]::-moz-range-track { height: 4px; background: transparent; border: 0; }
+.f-rng::-moz-range-thumb, .wp-row input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--primary); border: 0; }
+.f-rng:focus, .wp-row input[type=range]:focus { outline: none; }
+.f-rng:focus::-webkit-slider-thumb, .wp-row input[type=range]:focus::-webkit-slider-thumb,
+.f-rng:hover::-webkit-slider-thumb, .wp-row input[type=range]:hover::-webkit-slider-thumb { box-shadow: 0 0 0 5px rgba(68, 142, 222, .28); }
+.wp-row input[type=range]:disabled { opacity: .35; cursor: default; }
+.wp-row input[type=range]:disabled::-webkit-slider-thumb { box-shadow: none; }
+.sec-body { padding: 0 14px 0 16px; }
+.sec-note { font-size: 12px; line-height: 1.6; color: var(--text-2); padding: 2px 4px 6px; }
+
+/* 항목 : 슬라이더 있는 항목은 1줄 = 체크박스 + 이름, 2줄 = 슬라이더 + 기준값(오른쪽 정렬).
+   슬라이더 없는 항목은 한 줄에 이름 + 설명 */
+.f-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "chk val";
+  align-items: center;
+  column-gap: 8px;
+  padding: 4px 0 3px;
+}
+.f-row.has-rng { grid-template-areas: "chk chk" "rng val"; }
+.f-row .chk { grid-area: chk; font-size: 12.5px; line-height: 18px; color: var(--text); }
+.f-row .f-rng { grid-area: rng; width: 150px; margin: 5px 0 1px 22px; }
+.f-row .f-val { grid-area: val; font-size: 11px; color: var(--text-2); white-space: nowrap; }
+.f-row.has-rng .f-val { align-self: end; }
+/* 설계에는 항목별 점수(+30)가 없음 : 묶음 점수는 섹션 제목 배지와 가중치 조정 팝업에서 보여줌. 다시 보이려면 display:none 을 지우세요 */
+.f-row .f-w { display: none; grid-area: w; font-size: 11px; color: var(--primary); min-width: 28px; text-align: right; }
+.f-row.off .chk, .f-row.off .f-val { color: var(--text-2); }
+.f-row.off .f-rng { opacity: .35; }
+.f-row.off .f-w { visibility: hidden; }
+.f-row.ref { padding: 3px 0; }
+.f-row.ref .chk { font-size: 12.5px; color: var(--text-2); }
+
+/* 카드 안 아래쪽 버튼 : 가중치 조정(흰색 채움 110) + 분석 실행(메인 컬러) */
+.layer-foot {
+  display: flex; gap: 8px;
+  padding: 12px 15px 11px;
+  background: transparent;
+}
+.layer-foot .btn { height: 40px; font-size: 15px; }
+.layer-foot .btn:not(.btn-primary) { flex: 0 0 110px; background: var(--btn-light); border-color: var(--btn-light); color: var(--bg-panel); }
+.layer-foot .btn:not(.btn-primary):hover { background: var(--btn-light-h); }
+.layer-foot .btn-primary { flex: 1; }
+#btnRun.dirty { box-shadow: 0 0 0 2px rgba(68,142,222,.45); }
+
+/* 가중치 팝업 */
+.weight-pop {
+  display: none;
+  position: absolute;
+  /* 패널 카드 안에 있으므로 카드 기준 : 카드 오른쪽 12px, 아래 맞춤 (설계 x=324) */
+  left: calc(100% + 13px); bottom: -1px;
+  max-height: calc(100vh - var(--header-h) - 24px); overflow: auto;
+  width: var(--wp-w);
+  padding: 16px 15px;
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: none;
+  z-index: 20;
+}
+.weight-pop.open { display: block; }
+.wp-head { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; white-space: nowrap; }
+.wp-head b { font-size: 14px; font-weight: 700; margin-right: auto; }
+.wp-head .link-muted { font-size: 12px; }
+.wp-head button { background: none; border: 0; cursor: pointer; }
+.wp-close { font-size: 20px; color: var(--text-2); }
+/* 한 줄 = 묶음 이름(+ 요인 작게) · 점수 상자, 아래 슬라이더 (피그마 02 가중치 조정 열림) */
+.wp-row { display: grid; grid-template-columns: 1fr auto; align-items: center; row-gap: 10px; padding: 12px 0 8px; font-size: 13px; }
+.wp-row .wp-name { font-size: 12.5px; font-weight: 400; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wp-row .wp-name small { margin-left: 4px; font-size: 11px; color: var(--text-2); }
+.wp-row > b { height: 22px; line-height: 20px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--radius); font-size: 12px; font-weight: 700; min-width: 48px; text-align: center; }
+.wp-row input { grid-column: 1 / -1; width: 100%; }
+.wp-row.locked .wp-name, .wp-row.locked > b { color: var(--text-3); }
+.wp-note { margin: 10px 0 0; font-size: 11px; line-height: 1.55; color: var(--text-3); }   /* 점수 규칙 안내 (15단계 B-7) */
+
+/* 패널 접기 손잡이 */
+.side-toggle {
+  position: absolute;
+  left: calc(var(--lp-gap) + var(--lp-w)); top: 50%;
+  transform: translateY(-50%);
+  width: 19px; height: 56px;
+  border: 1px solid var(--line); border-left: 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--bg-panel);
+  color: var(--text-2);
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 15;
+  transition: left .26s ease;
+}
+.map-layout.left-closed .side-toggle { left: 0; transform: translateY(-50%) scaleX(-1); }
+
+/* ---------- 지도 ---------- */
+.map-wrap { position: relative; flex: 1; min-width: 0; background: var(--bg-card); }
+/* 네이버 SDK 가 컨테이너에 position:relative 를 인라인으로 넣으므로 inset 대신 크기로 잡는다 */
+#map { width: 100%; height: 100%; }
+/* 다크 : 타일을 반전시키고, 마커 내용(.mk-inv)은 다시 반전해 원래 색으로.
+   라이트 모드 · 위성 지도(#map.mt-photo)는 반전 없이 원래 지도 색 그대로 */
+:root:not([data-theme="light"]) #map:not(.mt-photo) > div:not(.map-error) { filter: invert(100%) hue-rotate(180deg) brightness(88%) contrast(92%); }
+:root:not([data-theme="light"]) #map:not(.mt-photo) .mk-inv { filter: invert(100%) hue-rotate(180deg) brightness(114%) contrast(108%); }
+.map-error { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: var(--text-2); padding: 24px; }
+.map-error b { display: block; font-size: 16px; color: var(--text); margin-bottom: 8px; }
+.map-error code { color: var(--primary); }
+
+/* 지도 위 요소 : 패널이 열려 있으면 패널 오른쪽 12px(324)에서 시작, 닫히면 12px */
+.map-top {
+  position: absolute; left: var(--lp-right); right: 12px; top: 24px;
+  transition: left .26s ease;
+  display: flex; align-items: center; gap: 8px;
+  z-index: 10;
+  pointer-events: none;
+}
+.map-top > * { pointer-events: auto; }
+.map-layout.left-closed .map-top, .map-layout.left-closed .map-legend { left: 12px; }
+.map-top .field.sel { width: 130px; height: 36px; padding-left: 12px; font-size: 13px; background-color: var(--bg-panel); border-radius: var(--radius); }
+.status-chips { display: flex; gap: 6px; margin-left: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 12px;
+  background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--radius);
+  font-size: 12px; color: var(--text-2);
+}
+.chip b { color: var(--text); }
+.chip-toggle { cursor: pointer; margin-left: 6px; white-space: nowrap; flex-shrink: 0; }
+.chip-toggle .ck { width: 14px; height: 14px; border-radius: var(--radius); border: 1px solid var(--line); display: grid; place-items: center; font-size: 10px; color: transparent; }
+.chip-toggle.on { border-color: var(--primary); color: var(--text); }
+.chip-toggle.on .ck { background: var(--primary); border-color: var(--primary); color: #fff; }
+.chip:hover { border-color: var(--primary); color: var(--text); }
+/* 동 선택 2단계 드롭다운 (피그마 02 "동 선택 열림") : 법정동 열 → 행정동 열 */
+.dong-dd { position: relative; }
+.dong-btn { display: flex; align-items: center; justify-content: space-between; width: 130px; padding: 0 12px; font-size: 13px; text-align: left; background-color: var(--bg-panel); border-radius: var(--radius); cursor: pointer; }
+.dong-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dong-btn i { font-style: normal; font-size: 8px; color: var(--text-2); margin-left: 6px; }
+.dong-dd.open .dong-btn { border-color: var(--primary); }
+.dm-menu { display: none; position: absolute; left: 0; top: 40px; }
+.dong-dd.open .dm-menu { display: block; }
+/* 동 선택 열림 (피그마 02) : 법정동 열 167 → 6px 띄워 행정동 열 156. 고른 줄 = 짙은 파랑 + 왼쪽 2px 메인 컬러 */
+.dm-col {
+  position: absolute; left: 0; top: 0; width: 167px; max-height: 430px; overflow-y: auto; padding: 7px 0;
+  background: var(--bg-card); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+}
+.dm-sub { left: 172px; width: 156px; }
+.dm-row { display: flex; align-items: center; justify-content: space-between; height: 34px; padding: 0 12px 0 14px; cursor: pointer; font-size: 13px; color: var(--text); white-space: nowrap; }
+.dm-sub .dm-row + .dm-row { margin-top: 2px; }
+.dm-row small { color: var(--text-3); font-size: 11px; margin-left: 6px; }
+.dm-row i { font-style: normal; color: var(--text-3); }
+.dm-row:hover, .dm-row.hover { background: var(--bg-hover); }
+.dm-row.sel { background: var(--sel-bg-2); box-shadow: inset 2px 0 0 var(--primary); }
+.dm-all { color: var(--text-2); }
+
+/* 재해 시나리오 적용 중 띠 (피그마 02-3 : 메인 컬러 바탕 · 짙은 글자 13). 지도 위 첫 줄(구 · 동 · 검색) 아래 12px */
+.scn-banner {
+  display: none; position: absolute; left: var(--lp-right); top: 72px; z-index: 10;
+  align-items: center; height: 36px; padding: 0 14px;
+  background: var(--primary); color: #0b0b0c; border-radius: var(--radius);
+  font-size: 13px; font-weight: 500; white-space: nowrap;
+  transition: left .26s ease;
+}
+.scn-banner.show { display: inline-flex; }
+.map-layout.left-closed .scn-banner { left: 12px; }
+
+/* 지도 모드 (피그마 02 "일반 · 위성 · 로드뷰") : 오른쪽 위 54 폭 세로 3칸(50), 고른 칸 = 메인 컬러 */
+.map-type {
+  position: absolute; right: 12px; top: 24px; z-index: 10;
+  display: flex; flex-direction: column; width: 54px; overflow: hidden;
+  background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--radius);
+  transition: right .26s ease;
+}
+.mt-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  height: 50px; padding: 0; border: 0; background: none;
+  color: var(--text-2); font-size: 11px; font-weight: 500; line-height: 15px; cursor: pointer;
+}
+.mt-btn + .mt-btn { border-top: 1px solid var(--line); }
+.mt-btn .ico { color: var(--text); }
+.mt-btn:not(.on):hover { background: var(--bg-hover); }
+.mt-btn.on { background: var(--primary); color: #fff; }
+.mt-btn.on .ico { color: #fff; }
+
+/* 로드뷰 창 : 지도 모드 버튼 왼쪽 ~ 왼쪽 패널 오른쪽, 위 칩 줄 아래 ~ 바닥 */
+.pano-wrap {
+  position: absolute; left: var(--lp-right); right: 78px; top: 72px; bottom: 12px; z-index: 13;
+  display: flex; flex-direction: column;
+  background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+  transition: left .26s ease, right .26s ease;
+}
+.map-layout.left-closed .pano-wrap { left: 12px; }
+.map-layout:has(.right-panel.open) .pano-wrap { right: 478px; }
+.map-layout:has(.pano-wrap:not([hidden])) .todo-wrap { display: none; }
+.pano-head { display: flex; align-items: center; gap: 10px; height: 40px; flex: 0 0 40px; padding: 0 6px 0 14px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.pano-head span { flex: 1; min-width: 0; color: var(--text-2); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pano-x { width: 30px; height: 30px; border: 0; background: none; color: var(--text-2); font-size: 20px; line-height: 1; cursor: pointer; }
+.pano-x:hover { color: var(--text); }
+.pano { position: relative; flex: 1; min-height: 0; background: #000; }
+.pano-pin { width: 18px; height: 18px; border-radius: 50%; background: var(--primary); border: 3px solid #fff; box-shadow: 0 0 0 4px rgba(68, 142, 222, .35), 0 1px 4px rgba(0, 0, 0, .6); }
+
+/* 상단 현황 패널 (피그마 02 "양쪽 패널 접힘 + 상단 현황 패널") : 헤더 바로 아래 가운데. 왼쪽 레이어 패널과 오른쪽 패널이 모두 닫혔을 때만.
+   아래 56×19 손잡이로 접고 편다 (접으면 손잡이만 남고 화살표가 아래로) */
+.todo-wrap { display: none; position: absolute; left: 50%; top: 0; transform: translateX(-50%); z-index: 11; flex-direction: column; align-items: center; }
+.map-layout.left-closed:not(:has(.right-panel.open)) .todo-wrap { display: flex; }
+.todo-panel {
+  display: flex; flex-direction: column; gap: 8px; min-width: 320px;
+  padding: 16px 24px 18px;
+  background: var(--bg-panel); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 var(--radius) var(--radius);
+}
+.todo-title { font-size: 13px; font-weight: 700; line-height: 19px; }
+.todo-nums { display: flex; gap: 28px; }
+.todo-item { display: flex; flex-direction: column; gap: 2px; }
+.todo-item b { font-size: 30px; font-weight: 700; line-height: 38px; }
+.todo-item span { display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 17px; color: var(--text-2); white-space: nowrap; }
+.todo-item img { display: block; }
+.todo-fold {
+  display: grid; place-items: center; width: 56px; height: 19px; padding: 0; margin-top: -1px;
+  background: var(--bg-panel); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 var(--radius) var(--radius);
+  cursor: pointer;
+}
+.todo-fold img { display: block; transition: transform .2s; }
+.todo-wrap.folded .todo-panel { display: none; }
+.todo-wrap.folded .todo-fold { margin-top: 0; }
+.todo-wrap.folded .todo-fold img { transform: rotate(180deg); }
+
+/* 구청 계정 관할 밖 안내 띠 (11단계) */
+.out-bar {
+  position: absolute; left: 50%; top: 68px; transform: translateX(-50%); z-index: 11;
+  display: none; align-items: center; gap: 12px; height: 38px; padding: 0 8px 0 16px; border-radius: 19px;
+  border: 1px solid var(--warn); background: var(--bg-panel); color: var(--text); font-size: 13px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .45);
+}
+.out-bar.show { display: inline-flex; }
+.out-bar b { color: var(--warn); }
+.out-bar .btn { height: 28px; padding: 0 12px; font-size: 12px; }
+
+/* [이 지역에서 재검색] : 분석 뒤 지도를 옮기면 뜬다. 좌우 패널이 열리든 닫히든 늘 브라우저 화면 정중앙 (fixed).
+   bottom 은 map-main.js placeRefetch 가 범례 위로 맞춤 */
+.btn-refetch {
+  position: fixed; left: 50%; bottom: 92px; transform: translateX(-50%); z-index: 10;
+  display: none; align-items: center; gap: 6px; height: 38px; padding: 0 18px; border-radius: 19px;
+  border: 1px solid var(--primary); background: var(--bg-panel); color: var(--text); font-size: 13px; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .45);
+}
+.btn-refetch.show { display: inline-flex; }
+.btn-refetch:hover { background: var(--primary); }
+
+.map-top .search { margin-left: auto; margin-right: 64px; position: relative; width: 280px; }   /* 오른쪽 끝에서 조금 왼쪽으로 */
+.map-top .search .field { height: 36px; padding-left: 30px; padding-right: 36px; font-size: 13px; background: var(--bg-panel); }
+.search-clear { position: absolute; right: 2px; top: 2px; width: 32px; height: 32px; border: 0; background: none; color: var(--text-2); font-size: 18px; line-height: 1; cursor: pointer; }
+.search-clear:hover { color: var(--text); }
+/* 돋보기는 설계처럼 왼쪽 */
+.search-btn { position: absolute; left: 2px; top: 2px; width: 32px; height: 32px; border: 0; background: none; color: var(--text-2); font-size: 18px; cursor: pointer; }
+
+/* 범례 : 위 줄 제목 "범례", 아래 줄 항목들 */
+.map-legend {
+  position: absolute; left: var(--lp-right); bottom: 12px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px;
+  max-width: calc(100% - var(--lp-right) - 72px);
+  padding: 34px 14px 11px 13px;   /* 위 34px 자리에 "범례" 제목 */
+  background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--radius);
+  font-size: 11px; color: var(--text-2);
+  z-index: 10;
+  transition: left .26s ease;
+}
+.map-legend b { color: var(--text); }
+.map-legend > b { position: absolute; left: 13px; top: 11px; font-size: 12.5px; font-weight: 500; }
+/* 가중치 조정 팝업이 열리면 범례를 팝업 오른쪽으로 비켜 둠 */
+.map-layout:has(.weight-pop.open) .map-legend { left: calc(var(--lp-right) + var(--wp-w) + 12px); }
+.map-legend .lg { display: inline-flex; align-items: center; gap: 6px; }
+.map-legend .sw { width: 22px; height: 12px; border-radius: 0; }
+:root:not([data-theme="light"]) .map-legend img { filter: invert(100%) hue-rotate(180deg); }
+.map-legend img { display: block; }
+.lg-badge { display: inline-grid; place-items: center; min-width: 18px; height: 17px; padding: 0 4px; border-radius: 3px; background: #B22B2B; color: #fff; font-size: 11px; font-weight: 700; }
+.lg-badge.blue { background: var(--primary); }
+.lg-chk { position: relative; cursor: pointer; }
+.lg-chk small { color: var(--text-3); }
+.lg-chk:hover small { color: var(--text); }
+.lg-menu { display: none; position: absolute; left: 0; bottom: calc(100% + 10px); min-width: 120px; padding: 4px 0; background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,.5); z-index: 30; }
+.lg-menu.open { display: block; }
+.lg-menu button { display: block; width: 100%; padding: 7px 14px; text-align: left; background: none; border: 0; color: var(--text-2); font-size: 12px; cursor: pointer; }
+.lg-menu button:hover { background: var(--bg-hover); color: var(--text); }
+.lg-menu button.on { color: var(--primary); font-weight: 700; }
+.lg-check { width: 16px; height: 16px; border-radius: 50%; background: var(--primary); color: #fff; font-size: 10px; display: grid; place-items: center; font-style: normal; }
+.lg-ring { width: 14px; height: 14px; border-radius: 50%; border: 3px solid; }
+/* 범례 안 설명 줄은 설계에서 뺐음. 다시 보이려면 display:none 을 지우세요 */
+.map-legend .lg-mode, .lg-mode { display: none; padding-left: 10px; border-left: 1px solid var(--line); color: var(--text-3); }
+
+/* 확대 · 축소 버튼 : 모양은 common.css .map-ctrl (모든 지도 공통), 여기는 위치만 */
+.map-ctrl { right: 12px; bottom: 12px; }
+
+/* 마커 (map-marker.js, 살피구로 kpin/kcl/kgu). .mk-inv 는 타일 다크 필터를 되돌린다 */
+.kpin, .kcl, .kgu { cursor: pointer; user-select: none; -webkit-user-select: none; }
+.kpin img, .kcl img { display: block; -webkit-user-drag: none; }
+.kpin { position: relative; filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, .55)); }
+/* 주소 라벨 : 최대 확대(show-labels)이거나 선택한 건물일 때만, 핀 끝 바로 아래 */
+.kpin-label { display: none; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 1px; white-space: nowrap;
+  font-size: 11px; font-weight: 600; color: #fff; pointer-events: none;
+  text-shadow: 0 0 2px #000, 0 0 2px #000, 0 0 3px #000, 0 0 3px #000; }
+.show-labels .kpin-label, .kpin.sel .kpin-label { display: block; }
+.kcl { position: relative; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .5)); }
+.kcl b { position: absolute; inset: 0; display: grid; place-items: center; color: #1B2430; font-weight: 700; line-height: 1; }
+.kcl i { position: absolute; transform: translate(-50%, -50%); font-style: normal; background: #B22B2B; color: #fff;
+  font-size: 12px; font-weight: 700; line-height: 1.2; padding: 2px 5px 1px; white-space: nowrap; border-radius: 3px; }
+.kdot { border-radius: 50%; border: 1px solid rgba(255, 255, 255, .85); box-shadow: 0 0 2px rgba(0, 0, 0, .7); cursor: pointer; }
+.kdot.chk { box-shadow: 0 0 0 2px #448ede, 0 0 3px rgba(0, 0, 0, .7); }
+/* 핀 · 도넛의 현장 확인 배지 (파란 체크) */
+.kpin-check { position: absolute; right: -5px; top: -4px; width: 15px; height: 15px; border-radius: 50%; background: #448ede; color: #fff; font-size: 10px; font-weight: 700; font-style: normal; display: grid; place-items: center; border: 1.5px solid #fff; }
+.kcl em { position: absolute; transform: translate(-50%, -50%); font-style: normal; background: #448ede; color: #fff;
+  font-size: 11px; font-weight: 700; line-height: 1.2; padding: 2px 5px 1px; white-space: nowrap; border-radius: 3px; }
+.mk-check-dot { width: 16px; height: 16px; border-radius: 50%; background: #448ede; color: #fff; font-size: 10px; font-weight: 700; display: grid; place-items: center; border: 1.5px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.6); cursor: pointer; }
+.kgu small { display: block; font-size: 11px; font-weight: 500; color: #9cc3f0; }
+.lg-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); border: 1px solid #fff; }
+.kgu { width: 96px; height: 96px; border-radius: 50%; border: 3px solid; background: rgba(26, 26, 27, .94);
+  display: grid; place-content: center; text-align: center; font-size: 13px; font-weight: 700; line-height: 1.35; color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .5); }
+.kgu b { display: block; font-size: 14px; }
+.mk-check {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--primary); color: #fff; font-size: 14px; font-weight: 700;
+  display: grid; place-items: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,.7);
+  cursor: pointer;
+}
+
+/* ---------- 오른쪽 패널 ---------- */
+/* 지도 위에 덮는다 : 지도 크기가 안 바뀌어야 여닫을 때 지도가 움찔하지 않는다 (2026-11-08) */
+.right-panel {
+  position: absolute; top: 0; right: 0; bottom: 0; z-index: 20;
+  width: 400px;
+  display: flex; flex-direction: column;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--line);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform .26s ease, visibility 0s linear .26s;
+}
+.right-panel.open { transform: none; visibility: visible; transition: transform .26s ease, visibility 0s; }
+/* 패널이 열리면 지도 위 오른쪽 요소들을 패널 왼쪽으로 비켜 준다 */
+.map-top, .map-ctrl { transition: left .26s ease, right .26s ease; }
+.out-bar { transition: left .26s ease; }
+.map-layout:has(.right-panel.open) .map-top,
+.map-layout:has(.right-panel.open) .map-ctrl,
+.map-layout:has(.right-panel.open) .map-type { right: 412px; }
+/* .btn-refetch 는 여기서 비키지 않는다 : fixed 로 늘 브라우저 화면 정중앙 */
+.map-layout:has(.right-panel.open) .out-bar { left: calc(50% - 200px); }
+.map-layout:has(.right-panel.open) .map-legend { max-width: calc(100% - var(--lp-right) - 72px - 400px); }
+.rp-view { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.rp-head { display: flex; align-items: center; gap: 8px; height: 52px; flex: 0 0 52px; padding: 0 22px 0 24px; border-bottom: 1px solid var(--line-mid); }
+.rp-head h2 { font-size: 15px; font-weight: 700; flex: 1; }
+.rp-close, .rp-back { background: none; border: 0; color: var(--text-2); font-size: 22px; cursor: pointer; line-height: 1; }
+.rp-back { font-size: 24px; margin-left: -6px; }
+
+/* 결과 리스트 (피그마 02-1) : 줄 높이 54, 점수 막대 58 = 어두운 트랙 + 메인 컬러 */
+.rs-scope { padding: 14px 24px 0; font-size: 12px; color: var(--primary); }
+.rs-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 12px 24px; }
+.rs-count { font-size: 13px; color: var(--text-2); }
+.rs-count b { font-size: 26px; font-weight: 700; color: var(--text); margin-right: 4px; }
+.sel-sm { height: 32px; width: auto; font-size: 12px; padding: 0 22px 0 8px; background-color: var(--bg-panel); border-color: transparent; }
+.rs-list { flex: 1; overflow-y: auto; padding: 0 12px 12px; }
+.rs-row {
+  display: flex; align-items: center; gap: 14px;
+  height: 54px; padding: 0 12px 0 13px;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+}
+.rs-row:hover { background: var(--bg-hover); }
+.rs-row.sel { background: var(--sel-bg); border-left-color: var(--primary); }
+.rs-rank { width: 20px; text-align: center; font-size: 13px; font-weight: 700; color: var(--text-2); }
+.rs-row.sel .rs-rank { color: var(--primary); }
+.rs-body { flex: 1; min-width: 0; }
+.rs-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rs-sub { font-size: 11px; color: var(--text-2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rs-hh { margin-left: 8px; padding: 0 6px; border-radius: var(--radius); background: var(--bg-card); color: var(--text-2); font-size: 10.5px; }
+.rs-score { width: 58px; text-align: right; }
+.rs-score b { font-size: 15px; font-weight: 700; }
+.rs-score .rs-under { display: block; font-size: 10px; line-height: 1; margin-top: 2px; color: var(--text-3); font-style: normal; }   /* 검색 결과의 기준 미만 (15단계 C-9) */
+.rs-score .rs-track { display: block; height: 3px; margin-top: 6px; background: var(--line-soft); }
+.rs-score .rs-track i { display: block; height: 100%; background: var(--primary); }
+.rs-more { margin: 0 12px 12px; height: 36px; border: 1px solid var(--line); border-radius: var(--radius); background: none; color: var(--text-2); cursor: pointer; }
+.rs-more:hover { background: var(--bg-hover); }
+.rs-empty { padding: 30px 12px; text-align: center; color: var(--text-3); font-size: 13px; line-height: 1.6; }
+
+/* 건물 상세 */
+/* 피그마 02-2 : 좌우 24, 섹션 사이 가는 선(#26272b), 섹션 제목 13px */
+.d-title-wrap { margin: 0 24px; padding: 14px 0 14px; border-bottom: 1px solid var(--line-soft); }
+.d-title-wrap h3 { font-size: 17px; font-weight: 700; }
+.d-sub { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--text-2); }
+.d-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.d-checked { flex: 0 0 auto; margin-top: 2px; padding: 3px 10px; border-radius: var(--radius); background: var(--primary); color: #fff; font-size: 11px; line-height: 16px; white-space: nowrap; }
+.d-hist { flex: 0 0 auto; height: 28px; padding: 0 14px; font-size: 12px; font-weight: 600; }
+.d-score { margin-top: 8px; font-size: 13px; color: var(--text-2); }
+.d-score b { font-size: 20px; color: var(--text); margin-left: 4px; }
+.d-tabs { display: flex; border-bottom: 1px solid var(--line); }
+.d-tab { flex: 1; height: 40px; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--text-2); font-weight: 600; cursor: pointer; }
+.d-tab.active { color: var(--text); border-bottom-color: var(--primary); }
+.d-body { flex: 1; overflow-y: auto; padding: 0 24px 20px; }
+.d-body > h4 { font-size: 13px; font-weight: 500; margin: 18px 0 10px; padding-top: 18px; border-top: 1px solid var(--line-soft); }
+.d-body > h4:first-child { border-top: 0; padding-top: 0; }
+.d-hint { font-weight: 400; font-size: 11px; color: var(--text-3); margin-left: 6px; }
+/* 점수 구성 한 줄 : 이름(+ 근거 작게) · 막대 110 · 점수 */
+.sc-row { display: grid; grid-template-columns: 1fr 110px 34px; align-items: center; gap: 12px; height: 26px; font-size: 12.5px; }
+.sc-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sc-label small { color: var(--text-2); font-size: 11px; margin-left: 2px; }
+.sc-row.miss { color: var(--text-2); }
+.sc-bar { height: 5px; background: var(--line-soft); border-radius: 0; overflow: hidden; }
+.sc-bar i { display: block; height: 100%; background: var(--primary); }
+.sc-row.miss .sc-bar i { background: var(--line); }
+.sc-pt { text-align: right; font-size: 12px; font-weight: 700; }
+.sc-row.miss .sc-pt { font-weight: 400; color: var(--text-3); }
+.d-resident-summary { font-size: 13px; line-height: 1.6; color: var(--text-2); }
+.d-resident-summary b { color: var(--text); }
+/* 건축물대장 표 : 바깥 테두리 #3a3a40, 안쪽 선 #26272b, 줄 높이 36 */
+.d-info { width: 100%; border-collapse: collapse; font-size: 12.5px; border: 1px solid var(--line); }
+.d-info th, .d-info td { height: 36px; padding: 0 14px; border-top: 1px solid var(--line-soft); text-align: left; }
+.d-info tr:first-child th, .d-info tr:first-child td { border-top: 0; }
+.d-info th { width: 96px; background: var(--bg-card); color: var(--text-2); font-weight: 400; border-right: 1px solid var(--line-soft); }
+/* 복지 사각 : 가장 가까운 시설과 거리 */
+.welf-box { border: 1px solid var(--line); }
+.welf-row { display: grid; grid-template-columns: 82px 1fr auto; align-items: center; gap: 10px; height: 36px; padding: 0 14px; font-size: 12.5px; }
+.welf-row + .welf-row { border-top: 1px solid var(--line-soft); }
+.welf-k { color: var(--text-2); }
+.welf-nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.welf-d { font-weight: 700; }
+.d-memo { height: auto; padding: 10px 12px; font-size: 12.5px; background: var(--bg-panel); resize: vertical; }
+.d-foot { display: flex; gap: 8px; padding: 15px 24px 23px; border-top: 1px solid var(--line-mid); }
+.d-foot .btn { flex: 1; height: 40px; font-size: 14px; }
+.d-foot .btn-line { flex: 0 0 124px; border-color: var(--line); font-weight: 500; }
+.d-privacy { margin: 12px 0; padding: 10px 12px; background: var(--bg-card); border-radius: var(--radius); font-size: 12px; line-height: 1.6; color: var(--text-2); }
+
+/* 거주 취약 가구 상자 (02-2) */
+.vuln-box { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 13px 13px 13px; background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.vuln-box > div { flex: 1 1 auto; min-width: 0; }
+.vuln-box b { display: block; font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+.vuln-box b small { font-size: 11px; font-weight: 400; color: var(--text-2); }
+.vuln-box .muted { font-size: 11.5px; color: var(--text-2); }
+.vuln-box .btn { flex: 0 0 auto; white-space: nowrap; height: 30px; padding: 0 12px; font-size: 12px; font-weight: 500; border-color: var(--line); }
+
+/* 취약 가구 정보 모달 (02-2-1) */
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200; align-items: center; justify-content: center; }
+.modal-bg.open { display: flex; }
+.modal { width: min(880px, calc(100vw - 48px)); max-height: calc(100vh - 80px); display: flex; flex-direction: column; background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 16px 48px rgba(0,0,0,.6); }
+.modal-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 22px 26px 18px; border-bottom: 1px solid var(--line); }
+.modal-head h3 { font-size: 19px; font-weight: 700; margin-bottom: 6px; }
+.modal-head p { font-size: 13px; }
+.modal-body { padding: 18px 26px; overflow-y: auto; }
+.modal-foot { display: flex; justify-content: flex-end; padding: 14px 26px; border-top: 1px solid var(--line); }
+.rm-notice { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; margin-bottom: 14px; background: var(--bg-card); border-radius: var(--radius); font-size: 12.5px; }
+.rm-tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.rm-tbl th { background: var(--bg-card); color: var(--text-2); font-weight: 500; text-align: left; padding: 11px 14px; font-size: 12.5px; }
+.rm-tbl td { padding: 15px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+.rm-tbl .rm-flr { font-weight: 700; font-size: 15px; }
+/* 순위 + 가점 (12단계) : "1  42점", 가점에 올리면 내역 툴팁 */
+.rm-tbl .rm-rank { white-space: nowrap; width: 64px; }
+.rm-tbl .rm-rank b { font-size: 14px; font-weight: 700; margin-right: 6px; }
+.rm-tbl .rm-rank small { font-size: 11px; color: var(--text-2); border-bottom: 1px dotted var(--text-3); cursor: help; }
+.rm-tbl .tag { margin-right: 4px; }
+.tag.benefit { border-style: dashed; color: var(--text-3); background: transparent; }
+.rm-legend { margin: -4px 0 10px; font-size: 11px; }
+.rm-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: 1px; background: var(--text-3); }
+.rm-dot.ok { background: var(--ok); } .rm-dot.warn { background: var(--warn); } .rm-dot.blue { background: var(--primary); }
+
+/* 기준 가이드 (피그마 02-3) : 안내 상자 → 질문(오른쪽, 메인 컬러) · 답변(왼쪽, 카드) → 자주 묻는 기준 → 입력줄 */
+.gd-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 24px; }
+.gd-note { padding: 10px 12px; background: var(--bg-card); border-radius: 1px; font-size: 11px; line-height: 1.45; color: var(--text-2); }
+.gd-msgs { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+.gd-msgs:empty { display: none; }
+.gd-q { align-self: flex-end; max-width: 85%; padding: 7px 14px; background: var(--primary); color: #0b0b0c; border-radius: var(--radius); font-size: 13px; line-height: 20px; word-break: keep-all; overflow-wrap: anywhere; }
+.gd-a { align-self: flex-start; width: 330px; max-width: 100%; padding: 12px 14px; background: var(--bg-card); color: var(--text); border-radius: var(--radius); font-size: 13px; line-height: 1.5; word-break: keep-all; }
+.gd-a.soon { color: var(--text-2); }
+.gd-faq { padding: 0 24px 16px; }
+.gd-faq > span { font-size: 12px; font-weight: 500; color: var(--text-2); }
+.gd-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.gd-chip { height: 26px; padding: 0 12px; background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--radius); color: var(--text); font-size: 12px; cursor: pointer; }
+.gd-chip:hover { border-color: var(--primary); }
+.gd-input { display: flex; gap: 8px; padding: 16px 24px 24px; border-top: 1px solid var(--line-mid); }
+.gd-input .field { flex: 1; height: 40px; background: var(--bg-panel); font-size: 13px; }
+.gd-input .btn { flex: 0 0 72px; height: 40px; padding: 0; font-size: 13px; font-weight: 500; }
+
+/* 거주 가구 카드 */
+.rd-card { padding: 12px 14px; margin-bottom: 8px; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--line-soft); }
+.rd-head { display: flex; align-items: center; justify-content: space-between; }
+.rd-who { font-size: 14px; font-weight: 600; }
+.rd-pri { font-size: 13px; color: var(--warn); }
+.rd-sub { margin-top: 4px; font-size: 12px; color: var(--text-2); }
+.rd-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.tag { padding: 2px 8px; border-radius: var(--radius); background: var(--bg-panel); border: 1px solid var(--line); font-size: 11px; color: var(--text-2); }
+.rd-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.rd-loc { font-size: 13px; color: var(--primary); font-weight: 600; }

@@ -1,0 +1,124 @@
+/* ---------- 화면 틀 ---------- */
+.screen {
+  --top: max(var(--safe-top), 40px);
+  position: relative;
+  min-height: 100vh;
+  padding: calc(var(--top) + 54px) var(--gutter) 24px;
+}
+.screen--tabs { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 24px); }
+.screen--actions { padding-bottom: calc(var(--actionbar-h) + var(--safe-bottom) + 24px); }
+
+.screen__back {
+  position: absolute;
+  top: calc(var(--top) + 6px);
+  left: 12px;
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+}
+.screen__head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.screen__head--noback { margin-top: -54px; }
+.screen__title { font-size: 22px; font-weight: 700; color: var(--text); }
+
+/* ---------- 하단 탭 ---------- */
+.tabbar {
+  position: fixed; z-index: 20;
+  left: 50%; bottom: 0; transform: translateX(-50%);
+  width: 100%; max-width: 480px;
+  height: calc(var(--tabbar-h) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  background: var(--panel);
+  border-top: 1px solid var(--line-2);
+}
+.tabbar__item {
+  display: flex; flex-direction: column; align-items: center;
+  padding-top: 12px; gap: 4px;
+  font-size: 11px; color: var(--sub); text-decoration: none;
+}
+.tabbar__item.is-active { color: var(--text); font-weight: 700; }
+
+/* ---------- 하단 버튼 바 ---------- */
+.actionbar {
+  position: fixed; z-index: 20;
+  left: 50%; bottom: 0; transform: translateX(-50%);
+  width: 100%; max-width: 480px;
+  height: calc(var(--actionbar-h) + var(--safe-bottom));
+  padding: 16px var(--gutter) calc(20px + var(--safe-bottom));
+  display: flex; gap: 8px;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+}
+.actionbar > :first-child { flex: 0 0 130px; }
+.actionbar > :last-child { flex: 1; }
+
+/* ---------- 버튼 ---------- */
+.btn {
+  height: 48px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 15px; font-weight: 700;
+}
+.btn--ghost { background: var(--el); border: 1px solid var(--line); color: var(--text); }
+.btn--primary { background: var(--primary); color: var(--white); }
+.btn--danger { background: var(--red); color: var(--white); }
+.btn--white { background: var(--white); color: var(--bg); font-size: 13px; font-weight: 500; }
+.btn--disabled { background: var(--soft); color: var(--muted); font-weight: 500; cursor: default; }
+
+/* ---------- 상태 ---------- */
+.dot { display: inline-block; border-radius: 50%; flex: none; }
+.dot--all { background: var(--sub); }
+.dot--before { background: var(--st-before); }
+.dot--doing { background: var(--st-doing); }
+.dot--done { background: var(--st-done); }
+
+.badge {
+  display: inline-flex; align-items: center;
+  height: 24px; padding: 0 8px; border-radius: 4px;
+  font-size: 12px; font-weight: 700; white-space: nowrap;
+}
+.badge--before { color: var(--st-before); background: rgba(63, 185, 80, 0.16); }
+.badge--doing { color: var(--st-doing); background: rgba(240, 160, 48, 0.16); }
+.badge--done { color: var(--st-done); background: rgba(68, 142, 222, 0.16); }
+.badge--plain { color: var(--text); background: var(--soft); font-weight: 500; }
+
+.chip {
+  display: inline-flex; align-items: center;
+  height: 24px; padding: 0 8px; border-radius: 4px;
+  background: var(--el); border: 1px solid var(--line);
+  font-size: 12px; font-weight: 500; color: var(--text);
+}
+
+/* ---------- 카드 · 표 ---------- */
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.section-title { font-size: 16px; font-weight: 700; margin: 22px 0 14px; }
+
+.rows { margin: 0; }
+.rows__row {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 9px 0; border-bottom: 1px solid var(--soft);
+  font-size: 12px;
+}
+.rows__row:last-child { border-bottom: 0; }
+.rows__row dt { color: var(--sub); }
+.rows__row dd { margin: 0; width: 150px; color: var(--text); font-weight: 700; }
+
+/* ---------- 모달 ---------- */
+.modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 24px; }
+.modal__dim { position: absolute; inset: 0; background: rgba(236, 236, 239, 0.45); }
+.modal__box {
+  position: relative; width: 100%; max-width: 342px;
+  max-height: calc(100vh - 48px); overflow: auto;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 22px 20px 20px;
+}
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60;
+  width: min(358px, calc(100% - 32px)); padding: 13px 16px; border-radius: 8px;
+  background: var(--soft); border: 1px solid var(--line); color: var(--text); font-size: 14px; line-height: 1.45;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.notice { padding: 40px 8px; text-align: center; font-size: 14px; line-height: 1.6; color: var(--sub); }

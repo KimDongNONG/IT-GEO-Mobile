@@ -1,0 +1,32 @@
+/* WellFAIR 다크 토큰 (Figma 모바일 프레임 기준) */
+:root {
+  --bg: #0b0b0c;
+  --panel: #141416;
+  --el: #1b1b1e;
+  --line: #3a3a40;
+  --line-2: #2c2d31;
+  --soft: #26272b;
+  --primary: #448ede;
+  --text: #e2e2e5;
+  --sub: #9b9ba2;
+  --muted: #65656c;
+  --red: #d93a3a;
+  --white: #ffffff;
+
+  --st-before: #3fb950;   /* 조사 전 */
+  --st-doing: #f0a030;    /* 조사 중 */
+  --st-done: #448ede;     /* 확인 완료 */
+
+  --score-1: #2fb3c6;
+  --score-2: #3aa0d6;
+  --score-3: #448ede;
+  --score-4: #5a7fe0;
+  --score-5: #7069dd;
+
+  --gutter: 20px;
+  --tabbar-h: 72px;
+  --actionbar-h: 84px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --font: 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+}

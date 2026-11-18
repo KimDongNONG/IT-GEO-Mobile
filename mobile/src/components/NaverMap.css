@@ -1,0 +1,21 @@
+.nvmap { position: absolute; inset: 0; }
+/* 어두운 화면에 맞춰 지도 타일만 반전 (마커 · 경로선은 그대로) */
+.nvmap img { filter: invert(92%) hue-rotate(180deg) brightness(0.95) contrast(0.9); }
+.nvpin { position: relative; width: 32px; height: 32px; display: grid; place-items: center; }
+.nvpin__dot {
+  position: relative; z-index: 1; width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center; font: 700 13px/1 'Noto Sans KR', sans-serif;
+  background: #0b0b0c; border: 2px solid #448ede; color: #e2e2e5;
+}
+.nvpin--fill .nvpin__dot, .nvpin--sel .nvpin__dot { background: #448ede; color: #fff; }
+.nvpin--sel .nvpin__dot { width: 32px; height: 32px; border-color: #fff; }
+.nvpin--done .nvpin__dot { background: #26272b; border-color: #65656c; color: #9b9ba2; }
+.nvpin--start .nvpin__dot { width: auto; padding: 0 8px; border-radius: 14px; font-size: 11px; border-color: #9b9ba2; color: #9b9ba2; }
+.nvpin__halo { position: absolute; inset: -10px; border-radius: 50%; background: rgba(68, 142, 222, 0.25); }
+.nvpin__label {
+  position: absolute; left: 50%; top: 38px; transform: translateX(-50%); white-space: nowrap;
+  padding: 4px 8px; border-radius: 4px; background: #141416; border: 1px solid #3a3a40;
+  font: 700 12px/1.2 'Noto Sans KR', sans-serif; color: #e2e2e5;
+}
+.nvhere { width: 24px; height: 24px; border-radius: 50%; background: rgba(68, 142, 222, 0.3); display: grid; place-items: center; }
+.nvhere i { width: 12px; height: 12px; border-radius: 50%; background: #448ede; border: 2px solid #fff; }

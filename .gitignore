@@ -1,0 +1,20 @@
+target/
+.settings/
+.project
+.classpath
+.factorypath
+.metadata/
+*.log
+
+# 로컬 전용 (커밋 금지)
+CLAUDE.md
+VSCODE_*.md
+run-local.cmd
+.tomcat-local/
+.vscode/
+
+# reference/ 는 DB 스크립트(reference/db/*.sql) 만 올리고 나머지(설계 문서·피그마 PNG·원본 소스·QA·대화기록 등)는 로컬에만
+reference/*
+!reference/db/
+reference/db/*
+!reference/db/*.sql

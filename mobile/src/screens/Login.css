@@ -1,0 +1,15 @@
+.login { display: flex; flex-direction: column; padding-top: calc(var(--top) + 64px); }
+.login__logo { font-size: 30px; font-weight: 400; letter-spacing: -0.5px; color: var(--text); }
+.login__logo b { font-weight: 700; color: var(--primary); }
+.login__desc { margin-top: 14px; font-size: 14px; line-height: 1.6; color: var(--sub); }
+.login__form { margin-top: 40px; display: flex; flex-direction: column; gap: 16px; }
+.login__field { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--sub); }
+.login__field input {
+  height: 52px; padding: 0 14px; border-radius: 6px;
+  background: var(--el); border: 1px solid var(--line); color: var(--text); font-size: 16px;
+}
+.login__field input:focus { outline: none; border-color: var(--primary); }
+.login__err { font-size: 13px; color: var(--red); }
+.login__go { margin-top: 8px; height: 52px; width: 100%; }
+.login__demo { margin-top: 22px; align-self: center; font-size: 13px; color: var(--sub); text-decoration: underline; text-underline-offset: 3px; }
+.login__server { margin-top: auto; padding-bottom: 24px; text-align: center; font-size: 11px; color: var(--muted); }
