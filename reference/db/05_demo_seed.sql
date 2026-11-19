@@ -6,7 +6,7 @@
 -- factor_check 키 = 점수 요인 키 : ugrnd 지하 · gosiwon 고시원 · rooftop 옥탑 · viol 위반 · old 노후 · flood 침수 · low 저지대 · cheap 저가
 --   값 Y = 요인 맞음, N = 요인 아님, ? = 판단 어려움 / added = 현장에서 새로 발견한 것
 -- =====================================================================
-USE wellfair;
+USE itgeo;
 SET SQL_SAFE_UPDATES = 0;   -- Workbench 안전 모드(Error 1175) 끄기
 
 SELECT user_id INTO @guro  FROM users WHERE login_id = 'guro';

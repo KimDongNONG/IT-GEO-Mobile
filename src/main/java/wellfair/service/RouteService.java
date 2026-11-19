@@ -35,7 +35,7 @@ import wellfair.to.WalkPathTO;
  *                   - 직선 TRANSIT_MIN_M 미만 구간은 대중교통을 부르지 않고 보행자 경로로 (걸어가는 게 맞는 거리)
  *                   - 대중교통 결과가 없으면(가까움 · 경로 없음 · 한도 초과) 보행자 경로로
  *  - 출발 → 1 → 2 → … 를 구간(두 점)마다 부르고 이어 붙인다. 구간은 한 번에 하나씩 (TMAP 초당 제한 : 동시에 부르면 429)
- *  - 같은 구간 결과는 기억한다 : 메모리 + 파일(톰캣을 껐다 켜도 대중교통 호출을 다시 쓰지 않게) = {user.home}/.wellfair/tmap-route-cache.json
+ *  - 같은 구간 결과는 기억한다 : 메모리 + 파일(톰캣을 껐다 켜도 대중교통 호출을 다시 쓰지 않게) = {user.home}/.itgeo/tmap-route-cache.json
  *  - 실패한 구간은 직선 (leg.straight = true), 실패는 기억하지 않는다 (다음에 다시 시도)
  * appKey = app.properties 의 app.tmap.app-key (보행자 · 자동차 · 대중교통 상품이 그 앱에 신청돼 있어야 한다)
  */
@@ -55,7 +55,9 @@ public class RouteService {
 
 	private static final ObjectMapper JSON = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 	private static final HttpClient HTTP = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(Duration.ofSeconds(4)).build();
-	private static final File CACHE_FILE = new File(System.getProperty("user.home"), ".wellfair/tmap-route-cache.json");
+	private static final File CACHE_FILE = new File(System.getProperty("user.home"), ".itgeo/tmap-route-cache.json");
+	/** 예전 이름 폴더의 기억 (새 파일이 없을 때 한 번 읽어 온다) */
+	private static final File OLD_CACHE_FILE = new File(System.getProperty("user.home"), ".wellfair/tmap-route-cache.json");
 
 	/** 구간 기억 : "mode:lng,lat>lng,lat" (소수 6자리) → 결과 */
 	private final Map<String, LegResult> cache = new ConcurrentHashMap<>();
@@ -285,10 +287,11 @@ public class RouteService {
 	/* ---------------- 기억 (파일) ---------------- */
 	private void loadCache() {
 		try {
-			if (CACHE_FILE.isFile()) {
-				Map<String, LegResult> m = JSON.readValue(CACHE_FILE, new TypeReference<Map<String, LegResult>>() {});
+			File f = CACHE_FILE.isFile() ? CACHE_FILE : OLD_CACHE_FILE;
+			if (f.isFile()) {
+				Map<String, LegResult> m = JSON.readValue(f, new TypeReference<Map<String, LegResult>>() {});
 				cache.putAll(m);
-				log.info("TMAP 경로 기억 {}건 불러옴 ({})", m.size(), CACHE_FILE);
+				log.info("TMAP 경로 기억 {}건 불러옴 ({})", m.size(), f);
 			}
 		} catch (Exception e) {
 			log.warn("TMAP 경로 기억 파일을 읽지 못했습니다 : {}", e.toString());

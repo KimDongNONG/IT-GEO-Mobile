@@ -3,19 +3,19 @@
 #  이클립스에서 만든 WAR 를 서버에 올리기 (웹을 고친 뒤 업데이트할 때도 이걸로)
 #
 #  사용법 (서버에 root 로)
-#    bash deploy-war.sh ~/wellfair.war
-#  파일 이름이 달라도 항상 /wellfair 주소로 올라가요. 이전 WAR 는 /opt/tomcat/backup 에 3개까지 보관.
+#    bash deploy-war.sh ~/itgeo.war
+#  파일 이름이 달라도 항상 /itgeo 주소로 올라가요. 이전 WAR 는 /opt/tomcat/backup 에 3개까지 보관.
 #  되돌리기:  bash deploy-war.sh /opt/tomcat/backup/<이전파일>.war
 # =====================================================================
 set -euo pipefail
 umask 022
-APP=wellfair
+APP=itgeo
 TOMCAT_HOME=/opt/tomcat
 SKIP_SERVICES="${SKIP_SERVICES:-0}"
 WAR="${1:-}"
 
 if [ "$(id -u)" -ne 0 ]; then echo "root 로 실행해 주세요:  sudo bash $0 $*"; exit 1; fi
-[ -n "$WAR" ] && [ -f "$WAR" ] || { echo "사용법: bash $0 <wellfair.war>"; exit 1; }
+[ -n "$WAR" ] && [ -f "$WAR" ] || { echo "사용법: bash $0 <itgeo.war>"; exit 1; }
 [ -x "$TOMCAT_HOME/bin/catalina.sh" ] || { echo "톰캣이 없어요. setup-server.sh 를 먼저 실행하세요."; exit 1; }
 [ "$(head -c2 "$WAR")" = PK ] || { echo "WAR(zip) 파일이 아니에요: $WAR"; exit 1; }
 WAR=$(readlink -f "$WAR")

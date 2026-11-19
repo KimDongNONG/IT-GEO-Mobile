@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'kr.wellfair.mobile',
+  appId: 'kr.itgeo.mobile',
   appName: 'WellFAIR',
   webDir: 'dist',
   backgroundColor: '#0b0b0c',

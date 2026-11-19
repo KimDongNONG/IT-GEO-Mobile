@@ -130,9 +130,12 @@ public class MobileService {
 		return f;
 	}
 
-	/** app.upload.dir 이 비어 있으면 [사용자 홈]/wellfair-upload */
+	/** app.upload.dir 이 비어 있으면 [사용자 홈]/itgeo-upload (예전 이름 wellfair-upload 폴더만 있으면 그 폴더를 계속 씀) */
 	Path uploadRoot() {
-		String d = uploadDir == null || uploadDir.isBlank() ? Paths.get(System.getProperty("user.home"), "wellfair-upload").toString() : uploadDir.trim();
-		return Paths.get(d).toAbsolutePath().normalize();
+		if (uploadDir != null && !uploadDir.isBlank()) return Paths.get(uploadDir.trim()).toAbsolutePath().normalize();
+		Path home = Paths.get(System.getProperty("user.home"));
+		Path dir = home.resolve("itgeo-upload");
+		Path old = home.resolve("wellfair-upload");
+		return (!Files.exists(dir) && Files.isDirectory(old) ? old : dir).toAbsolutePath().normalize();
 	}
 }

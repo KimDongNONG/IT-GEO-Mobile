@@ -1,5 +1,5 @@
 -- =====================================================================
--- wellfair : 주사위(WellFAIR) 중간점검 DB  (MySQL 8)
+-- itgeo : 주사위(WellFAIR) 중간점검 DB  (MySQL 8)
 -- 팀원 초안 기준으로 아래만 고침
 --   [1] bld_id  BIGINT → VARCHAR(28)   (실제 값이 28자리라 BIGINT 범위 초과)
 --   [2] building 컬럼 = 3gu_bld_db.csv 31개 그대로 (객실수·고시원추정은 units에 합산, 업소종류는 sp_type)
@@ -15,8 +15,8 @@
 --   [11] visit_history + user_id
 -- =====================================================================
 
-CREATE DATABASE IF NOT EXISTS wellfair DEFAULT CHARACTER SET utf8mb4;
-USE wellfair;
+CREATE DATABASE IF NOT EXISTS itgeo DEFAULT CHARACTER SET utf8mb4;
+USE itgeo;
 
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS bld_resident_stat;   -- 04_update.sql 에서 만드는 테이블

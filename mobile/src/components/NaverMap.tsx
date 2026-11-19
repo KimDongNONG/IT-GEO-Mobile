@@ -3,7 +3,7 @@
 // 키가 없거나 SDK 를 못 불러오면 fallback(도식 지도)을 그대로 보여 줘요.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { walkPath, type WalkPathTO } from '../api/wellfair';
+import { walkPath, type WalkPathTO } from '../api/itgeo';
 import './NaverMap.css';
 
 declare global {

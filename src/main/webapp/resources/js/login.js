@@ -1,6 +1,6 @@
 // 로그인 화면 : "사원번호 저장" (localStorage)
 $(function () {
-  var KEY = 'wellfair.loginId';
+  var KEY = 'itgeo.loginId';
   var $empNo = $('#loginId');
   var $save = $('#saveEmpNo');
 

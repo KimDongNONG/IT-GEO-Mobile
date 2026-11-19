@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../store/AppStore';
 import { Btn, Screen, TabBar } from '../components/ui';
 import { blobUrl } from '../api/client';
-import { photoPath } from '../api/wellfair';
+import { photoPath } from '../api/itgeo';
 import './Result.css';
 
 /** 서버에 저장된 사진 (로그인 세션이 필요해서 fetch → blob 으로 보여 줌) */

@@ -2,7 +2,7 @@
 // 서버에 로그인하면 웹과 같은 네이버 지도 + TMAP 경로(구청 출발), 시연 모드나 지도 키가 없으면 Figma 시안과 같은 도식 지도.
 import type { Building, Group } from '../data/types';
 import { useStore } from '../store/AppStore';
-import { guOffice } from '../api/wellfair';
+import { guOffice } from '../api/itgeo';
 import NaverMap, { useWalk } from './NaverMap';
 import './RouteMap.css';
 

@@ -6,7 +6,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Geolocation } from '@capacitor/geolocation';
 import { useGroup, useStore } from '../store/AppStore';
 import type { Building } from '../data/types';
-import { guOffice } from '../api/wellfair';
+import { guOffice } from '../api/itgeo';
 import NaverMap, { useWalk, type MapStop } from '../components/NaverMap';
 import { IconCheck16, IconLocate, IconPencil, IconRoute28, IconTurn } from '../components/icons';
 import { TabBar } from '../components/ui';

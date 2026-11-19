@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">WellFAIR</string>
     <string name="title_activity_main">WellFAIR</string>
-    <string name="package_name">kr.wellfair.mobile</string>
-    <string name="custom_url_scheme">kr.wellfair.mobile</string>
+    <string name="package_name">kr.itgeo.mobile</string>
+    <string name="custom_url_scheme">kr.itgeo.mobile</string>
 </resources>

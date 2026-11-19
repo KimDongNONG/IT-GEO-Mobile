@@ -5,7 +5,7 @@
 --     [A] survey_record_detail : 앱에서 매긴 항목별 점수 · 거주자 상태 · 필요한 지원
 --     [B] survey_photo         : 현장 사진 (파일은 서버 폴더, 여기엔 경로만)
 -- =====================================================================
-USE wellfair;
+USE itgeo;
 
 -- [A] 현장 기록 상세 (앱에서 저장한 기록만 한 줄. 웹에서 저장한 기록은 없음)
 CREATE TABLE IF NOT EXISTS survey_record_detail (

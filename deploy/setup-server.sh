@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # =====================================================================
-#  WellFAIR 서버 한 번에 설치 (네이버 클라우드 Ubuntu 22.04 / 24.04)
+#  ItGEO 서버 한 번에 설치 (네이버 클라우드 Ubuntu 22.04 / 24.04)
 #
 #  설치하는 것 : Java 17 · Tomcat 10.1 · MySQL 8 · Nginx · https 인증서(Let's Encrypt)
 #
 #  사용법 (서버에 root 로 접속해서)
 #    bash setup-server.sh <도메인> <이메일>
-#      예) bash setup-server.sh wellfair-guro.duckdns.org me@example.com
+#      예) bash setup-server.sh it-geo.duckdns.org me@example.com
 #    bash setup-server.sh            ← 도메인 없이 IP 로만 (http, 테스트용)
 #
 #  여러 번 실행해도 괜찮아요. 이미 만든 DB 비밀번호·톰캣·올린 WAR 는 그대로 둡니다.
@@ -18,11 +18,11 @@ umask 022
 DOMAIN="${1:-}"
 EMAIL="${2:-}"
 
-APP=wellfair                          # WAR 이름 = 주소 경로 (/wellfair)
+APP=itgeo                          # WAR 이름 = 주소 경로 (/itgeo)
 TOMCAT_HOME=/opt/tomcat
 TOMCAT_FALLBACK=10.1.34               # 최신 버전을 못 찾으면 이 버전
-UPLOAD_DIR=/srv/wellfair-upload       # 앱 현장 사진 저장 폴더
-CRED_FILE=/root/wellfair-db.txt       # DB 계정 메모 (root 만 읽기)
+UPLOAD_DIR=/srv/itgeo-upload       # 앱 현장 사진 저장 폴더
+CRED_FILE=/root/itgeo-db.txt       # DB 계정 메모 (root 만 읽기)
 SKIP_SERVICES="${SKIP_SERVICES:-0}"   # 1 = systemd 없는 테스트 환경(도커)용. 평소엔 건드리지 마세요
 
 say()  { printf '\n\033[1;36m▶ %s\033[0m\n' "$*"; }
@@ -33,7 +33,7 @@ if [ "$(id -u)" -ne 0 ]; then
   echo "root 로 실행해 주세요:  sudo bash $0 $*"; exit 1
 fi
 if [ -n "$DOMAIN" ] && ! [[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
-  echo "도메인 형식이 이상해요: $DOMAIN  (예: wellfair-guro.duckdns.org, http:// 없이)"; exit 1
+  echo "도메인 형식이 이상해요: $DOMAIN  (예: it-geo.duckdns.org, http:// 없이)"; exit 1
 fi
 
 # ---------------------------------------------------------------- 1. 시간대
@@ -70,15 +70,15 @@ JAVA_HOME=$(dirname "$(dirname "$(readlink -f "$(command -v java)")")")
 ok "$(java -version 2>&1 | head -1)"
 
 # ---------------------------------------------------------------- 4. MySQL
-say "4/8 MySQL: wellfair 데이터베이스와 전용 계정"
+say "4/8 MySQL: itgeo 데이터베이스와 전용 계정"
 # 저장 시각(NOW, CURRENT_TIMESTAMP)이 한국 시간이 되게
-cat > /etc/mysql/mysql.conf.d/zz-wellfair.cnf <<'EOF'
+cat > /etc/mysql/mysql.conf.d/zz-itgeo.cnf <<'EOF'
 [mysqld]
 default-time-zone = '+09:00'
 character-set-server = utf8mb4
 collation-server = utf8mb4_0900_ai_ci
 EOF
-chmod 644 /etc/mysql/mysql.conf.d/zz-wellfair.cnf
+chmod 644 /etc/mysql/mysql.conf.d/zz-itgeo.cnf
 if [ "$SKIP_SERVICES" = 1 ]; then
   service mysql restart >/dev/null 2>&1 || service mysql start >/dev/null 2>&1 || true
 else
@@ -102,7 +102,7 @@ FLUSH PRIVILEGES;
 SQL
 umask 077
 cat > "$CRED_FILE" <<EOF
-# WellFAIR DB 계정 (setup-server.sh 가 만듦). 이 파일은 root 만 읽을 수 있어요.
+# ItGEO DB 계정 (setup-server.sh 가 만듦). 이 파일은 root 만 읽을 수 있어요.
 DB_NAME=${APP}
 DB_USERNAME=${APP}
 DB_PASSWORD=${DB_PASS}
@@ -163,7 +163,7 @@ ok "8080 은 내부 전용, DB 계정·사진 폴더($UPLOAD_DIR) 연결"
 if [ "$SKIP_SERVICES" != 1 ]; then
   cat > /etc/systemd/system/tomcat.service <<EOF
 [Unit]
-Description=WellFAIR Tomcat
+Description=ItGEO Tomcat
 After=network.target mysql.service
 Wants=mysql.service
 
@@ -267,8 +267,8 @@ cat <<EOF
  설치 끝!   서버 주소: $URL
 ---------------------------------------------------------------------
  다음 순서
-  1) DB 옮기기   : bash import-db.sh ~/wellfair.sql
-  2) 웹 올리기   : bash deploy-war.sh ~/wellfair.war
+  1) DB 옮기기   : bash import-db.sh ~/itgeo.sql
+  2) 웹 올리기   : bash deploy-war.sh ~/itgeo.war
   3) 네이버 클라우드 콘솔 > Maps > Web 서비스 URL 에 추가
                    ${URL%/$APP}
   4) 앱 빌드     : mobile/.env.production 에

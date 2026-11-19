@@ -1,4 +1,4 @@
-package kr.wellfair.mobile;
+package kr.itgeo.mobile;
 
 import com.getcapacitor.BridgeActivity;
 

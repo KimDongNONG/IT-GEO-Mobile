@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useReducer,
 import { ARCHIVE, ARCHIVE_COUNTS, BUILDINGS, GROUPS, RECORDS } from '../data/mock';
 import type { ArchiveItem, Building, FieldRecord, Group } from '../data/types';
 import { AuthError, setAuthLostHandler } from '../api/client';
-import * as W from '../api/wellfair';
+import * as W from '../api/itgeo';
 
 export type Mode = 'none' | 'demo' | 'server';
 export interface Member { name: string; gu: string; dept: string; rank: string }
@@ -38,8 +38,8 @@ type Action =
   | { type: 'setRecord'; record: FieldRecord }
   | { type: 'toast'; msg: string | null };
 
-const STORAGE_KEY = 'wellfair.mobile.v1';
-const MODE_KEY = 'wellfair.mobile.mode';
+const STORAGE_KEY = 'itgeo.mobile.v1';
+const MODE_KEY = 'itgeo.mobile.mode';
 
 const EMPTY: State = {
   mode: 'none', ready: false, member: null, buildings: {}, groups: [], archive: [], archiveCounts: { all: 0, new: 0, doing: 0, done: 0 },

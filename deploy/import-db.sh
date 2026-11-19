@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # =====================================================================
-#  PC 에서 옮겨 온 DB 백업(.sql) 을 서버 MySQL(wellfair) 에 넣기
+#  PC 에서 옮겨 온 DB 백업(.sql) 을 서버 MySQL(itgeo) 에 넣기
 #
 #  사용법 (서버에 root 로)
-#    bash import-db.sh ~/wellfair.sql
-#    bash import-db.sh ~/wellfair.sql ~/06_mobile_record.sql   ← 여러 개면 순서대로
+#    bash import-db.sh ~/itgeo.sql
+#    bash import-db.sh ~/itgeo.sql ~/06_mobile_record.sql   ← 여러 개면 순서대로
 #  .sql.gz 도 됩니다. 넣기 전에 서버에 있던 DB 는 /root/db-backup/ 에 자동 백업해요.
 # =====================================================================
 set -euo pipefail
 umask 022
-DB=wellfair
+DB=itgeo
 SKIP_SERVICES="${SKIP_SERVICES:-0}"
 
 if [ "$(id -u)" -ne 0 ]; then echo "root 로 실행해 주세요:  sudo bash $0 $*"; exit 1; fi
@@ -26,7 +26,7 @@ if [ "$N" -gt 0 ]; then
   echo "✓ 기존 서버 DB 백업: $B"
 fi
 
-TMP=$(mktemp /tmp/wellfair-import.XXXXXX)
+TMP=$(mktemp /tmp/itgeo-import.XXXXXX)
 trap 'rm -f "$TMP" "$TMP.u8"' EXIT
 
 for f in "$@"; do
@@ -43,7 +43,7 @@ for f in "$@"; do
 
   # PC 와 서버가 달라서 문제 되는 줄 정리
   #  - GTID_PURGED : 다른 MySQL 의 복제 정보 (여러 줄일 수 있음)
-  #  - CREATE DATABASE / USE : PC 의 DB 이름이 달라도 항상 wellfair 로 넣기
+  #  - CREATE DATABASE / USE : PC 의 DB 이름이 달라도 항상 itgeo 로 넣기
   awk '
     /GTID_PURGED/            { skip = 1 }
     skip                     { if ($0 ~ /;[[:space:]]*$/) skip = 0; next }

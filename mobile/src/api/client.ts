@@ -2,7 +2,7 @@
 //
 // 서버 주소
 //   - 개발(npm run dev)  : 비워 둠. vite.config.ts 의 프록시가 /api 를 스프링 서버(VITE_SERVER)로 넘겨요.
-//   - 앱(npx cap sync)   : .env.production 의 VITE_API_BASE (예: http://192.168.0.10:8080/wellfair)
+//   - 앱(npx cap sync)   : .env.production 의 VITE_API_BASE (예: http://192.168.0.10:8080/itgeo)
 // 앱 안에서는 capacitor.config.ts 의 CapacitorHttp 가 fetch 를 네이티브 통신으로 바꿔서
 // 웹과 같은 세션 쿠키(JSESSIONID)가 그대로 유지돼요.
 
