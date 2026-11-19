@@ -38,7 +38,9 @@ npm run dev          # 브라우저에서 http://localhost:5173 (개발자도구
 ## 앱으로 빌드하기
 
 ```bash
-# 폰이 접속할 서버 주소: .env.example 을 .env.production 으로 복사하고 VITE_API_BASE 를 PC IP 로 (예: http://192.168.0.10:8080/wellfair)
+# 폰이 접속할 서버 주소: .env.example 을 .env.production 으로 복사하고 VITE_API_BASE 를
+#   클라우드 서버 주소로   (예: https://wellfair-guro.duckdns.org/wellfair, 서버 설치는 ../deploy/README.md)
+#   또는 같은 와이파이 PC 로 (예: http://192.168.0.10:8080/wellfair)
 npm run build        # dist/ 에 웹 파일 생성
 npx cap sync         # dist/ 를 android 프로젝트에 복사
 npx cap open android # 안드로이드 스튜디오에서 열고 ▶ 실행 (에뮬레이터 또는 USB 연결 폰)
