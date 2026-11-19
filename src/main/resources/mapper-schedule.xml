@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 달력 (survey_schedule) : ScheduleDAO 가 "mapper-schedule.아이디" 로 부른다 -->
+<mapper namespace="mapper-schedule">
+
+	<!-- 내 달력 (풀캘린더가 보내는 start ~ end 범위, end 는 그 날 미포함) -->
+	<select id="selectMyEvents" resultType="wellfair.to.ScheduleEventTO">
+		SELECT s.schedule_id                          AS id,
+		       l.title                                AS title,
+		       DATE_FORMAT(s.sched_date, '%Y-%m-%d')  AS start,
+		       s.survey_id                            AS surveyId
+		  FROM survey_schedule s
+		  JOIN survey_list l ON l.survey_id = s.survey_id
+		 WHERE s.user_id = #{userId}
+		   AND s.sched_date &gt;= #{start}
+		   AND s.sched_date &lt;  #{end}
+		 ORDER BY s.sched_date, l.title
+	</select>
+
+	<!-- 날짜에 리스트 넣기 : 볼 수 있는 리스트일 때만 SELECT 가 1줄 → INSERT 1줄 -->
+	<insert id="insertSchedule">
+		INSERT INTO survey_schedule (user_id, survey_id, sched_date)
+		SELECT #{userId}, l.survey_id, #{date}
+		  FROM survey_list l
+		 WHERE l.survey_id = #{surveyId}
+		   AND (l.user_id = #{userId}
+		        <if test="guSgg != null"> OR l.sgg_cd = #{guSgg}</if>)
+	</insert>
+
+	<update id="updateDate">
+		UPDATE survey_schedule SET sched_date = #{date}
+		 WHERE schedule_id = #{scheduleId} AND user_id = #{userId}
+	</update>
+
+	<delete id="deleteSchedule">
+		DELETE FROM survey_schedule
+		 WHERE schedule_id = #{scheduleId} AND user_id = #{userId}
+	</delete>
+
+	<!-- 모바일 달력 (api/mobile/schedule.do) : 내 일정 날짜별로 리스트 안의 건물까지 펼친다.
+	     record_id     = 그 건물을 "그 날짜에" 확인한 기록 중 마지막 1건 (같은 리스트를 다른 날에 또 넣어도 날짜별로 따로 보임)
+	     prev_result   = 그 날짜 이전 이 건물의 마지막 방문 결과 (부재였으면 앱이 '재방문'으로 표시) -->
+	<select id="selectMyItems" resultType="wellfair.to.ScheduleItemTO">
+		SELECT s.schedule_id, DATE_FORMAT(s.sched_date, '%Y-%m-%d') sched_date, s.survey_id, l.title
+		     , p.plan_id, p.factor_id, f.bld_id, p.visit_order
+		     , b.addr, b.bld_nm, b.use_nm, b.sgg_cd, CAST(f.vulnerability_score AS SIGNED) score
+		     , r.record_id, DATE_FORMAT(v.visited_at, '%H:%i') visit_time, v.result, d.supports
+		     , (SELECT v2.result FROM visit_history v2
+		         WHERE v2.bld_id = f.bld_id AND v2.visited_at &lt; s.sched_date
+		         ORDER BY v2.visited_at DESC, v2.visit_id DESC LIMIT 1) prev_result
+		  FROM survey_schedule s
+		  JOIN survey_list l           ON l.survey_id = s.survey_id
+		  JOIN survey_plan p           ON p.survey_id = s.survey_id
+		  JOIN vulnerability_factor f  ON f.factor_id = p.factor_id
+		  JOIN building b              ON b.bld_id = f.bld_id
+		  LEFT JOIN survey_record r    ON r.record_id = (
+		         SELECT r1.record_id FROM survey_record r1 JOIN visit_history v1 ON v1.visit_id = r1.visit_id
+		          WHERE r1.plan_id = p.plan_id AND DATE(v1.visited_at) = s.sched_date
+		          ORDER BY v1.visited_at DESC, r1.record_id DESC LIMIT 1)
+		  LEFT JOIN visit_history v    ON v.visit_id = r.visit_id
+		  LEFT JOIN survey_record_detail d ON d.record_id = r.record_id
+		 WHERE s.user_id = #{userId}
+		   AND s.sched_date &gt;= #{start}
+		   AND s.sched_date &lt;  #{end}
+		 ORDER BY s.sched_date, l.title, p.visit_order IS NULL, p.visit_order, p.plan_id
+	</select>
+
+</mapper>
