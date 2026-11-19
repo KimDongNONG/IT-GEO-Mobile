@@ -2,8 +2,8 @@
 //   - server : 웹과 같은 계정으로 로그인. 리스트 · 보관함 · 기록을 스프링 서버(웹과 같은 DB)에서 읽고 저장
 //   - demo   : 로그인 화면의 '시연 모드'. Figma 값(data/mock.ts)으로 동작하고 폰 안에만 저장
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react';
-import { ARCHIVE, ARCHIVE_COUNTS, BUILDINGS, GROUPS, RECORDS } from '../data/mock';
-import type { ArchiveItem, Building, FieldRecord, Group } from '../data/types';
+import { ARCHIVE, ARCHIVE_COUNTS, BUILDINGS, GROUPS, RECORDS, demoSchedule } from '../data/mock';
+import type { ArchiveItem, Building, FieldRecord, Group, ScheduleItem } from '../data/types';
 import { AuthError, setAuthLostHandler } from '../api/client';
 import * as W from '../api/wellfair';
 
@@ -20,8 +20,10 @@ interface State {
   archive: ArchiveItem[];
   archiveCounts: Counts;
   records: Record<string, FieldRecord>;
-  lastResultId: string | null;    // 하단 탭 '확인'이 여는 결과
+  lastResultId: string | null;    // 마지막으로 저장한 기록의 건물 (저장 완료 화면 · 결과 보기)
   naverClientId: string;
+  /** 확인 탭 달력 : 달(yyyy-MM) → 그 달 6주 칸에 들어간 일정 */
+  schedule: Record<string, ScheduleItem[]>;
   toast: string | null;
 }
 
@@ -36,6 +38,7 @@ type Action =
   | { type: 'saveRecord'; record: FieldRecord }
   | { type: 'patchBuilding'; building: Building }
   | { type: 'setRecord'; record: FieldRecord }
+  | { type: 'schedule'; month: string; items: ScheduleItem[] }
   | { type: 'toast'; msg: string | null };
 
 const STORAGE_KEY = 'wellfair.mobile.v1';
@@ -43,7 +46,7 @@ const MODE_KEY = 'wellfair.mobile.mode';
 
 const EMPTY: State = {
   mode: 'none', ready: false, member: null, buildings: {}, groups: [], archive: [], archiveCounts: { all: 0, new: 0, doing: 0, done: 0 },
-  records: {}, lastResultId: null, naverClientId: '', toast: null,
+  records: {}, lastResultId: null, naverClientId: '', schedule: {}, toast: null,
 };
 
 function demoState(): State {
@@ -153,6 +156,8 @@ function reducer(state: State, action: Action): State {
       return { ...state, buildings: { ...state.buildings, [action.building.id]: action.building } };
     case 'setRecord':
       return { ...state, records: { ...state.records, [action.record.buildingId]: action.record } };
+    case 'schedule':
+      return { ...state, schedule: { ...state.schedule, [action.month]: action.items } };
     case 'toast':
       return { ...state, toast: action.msg };
   }
@@ -172,6 +177,8 @@ export interface Actions {
   replace: (groupId: string, oldId: string, archiveId: string) => Promise<void>;
   saveRecord: (rec: FieldRecord, onPhoto?: (done: number, total: number) => void) => Promise<{ failedPhotos: number }>;
   loadBuilding: (buildingId: string) => Promise<void>;
+  /** 확인 탭 달력 : month = yyyy-MM, start ~ end(미포함) = 그 달 6주 칸 */
+  loadSchedule: (month: string, start: string, end: string) => Promise<void>;
   toast: (msg: string | null) => void;
 }
 
@@ -313,6 +320,18 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         }), d);
         dispatch({ type: 'patchBuilding', building: b });
         if (d.records.length) dispatch({ type: 'setRecord', record: W.recordFromServer(buildingId, d.records[0], b) });
+      },
+      async loadSchedule(month, start, end) {
+        // 시연 모드 : 오늘 기준으로 만든 일정 중 이 칸 범위에 드는 것만
+        if (!isServer()) {
+          const items = demoSchedule().filter((it) => it.date >= start && it.date < end);
+          dispatch({ type: 'schedule', month, items });
+          return;
+        }
+        try {
+          const rows = await W.fetchSchedule(start, end);
+          dispatch({ type: 'schedule', month, items: rows.map(W.scheduleFromServer) });
+        } catch (e) { fail(e); }
       },
       toast(msg) {
         dispatch({ type: 'toast', msg });

@@ -1,5 +1,5 @@
 // 로그인 화면의 '시연 모드'에서 쓰는 데이터 (Figma 화면의 값 그대로)
-import type { ArchiveItem, Building, FieldRecord, Group } from './types';
+import type { ArchiveItem, Building, FieldRecord, Group, ScheduleItem } from './types';
 
 export const BUILDINGS: Building[] = [
   {
@@ -74,3 +74,33 @@ export const RECORDS: FieldRecord[] = [
     author: '김구로',
   },
 ];
+
+// ---------- 확인 탭 달력 (시연 모드) : 오늘을 기준으로 앞뒤 날짜에 일정을 만든다 ----------
+const d2 = (n: number) => String(n).padStart(2, '0');
+function dayOf(today: Date, diff: number) {
+  const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + diff);
+  return `${d.getFullYear()}-${d2(d.getMonth() + 1)}-${d2(d.getDate())}`;
+}
+type Seed = [diff: number, group: string, title: string, bldId: string, place: string, score: number,
+  rec?: { time: string; result: NonNullable<ScheduleItem['result']>; supports?: string[] }, prev?: string];
+const SEEDS: Seed[] = [
+  // 오늘 : 완료 · 부재 · 다음 · 재방문
+  [0, 'g-garibong', '가리봉동 반지하 현장 확인', 'b-12-34', '가리봉동 12-34 다세대주택', 100, { time: '10:00', result: 'MET' }],
+  [0, 'g-garibong', '가리봉동 반지하 현장 확인', 'b-21-8', '가리봉동 21-8 연립주택', 76, { time: '11:00', result: 'ABSENT' }],
+  [0, 'g-garibong', '가리봉동 반지하 현장 확인', 'b-88-2', '가리봉동 88-2 고시원', 80],
+  [0, 'g-garibong', '가리봉동 반지하 현장 확인', 'b-130', '가리봉동 130 다가구주택', 74, undefined, 'ABSENT'],
+  // 지난 날짜 : 자원 연결 · 종료(거부) · 종료(방문 못 함)
+  [-2, 'g-sinwol', '신월동 고시원 밀집 확인', 'a-31-5', '가리봉동 31-5 고시원', 90, { time: '14:10', result: 'MET', supports: ['긴급복지', '돌봄 연계'] }],
+  [-2, 'g-sinwol', '신월동 고시원 밀집 확인', 'a-guro-22-7', '구로동 22-7 다세대주택', 90, { time: '15:00', result: 'REFUSED' }],
+  [-2, 'g-sinwol', '신월동 고시원 밀집 확인', 'a-guro-433-5', '구로동 433-5 연립주택', 88],
+  // 앞으로 : 예정 · 재방문
+  [2, 'g-daerim', '대림동 옥탑 증축 확인', 'a-gaebong-341-12', '개봉동 341-12 연립주택', 80],
+  [2, 'g-daerim', '대림동 옥탑 증축 확인', 'a-sindorim-410-2', '신도림동 410-2 고시원', 80],
+  [5, 'g-garibong', '가리봉동 반지하 현장 확인', 'b-21-8', '가리봉동 21-8 연립주택', 76, undefined, 'ABSENT'],
+];
+export function demoSchedule(today = new Date()): ScheduleItem[] {
+  return SEEDS.map(([diff, groupId, title, bldId, place, score, rec, prev], i) => ({
+    key: `demo-${i}`, scheduleId: 1000 + diff, date: dayOf(today, diff), groupId, title, bldId, order: i + 1, place, score,
+    recordId: rec ? 9000 + i : undefined, time: rec?.time, result: rec?.result, supports: rec?.supports ?? [], prevResult: prev,
+  }));
+}

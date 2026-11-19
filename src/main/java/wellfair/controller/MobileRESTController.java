@@ -30,11 +30,13 @@ import wellfair.service.ArchiveService;
 import wellfair.service.FieldService;
 import wellfair.service.MemberService;
 import wellfair.service.MobileService;
+import wellfair.service.ScheduleService;
 import wellfair.to.ArchiveDetailTO;
 import wellfair.to.ArchiveRowTO;
 import wellfair.to.FieldItemTO;
 import wellfair.to.FieldListTO;
 import wellfair.to.MemberTO;
+import wellfair.to.ScheduleItemTO;
 
 /**
  * 모바일 앱(mobile/) 전용 JSON API. 화면용 컨트롤러와 같은 서비스를 쓰고 JSON 만 돌려준다.
@@ -52,6 +54,7 @@ import wellfair.to.MemberTO;
  *  POST api/mobile/record.do       bldId, result, chk_<요인키>=Y|N|?, score_<항목키>=1~5, resident, supports[], content → recordId
  *  POST api/mobile/photo/upload.do JSON {recordId, label, data(base64 data URL)} → photoId
  *  GET  api/mobile/photo.do        photoId                → 사진 파일 (웹 05 타임라인도 이 주소로 보여 줌)
+ *  GET  api/mobile/schedule.do   start, end (yyyy-MM-dd, end 미포함) → 달력에 넣은 리스트를 건물까지 펼친 줄 (확인 탭 월간 달력)
  *  GET  api/mobile/config.do                              → 네이버 지도 키 · 점수 항목 · 지원 목록 · 요인 라벨
  *
  * 로그인 안 된 api/ 요청은 LoginInterceptor 가 redirect 대신 401 JSON 을 돌려준다.
@@ -72,6 +75,9 @@ public class MobileRESTController {
 
 	@Autowired
 	MobileService mobileService;
+
+	@Autowired
+	ScheduleService scheduleService;
 
 	@Value("${app.naver.client-id}")
 	String naverClientId;
@@ -228,6 +234,15 @@ public class MobileRESTController {
 		out.put("supports", MobileService.SUPPORTS);
 		out.put("factorLabels", ArchiveService.FACTOR_LABELS);
 		return out;
+	}
+
+	// ---------- 확인 탭 달력 ----------
+
+	// 웹 현장확인 리스트 달력(api/field/schedule.do)과 같은 survey_schedule 을 읽는다. 내 일정만, 한 번에 두 달까지
+	@GetMapping(value = "api/mobile/schedule.do", produces = JSON)
+	public List<ScheduleItemTO> schedule(@RequestParam("start") String start, @RequestParam("end") String end, HttpSession session) {
+		MemberTO m = member(session);
+		return scheduleService.myItems(m.getUserId(), start, end);
 	}
 
 	// ---------- 공통 ----------

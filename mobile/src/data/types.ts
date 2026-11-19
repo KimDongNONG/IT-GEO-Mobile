@@ -75,3 +75,25 @@ export interface FieldRecord {
   photoIds?: number[];   // 서버에 저장된 사진 (api/mobile/photo.do)
   fromWeb?: boolean;     // 웹 05 화면에서 저장한 기록
 }
+
+// ---------- 확인 탭 달력 (api/mobile/schedule.do) ----------
+/** 현장조사 상태. 오늘을 기준으로 lib/schedule.ts 의 visitStatus() 가 정한다 */
+export type VisitStatus = '완료' | '예정' | '부재' | '종료' | '재방문' | '자원 연결' | '다음';
+
+/** 달력 날짜에 넣은 현장확인 리스트 안의 건물 한 곳 */
+export interface ScheduleItem {
+  key: string;            // scheduleId-planId (같은 건물이 다른 날에도 있을 수 있음)
+  scheduleId: number;
+  date: string;           // yyyy-MM-dd
+  groupId: string;        // 방문그룹(현장확인 리스트) id
+  title: string;          // 리스트 이름
+  bldId: string;
+  order: number | null;   // 리스트 안 방문 순서
+  place: string;          // 가리봉동 12-34 다세대주택
+  score: number;
+  recordId?: number;      // 그날 남긴 확인 기록
+  time?: string;          // 그날 기록의 방문 시각 HH:mm
+  result?: 'MET' | 'ABSENT' | 'REFUSED' | 'OTHER';
+  supports: string[];     // 그날 기록의 필요한 지원
+  prevResult?: string;    // 그날 이전 마지막 방문 결과
+}
