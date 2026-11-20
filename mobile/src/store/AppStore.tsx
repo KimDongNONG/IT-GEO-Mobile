@@ -2,8 +2,8 @@
 //   - server : 웹과 같은 계정으로 로그인. 리스트 · 보관함 · 기록을 스프링 서버(웹과 같은 DB)에서 읽고 저장
 //   - demo   : 로그인 화면의 '시연 모드'. Figma 값(data/mock.ts)으로 동작하고 폰 안에만 저장
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react';
-import { ARCHIVE, ARCHIVE_COUNTS, BUILDINGS, GROUPS, RECORDS, demoSchedule } from '../data/mock';
-import type { ArchiveItem, Building, FieldRecord, Group, ScheduleItem } from '../data/types';
+import { ARCHIVE, ARCHIVE_COUNTS, BUILDINGS, DEMO_HH, GROUPS, RECORDS, demoSchedule } from '../data/mock';
+import type { ArchiveItem, Building, FieldRecord, Group, HistoryRow, ScheduleItem } from '../data/types';
 import { AuthError, setAuthLostHandler } from '../api/client';
 import * as W from '../api/wellfair';
 
@@ -24,6 +24,7 @@ interface State {
   naverClientId: string;
   /** 확인 탭 달력 : 달(yyyy-MM) → 그 달 6주 칸에 들어간 일정 */
   schedule: Record<string, ScheduleItem[]>;
+  days: Record<string, ScheduleItem[]>;
   toast: string | null;
 }
 
@@ -39,6 +40,7 @@ type Action =
   | { type: 'patchBuilding'; building: Building }
   | { type: 'setRecord'; record: FieldRecord }
   | { type: 'schedule'; month: string; items: ScheduleItem[] }
+  | { type: 'day'; date: string; items: ScheduleItem[] }
   | { type: 'toast'; msg: string | null };
 
 const STORAGE_KEY = 'wellfair.mobile.v1';
@@ -46,7 +48,7 @@ const MODE_KEY = 'wellfair.mobile.mode';
 
 const EMPTY: State = {
   mode: 'none', ready: false, member: null, buildings: {}, groups: [], archive: [], archiveCounts: { all: 0, new: 0, doing: 0, done: 0 },
-  records: {}, lastResultId: null, naverClientId: '', schedule: {}, toast: null,
+  records: {}, lastResultId: null, naverClientId: '', schedule: {},  days: {}, toast: null,
 };
 
 function demoState(): State {
@@ -158,6 +160,8 @@ function reducer(state: State, action: Action): State {
       return { ...state, records: { ...state.records, [action.record.buildingId]: action.record } };
     case 'schedule':
       return { ...state, schedule: { ...state.schedule, [action.month]: action.items } };
+	 case 'day':
+	 return { ...state, days: { ...state.days, [action.date]: action.items } };
     case 'toast':
       return { ...state, toast: action.msg };
   }
@@ -177,8 +181,12 @@ export interface Actions {
   replace: (groupId: string, oldId: string, archiveId: string) => Promise<void>;
   saveRecord: (rec: FieldRecord, onPhoto?: (done: number, total: number) => void) => Promise<{ failedPhotos: number }>;
   loadBuilding: (buildingId: string) => Promise<void>;
-  /** 확인 탭 달력 : month = yyyy-MM, start ~ end(미포함) = 그 달 6주 칸 */
   loadSchedule: (month: string, start: string, end: string) => Promise<void>;
+  loadDay: (date: string) => Promise<void>;
+  dayReorder: (date: string, groupId: string, from: number, to: number) => void;
+  dayRemove: (date: string, groupId: string, key: string) => Promise<void>;
+  dayAdd: (date: string, groupId: string, archiveId: string) => Promise<void>;
+  fetchHistory: (bldId: string) => Promise<HistoryRow[]>;
   toast: (msg: string | null) => void;
 }
 
@@ -333,6 +341,79 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           dispatch({ type: 'schedule', month, items: rows.map(W.scheduleFromServer) });
         } catch (e) { fail(e); }
       },
+	  async loadDay(date) {
+	    if (!isServer()) {
+	      if (ref.current.days[date]) return;           // 시연 모드에서 고친 내용은 그대로 둔다
+	      const factorsOf = (bldId: string) =>
+	        ref.current.buildings[bldId]?.factors ?? ref.current.archive.find((x) => x.id === bldId)?.factors ?? [];
+	      const items = demoSchedule()
+	        .filter((it) => it.date === date)
+	        .map((it) => ({ ...it, bldFactors: factorsOf(it.bldId), hhVulns: DEMO_HH[it.bldId] ?? [] }));
+	      dispatch({ type: 'day', date, items });
+	      return;
+	    }
+	    try {
+	      const rows = await W.fetchScheduleDay(date);
+	      dispatch({ type: 'day', date, items: rows.map(W.scheduleFromServer) });
+	    } catch (e) { fail(e); }
+	  },
+	  dayReorder(date, groupId, from, to) {
+	    const all = ref.current.days[date] ?? [];
+	    const mine = all.filter((it) => it.groupId === groupId).sort((x, y) => (x.order ?? 9999) - (y.order ?? 9999));
+	    const [moved] = mine.splice(from, 1);
+	    mine.splice(to, 0, moved);
+	    const order = new Map(mine.map((it, i) => [it.key, i + 1]));
+	    dispatch({ type: 'day', date, items: all.map((it) => (order.has(it.key) ? { ...it, order: order.get(it.key)! } : it)) });
+	    if (!isServer()) return;
+	    const factorIds = mine.map((it) => it.factorId).filter((x): x is number => x != null);
+	    W.saveOrder(Number(groupId), factorIds)
+	      .then(() => load())
+	      .catch((e) => { fail(e); a.loadDay(date); });
+	  },
+	  async dayRemove(date, groupId, key) {
+	    const all = ref.current.days[date] ?? [];
+	    const it = all.find((x) => x.key === key);
+	    if (!it) return;
+	    if (!isServer()) { dispatch({ type: 'day', date, items: all.filter((x) => x.key !== key) }); return; }
+	    if (it.factorId == null) return;
+	    try {
+	      await W.removeItem(Number(groupId), it.factorId);
+	      await Promise.all([a.loadDay(date), load()]);
+	    } catch (e) { fail(e); }
+	  },
+	  async dayAdd(date, groupId, archiveId) {
+	    const all = ref.current.days[date] ?? [];
+	    const ar = ref.current.archive.find((x) => x.id === archiveId);
+	    const first = all.find((x) => x.groupId === groupId);
+	    if (!ar || !first) return;
+	    if (!isServer()) {
+	      const last = Math.max(0, ...all.filter((x) => x.groupId === groupId).map((x) => x.order ?? 0));
+	      const bldId = ar.bldId ?? ar.id;
+	      const item: ScheduleItem = {
+	        ...first, key: `demo-add-${ar.id}-${Date.now()}`, bldId, factorId: ar.factorId, order: last + 1, place: ar.name, score: ar.score,
+	        recordId: undefined, time: undefined, result: undefined, supports: [], prevResult: undefined,
+	        bldFactors: ar.factors, hhVulns: DEMO_HH[bldId] ?? [],
+	      };
+	      dispatch({ type: 'day', date, items: [...all, item] });
+	      return;
+	    }
+	    if (ar.factorId == null) return;
+	    try {
+	      await W.addItem(Number(groupId), ar.factorId);
+	      await Promise.all([a.loadDay(date), load()]);
+	    } catch (e) { fail(e); }
+	  },
+	  async fetchHistory(bldId) {
+	    if (!isServer()) {
+	      const r = ref.current.records[bldId];
+	      return r ? [{
+	        id: String(r.recordId ?? bldId), at: r.savedAt ?? '', result: r.resident === '부재' ? '부재' : '만남',
+	        author: r.author ?? '', resident: r.resident, supports: r.supports, memo: r.memo, fromWeb: !!r.fromWeb,
+	      }] : [];
+	    }
+	    const d = await W.fetchBuilding(bldId);
+	    return W.historyFromServer(d.records);
+	  },
       toast(msg) {
         dispatch({ type: 'toast', msg });
       },

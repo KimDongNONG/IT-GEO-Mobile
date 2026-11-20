@@ -104,3 +104,10 @@ export function demoSchedule(today = new Date()): ScheduleItem[] {
     recordId: rec ? 9000 + i : undefined, time: rec?.time, result: rec?.result, supports: rec?.supports ?? [], prevResult: prev,
   }));
 }
+export const DEMO_HH: Record<string, string[]> = {
+  'b-12-34': ['75세 이상 2명', '지하 거주 2가구', '건보료 체납 1가구', '사회적고립 1가구'],
+  'b-21-8': ['75세 이상 1명', '심한 장애 1명'],
+  'b-88-2': ['사회적고립 4가구', '고위험고립 2가구', '차상위·기초생활 3가구', '건보료 체납 2가구', '사각지대 1가구'],
+  'b-130': ['독박돌봄 1가구'],
+  'a-31-5': ['고위험고립 2가구', '사회적고립 3가구'],
+};

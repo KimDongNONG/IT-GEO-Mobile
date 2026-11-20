@@ -80,3 +80,25 @@ export function dayStats(rows: DayRow[]) {
 export const STATUS_CLASS: Record<VisitStatus, string> = {
   완료: 'done', 예정: 'plan', 부재: 'absent', 종료: 'end', 재방문: 'revisit', '자원 연결': 'link', 다음: 'next',
 };
+
+// ---------- 홈 주간 일정 ----------
+/** 그날이 들어 있는 주 (일요일 ~ 토요일). key 는 state.schedule 에 넣을 이름, end 는 미포함 */
+export function weekOf(d: Date) {
+  const start = addDays(d, -d.getDay());
+  const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  return { key: `week-${ymd(start)}`, start: ymd(start), end: ymd(addDays(start, 7)), days };
+}
+
+export interface DayList { groupId: string; title: string; items: ScheduleItem[] }
+
+/** 하루 일정을 리스트별로 묶고, 리스트 안은 방문 순서대로 */
+export function listsOfDay(items: ScheduleItem[]): DayList[] {
+  const m = new Map<string, DayList>();
+  for (const it of items) {
+    if (!m.has(it.groupId)) m.set(it.groupId, { groupId: it.groupId, title: it.title, items: [] });
+    m.get(it.groupId)!.items.push(it);
+  }
+  const lists = [...m.values()];
+  for (const l of lists) l.items.sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
+  return lists.sort((a, b) => a.title.localeCompare(b.title));
+}

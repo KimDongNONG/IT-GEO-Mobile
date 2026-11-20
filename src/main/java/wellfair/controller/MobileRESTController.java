@@ -149,6 +149,17 @@ public class MobileRESTController {
 		long id = fieldService.saveField(m.getUserId(), gu(m), surveyId, null, null, ids);   // 남의 건물 · 다른 구면 IllegalArgumentException → 400
 		return msg(id > 0, id > 0 ? null : "리스트를 찾을 수 없습니다.");
 	}
+	
+	@PostMapping(value = "api/mobile/group/add.do", produces = JSON)
+	public Map<String, Object> groupAdd(@RequestParam("surveyId") long surveyId, @RequestParam("factorId") long factorId,
+			HttpSession session) {
+		MemberTO m = member(session);
+		List<Long> ids = itemIds(m, surveyId);
+		if (ids.contains(factorId)) throw new IllegalArgumentException("이미 이 리스트에 있는 건물입니다.");
+		ids.add(factorId);
+		long id = fieldService.saveField(m.getUserId(), gu(m), surveyId, null, null, ids);
+		return msg(id > 0, id > 0 ? null : "리스트를 저장하지 못했습니다.");
+	}
 
 	// ---------- 보관함 · 건물 ----------
 
@@ -243,6 +254,11 @@ public class MobileRESTController {
 	public List<ScheduleItemTO> schedule(@RequestParam("start") String start, @RequestParam("end") String end, HttpSession session) {
 		MemberTO m = member(session);
 		return scheduleService.myItems(m.getUserId(), start, end);
+	}
+	
+	@GetMapping(value = "api/mobile/schedule/day.do", produces = JSON)
+	public List<ScheduleItemTO> scheduleDay(@RequestParam("date") String date, HttpSession session) {
+		return mobileService.dayItems(member(session), date);
 	}
 
 	// ---------- 공통 ----------

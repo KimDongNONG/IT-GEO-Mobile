@@ -96,4 +96,20 @@ export interface ScheduleItem {
   result?: 'MET' | 'ABSENT' | 'REFUSED' | 'OTHER';
   supports: string[];     // 그날 기록의 필요한 지원
   prevResult?: string;    // 그날 이전 마지막 방문 결과
+  // 홈 주간 일정 (api/mobile/schedule/day.do) 에서만 채움
+  factorId?: number;      // 리스트 순서 · 빼기에 쓰는 보관함 키
+  bldFactors?: string[];  // 건물 취약점 (지하층 · 노후 …)
+  hhVulns?: string[];     // 가구 취약점 (75세 이상 3명 …)
+}
+
+/** 홈 리스트의 '이력' : 이 건물에 남긴 확인 기록 한 건 (웹 05 시설 상세의 기록 타임라인과 같은 데이터) */
+export interface HistoryRow {
+  id: string;
+  at: string;             // 2026-11-19 14:10
+  result: string;         // 만남 · 부재 · 거부 · 기타
+  author: string;
+  resident?: string;      // 양호 · 주의 · 긴급 · 부재
+  supports: string[];
+  memo: string;
+  fromWeb: boolean;       // 웹에서 남긴 기록
 }

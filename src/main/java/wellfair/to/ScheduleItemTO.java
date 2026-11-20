@@ -1,6 +1,7 @@
 package wellfair.to;
 
 import lombok.Data;
+import java.util.List;
 
 /**
  * api/mobile/schedule.do 응답 한 줄 = 달력 날짜에 넣은 리스트(survey_schedule) 안의 건물 하나.
@@ -27,4 +28,8 @@ public class ScheduleItemTO {
 	private String result;        // 그날 기록의 결과 MET / ABSENT / REFUSED / OTHER
 	private String supports;      // 그날 기록의 필요한 지원 (쉼표 구분, 앱 기록만)
 	private String prevResult;    // 그날 이전 이 건물의 마지막 방문 결과 (재방문 판단)
+	
+	// 하루 조회(api/mobile/schedule/day.do)에서만 채운다
+	private List<String> bldFactors;   // 건물 취약점
+	private List<String> hhVulns;      // 가구 취약점
 }
