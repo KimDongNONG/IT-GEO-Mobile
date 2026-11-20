@@ -131,11 +131,21 @@
           <div class="tl-item" data-yes="${r.hasYes}" data-no="${r.hasNo}">
             <i class="tl-dot ${s.first ? 'on' : ''}"></i>
             <div class="card tl-card">
-              <div class="tl-head"><b><c:out value="${r.visitedAt}"/></b><span class="muted"><c:if test="${s.first}">최근 확인 · </c:if>담당자 <c:out value="${r.userNm}"/> · 방문 결과 <c:out value="${r.resultLabel}"/></span></div>
-              <div class="tl-photos" title="사진은 현장 확인 앱 연동 예정"><div>외관</div><div>출입구 · 창문</div><div>우편함</div></div>
+              <div class="tl-head"><b><c:out value="${r.visitedAt}"/></b><span class="muted"><c:if test="${s.first}">최근 확인 · </c:if>담당자 <c:out value="${r.userNm}"/> · 방문 결과 <c:out value="${r.resultLabel}"/></span><c:if test="${r.fromApp}"><span class="tl-src">모바일 앱</span></c:if></div>
+              <c:if test="${not empty r.photos}">
+                <div class="tl-photos">
+                  <c:forEach var="p" items="${r.photos}">
+                    <c:url var="photoUrl" value="/api/mobile/photo.do"><c:param name="photoId" value="${p.photoId}"/></c:url>
+                    <a href="${photoUrl}" target="_blank" rel="noopener" title="<c:out value='${empty p.label ? "현장 사진" : p.label}'/>"><img src="${photoUrl}" alt="<c:out value='${empty p.label ? "현장 사진" : p.label}'/>" loading="lazy"></a>
+                  </c:forEach>
+                </div>
+              </c:if>
               <dl>
                 <dt>사전 탐지 요인</dt><dd><c:out value="${empty d.detectedText ? '-' : d.detectedText}"/></dd>
                 <dt>현장 체크</dt><dd><c:out value="${empty r.checkText ? '-' : r.checkText}"/></dd>
+                <c:if test="${not empty r.residentStatus}"><dt>거주자 상태</dt><dd><b class="tl-res tl-res--${r.residentStatus}"><c:out value="${r.residentStatus}"/></b></dd></c:if>
+                <c:if test="${not empty r.scores}"><dt>항목 점수</dt><dd><c:out value="${r.scoreText}"/> <span class="muted">(1 양호 ~ 5 위험)</span></dd></c:if>
+                <c:if test="${not empty r.supports}"><dt>필요한 지원</dt><dd><c:forEach var="sp" items="${r.supports}" varStatus="ss"><c:out value="${sp}"/>${ss.last ? '' : ' · '}</c:forEach></dd></c:if>
                 <dt>관찰 메모</dt><dd><c:out value="${r.content}"/></dd>
                 <c:if test="${r.scoreAdj != null}"><dt>점수 보정</dt><dd>${r.scoreAdj > 0 ? '+' : ''}${r.scoreAdj}</dd></c:if>
                 <dt>이관 기록</dt><dd><c:choose><c:when test="${not empty r.transferDept}"><b><c:out value="${r.transferDept}"/> <c:out value="${r.transferReq}"/> (<c:out value="${r.transferAt}"/> ${r.transferStatus == 'REPLIED' ? '회신' : '전달'})</b></c:when><c:otherwise><b>넘긴 부서 없음</b></c:otherwise></c:choose></dd>

@@ -265,8 +265,11 @@
 .tl-dot.on { background: var(--primary); }
 .tl-head { display: flex; gap: 14px; align-items: baseline; margin-bottom: 12px; font-size: 13px; }
 .tl-head b { font-size: 15px; }
-.tl-photos { display: flex; gap: 12px; margin-bottom: 14px; }
-.tl-photos div { width: 124px; height: 72px; display: grid; place-items: center; border: 1px dashed var(--line); border-radius: var(--radius); color: var(--text-3); font-size: 12px; background: linear-gradient(135deg, transparent 49%, var(--line-soft) 50%, transparent 51%); }
+.tl-photos { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+.tl-photos a { display: block; width: 124px; height: 72px; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--line-soft); }
+.tl-photos img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tl-src { margin-left: auto; padding: 2px 8px; border: 1px solid var(--primary); border-radius: 10px; color: var(--primary); font-size: 11px; }
+.tl-res--양호 { color: var(--ok); } .tl-res--주의 { color: var(--warn); } .tl-res--긴급 { color: var(--danger); } .tl-res--부재 { color: var(--text-2); }
 .tl-card dl { display: grid; grid-template-columns: 110px 1fr; row-gap: 8px; column-gap: 8px; font-size: 13px; margin: 0; }
 .tl-card dt { color: var(--text-2); }
 .tl-card dd { margin: 0; }

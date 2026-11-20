@@ -34,6 +34,9 @@
   		<exclude-mapping path="/loginform.do"/>
   		<exclude-mapping path="/login.do"/>
   		<exclude-mapping path="/logout.do"/>
+  		<!-- 모바일 앱 로그인 · 공용 설정 (MobileRESTController) -->
+  		<exclude-mapping path="/api/mobile/login.do"/>
+  		<exclude-mapping path="/api/mobile/config.do"/>
   		<beans:bean class="itgeo.interceptor.LoginInterceptor"></beans:bean>
   	</interceptor>
   </interceptors>

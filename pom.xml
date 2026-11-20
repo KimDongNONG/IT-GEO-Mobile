@@ -190,6 +190,8 @@
   </dependencies>
   
   <build>
+    <!-- mvn package 결과물 = target/itgeo.war (주소 /itgeo) -->
+    <finalName>itgeo</finalName>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>

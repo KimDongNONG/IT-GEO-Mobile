@@ -1,0 +1,57 @@
+.talk .screen__head { margin-bottom: 8px; }
+.talk__demo { height: 22px; font-size: 11px; }
+.talk__desc { font-size: 12px; color: var(--sub); }
+.talk__lock {
+  height: 40px; margin-top: 4px; border-radius: 6px;
+  display: grid; place-items: center;
+  background: var(--primary); color: var(--bg); font-size: 13px; font-weight: 700;
+}
+.talk__modes { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 12px; padding: 3px; background: var(--el); border-radius: 6px; }
+.talk__modes button { height: 30px; border-radius: 6px; font-size: 12px; color: var(--sub); }
+.talk__modes button.is-on { background: var(--panel); border: 1px solid var(--line); color: var(--text); font-weight: 700; }
+
+.talk__card { margin-top: 12px; padding: 14px 16px 16px; }
+.talk__card-head { display: flex; justify-content: space-between; align-items: center; }
+.talk__card-head h2, .talk__h { font-size: 14px; font-weight: 700; }
+.talk__show { width: 60px; height: 22px; border-radius: 4px; background: var(--soft); font-size: 11px; font-weight: 500; }
+.talk__intro { margin-top: 12px; padding: 10px 12px; background: var(--el); border-radius: 8px; }
+.talk__intro p { font-size: 13px; font-weight: 500; line-height: 16px; }
+.talk__intro-tr { display: block; margin-top: 12px; font-size: 11px !important; font-weight: 400 !important; color: var(--sub); }
+.talk__langs { display: flex; gap: 6px; margin-top: 12px; }
+.talk__langs button {
+  height: 34px; padding: 0 14px; border-radius: 6px;
+  background: var(--panel); border: 1px solid var(--line); font-size: 12px;
+}
+.talk__langs button.is-on { background: var(--primary); color: var(--bg); }
+
+.talk__pair { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
+.talk__pair select {
+  flex: 1; min-width: 0; height: 38px; padding: 0 10px; border-radius: 6px;
+  background: var(--panel); border: 1px solid var(--line); font-size: 12px;
+}
+.talk__swap { width: 26px; font-size: 16px; font-weight: 700; }
+.talk__input {
+  display: block; width: 100%; height: 80px; margin-top: 12px; padding: 10px 12px; resize: none;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; outline: 0; font-size: 12px;
+}
+.talk__input::placeholder { color: #6e6e75; }
+.talk__go { width: 100%; height: 40px; margin-top: 12px; border-radius: 6px; background: var(--primary); color: var(--bg); font-size: 13px; font-weight: 500; }
+.talk__tools { margin-top: 8px; font-size: 11px; color: var(--sub); }
+.talk__tools button { font-size: 11px; color: var(--sub); text-decoration: underline; text-underline-offset: 2px; }
+
+.talk__phrases { margin-top: 8px; }
+.talk__phrases li { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--soft); }
+.talk__phrases li:last-child { border-bottom: 0; }
+.talk__phrases li > button:first-child { flex: 1; text-align: left; font-size: 13px; }
+.talk__phrases .talk__intro-tr { margin-top: 6px; }
+.talk__speak { width: 36px; height: 36px; border-radius: 6px; background: var(--el); }
+
+.talk__notice { margin-top: 12px; padding: 10px 14px; border-radius: 8px; background: var(--el); font-size: 11px; line-height: 13px; color: var(--sub); }
+
+.talk__large {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
+  padding: 32px; background: var(--white); color: var(--bg); text-align: center;
+}
+.talk__large span { font-size: 34px; font-weight: 700; line-height: 1.35; word-break: keep-all; }
+.talk__large small { font-size: 13px; color: var(--muted); }

@@ -12,12 +12,17 @@
 	<!-- app.properties (네이버 지도 Client ID 등). Java 에서 @Value("${app.naver.client-id}") 로 읽음 -->
 	<context:property-placeholder location="classpath:app.properties" file-encoding="UTF-8"/>
 
-	<!-- DB 이름(itgeo)·비밀번호는 로컬 MySQL 에 맞게 수정 -->
+	<!-- DB 이름(itgeo)·비밀번호는 로컬 MySQL 에 맞게 수정.
+	     ${db.username:root} = 톰캣 실행 옵션 -Ddb.username=... 이 있으면 그 값, 없으면 root.
+	     로컬(이클립스)은 그대로 root/rootroot, 클라우드 서버는 deploy/setup-server.sh 가 만든 setenv.sh 가 값을 넣는다 -->
 	<bean id="dataSource" class="org.apache.commons.dbcp2.BasicDataSource">
 	 	<property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
 	 	<property name="url" value="jdbc:mysql://localhost:3306/itgeo?serverTimezone=Asia/Seoul&amp;characterEncoding=UTF-8"/>
-	 	<property name="username" value="root"/>
-	 	<property name="password" value="rootroot"/>
+	 	<property name="username" value="${db.username:root}"/>
+	 	<property name="password" value="${db.password:rootroot}"/>
+	 	<!-- 서버가 오래 켜져 있으면 MySQL 이 쉬는 연결을 끊는다(기본 8시간). 꺼내 쓰기 전에 살아 있는지 확인 -->
+	 	<property name="validationQuery" value="SELECT 1"/>
+	 	<property name="testOnBorrow" value="true"/>
 	 </bean>
 	 <bean id="sqlSessionFactoryBean" class="org.mybatis.spring.SqlSessionFactoryBean">
 	 	<property name="dataSource" ref="dataSource"></property>
