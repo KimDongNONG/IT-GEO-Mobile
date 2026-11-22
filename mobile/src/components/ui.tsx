@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/AppStore';
 import { STATUS_LABEL, type WorkStatus } from '../data/types';
-import { IconBack, IconTabChat, IconTabCheck, IconTabHome, IconTabRoute } from './icons';
+import { IconBack, IconTabCalendar, IconTabChat, IconTabCheck, IconTabHome } from './icons';
 import './ui.css';
 
 /** 화면 틀: 상단 안전영역 + (뒤로가기) + 제목 + 본문 + 하단(탭바/버튼바) 여백 */
@@ -41,15 +41,15 @@ export function Screen({
 }
 
 export function TabBar() {
-  const { state } = useStore();
   const { pathname } = useLocation();
   // 켜짐 여부는 지금 경로(pathname)만 보고 정한다.
   // 예전에는 NavLink 의 isActive 도 같이 봤는데, 이동할 곳이 없을 때 to 가 '/' 로 바뀌어서
   // 홈 화면에서 '동선' · '확인' 아이콘까지 같이 켜지는 문제가 있었다.
+  // 홈 · 일정(달력) · 확인(확인 완료 리스트 → 확인 결과) · 소통지원. 동선 화면은 홈 리스트의 '지도에서 보기'로 들어간다
   const tabs = [
     { to: '/', label: '홈', Icon: IconTabHome, on: pathname === '/' },
-    { to: state.groups[0] ? `/route/${state.groups[0].id}` : '/', label: '동선', Icon: IconTabRoute, on: pathname.startsWith('/route') },
-    { to: '/calendar', label: '일정', Icon: IconTabCheck, on: pathname.startsWith('/calendar') || pathname.startsWith('/result') },
+    { to: '/calendar', label: '일정', Icon: IconTabCalendar, on: pathname.startsWith('/calendar') },
+    { to: '/done', label: '확인', Icon: IconTabCheck, on: pathname.startsWith('/done') || pathname.startsWith('/result') },
     { to: '/talk', label: '소통지원', Icon: IconTabChat, on: pathname.startsWith('/talk') },
   ];
   return (

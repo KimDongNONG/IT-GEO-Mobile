@@ -146,6 +146,7 @@ export function buildingFromItem(it: FieldItemTO, prev?: Building): Building {
     floors: floorsText(it.grndFlr, it.ugrndFlr),
     factors,
     status: it.checked ? 'done' : prev?.status === 'doing' ? 'doing' : 'before',
+    checkedAt: it.checked ? it.checkedAt ?? prev?.checkedAt : undefined,
     score: it.score,
     households: prev?.households ?? '-',
     ledger: prev?.ledger ?? { use: it.useNm ?? '-', floors: floorsText(it.grndFlr, it.ugrndFlr), approval: approvalText(it.useaprDay), violation: '-', units: '-' },

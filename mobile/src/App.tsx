@@ -11,6 +11,7 @@ import Saved from './screens/Saved';
 import Result from './screens/Result';
 import Talk from './screens/Talk';
 import Calendar from './screens/Calendar';
+import Done from './screens/Done';
 import Emergency from './components/Emergency';
 
 // Capacitor 앱 안에서는 파일 기반으로 열리므로 HashRouter를 씀
@@ -44,6 +45,7 @@ function Gate() {
             <Route path="/record/:buildingId" element={<Record />} />
             <Route path="/record/:buildingId/saved" element={<Saved />} />
             <Route path="/calendar" element={<Calendar />} />
+            <Route path="/done" element={<Done />} />
             <Route path="/result/:buildingId" element={<Result />} />
             <Route path="/talk" element={<Talk />} />
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -153,3 +153,37 @@ export const DragHandle = () => (
     <circle cx="2" cy="14" r="1.5" /><circle cx="8" cy="14" r="1.5" />
   </svg>
 );
+
+// 하단 탭 : 일정(달력)
+export const IconTabCalendar = ({ color, ...p }: P) => (
+  <svg {...base(22, color, 1.65)} {...p}>
+    <rect x="3.67" y="4.58" width="14.67" height="14.67" rx="2" />
+    <path d="M14.67 2.75V6.42M7.33 2.75V6.42M3.67 9.17H18.33" />
+  </svg>
+);
+
+// 확인 완료 · 확인 결과
+export const IconImage = ({ color = '#9B9BA2', ...p }: P) => (
+  <svg {...base(24, color, 1.8)} {...p}>
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <path d="M21 15L16 10L5 21" />
+  </svg>
+);
+export const IconChevronRight = ({ color = '#65656C', ...p }: P) => (
+  <svg {...base(20, color, 2)} {...p}><path d="M7.5 15L12.5 10L7.5 5" /></svg>
+);
+export const IconFilter = ({ color = '#9B9BA2', ...p }: P) => (
+  <svg {...base(20, color, 2)} {...p}><path d="M3.33 5.83H16.67M5.83 10H14.17M8.33 14.17H11.67" /></svg>
+);
+export const IconShare = ({ color = '#E2E2E5', ...p }: P) => (
+  <svg {...base(22, color, 1.8)} {...p}>
+    <path d="M11 13.75V2.75M7.33 6.42L11 2.75L14.67 6.42" />
+    <path d="M3.67 11V17.42C3.67 17.9 3.86 18.37 4.2 18.71C4.55 19.05 5.01 19.25 5.5 19.25H16.5C16.99 19.25 17.45 19.05 17.8 18.71C18.14 18.37 18.33 17.9 18.33 17.42V11" />
+  </svg>
+);
+export const IconMore = ({ color = '#E2E2E5', ...p }: P) => (
+  <svg width={22} height={22} viewBox="0 0 22 22" fill={color} aria-hidden {...p}>
+    <circle cx="11" cy="4.6" r="1.7" /><circle cx="11" cy="11" r="1.7" /><circle cx="11" cy="17.4" r="1.7" />
+  </svg>
+);

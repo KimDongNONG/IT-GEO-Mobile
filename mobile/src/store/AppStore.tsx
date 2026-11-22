@@ -6,6 +6,7 @@ import { ARCHIVE, ARCHIVE_COUNTS, BUILDINGS, DEMO_HH, GROUPS, RECORDS, demoSched
 import type { ArchiveItem, Building, FieldRecord, Group, HistoryRow, ScheduleItem } from '../data/types';
 import { AuthError, setAuthLostHandler } from '../api/client';
 import * as W from '../api/itgeo';
+import { fmtAt } from '../lib/fieldcheck';
 
 export type Mode = 'none' | 'demo' | 'server';
 export interface Member { name: string; gu: string; dept: string; rank: string }
@@ -68,7 +69,8 @@ function demoState(): State {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const s = JSON.parse(saved);
-      return { ...base, buildings: s.buildings ?? base.buildings, groups: s.groups ?? base.groups, archive: s.archive ?? base.archive, records: s.records ?? base.records, lastResultId: s.lastResultId ?? base.lastResultId };
+      // 건물 · 기록은 기본값 위에 덮어씀 (새 버전에서 시연 데이터가 늘어도 보이게)
+      return { ...base, buildings: { ...base.buildings, ...s.buildings }, groups: s.groups ?? base.groups, archive: s.archive ?? base.archive, records: { ...base.records, ...s.records }, lastResultId: s.lastResultId ?? base.lastResultId };
     }
   } catch {
     /* 저장소를 못 쓰는 환경이면 기본값으로 */
@@ -150,7 +152,7 @@ function reducer(state: State, action: Action): State {
       return {
         ...state,
         records: { ...state.records, [action.record.buildingId]: action.record },
-        buildings: b ? { ...state.buildings, [b.id]: { ...b, status: 'done' } } : state.buildings,
+        buildings: b ? { ...state.buildings, [b.id]: { ...b, status: 'done', checkedAt: fmtAt(new Date()) } } : state.buildings,
         lastResultId: action.record.buildingId,
       };
     }

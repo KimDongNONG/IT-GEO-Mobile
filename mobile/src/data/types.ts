@@ -32,6 +32,7 @@ export interface Building {
   lat?: number;
   lng?: number;
   factorId?: number;     // 리스트 순서 · 빼기 · 바꾸기에 쓰는 보관함 키
+  checkedAt?: string;    // 확인 완료 시각 (yyyy-MM-dd HH:mm, 서버 FieldItemTO.checkedAt) : 확인 완료 탭의 날짜 묶음
   planId?: number | null;
   detailLoaded?: boolean;
 }

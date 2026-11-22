@@ -9,14 +9,10 @@ import type { FieldRecord, ResidentStatus } from '../data/types';
 import { useStore } from '../store/AppStore';
 import { IconBuilding, IconCamera, IconCheck16, IconDown, IconUp, IconUpload, IconUsers } from '../components/icons';
 import { ActionBar, Btn, Modal, Screen, SummaryRows } from '../components/ui';
+import { SECTIONS, SUPPORTS } from '../lib/fieldcheck';
 import './Record.css';
 
-const SECTIONS = [
-  { key: 'safety', title: '안전', items: [{ key: 'around', label: '건물 주변' }, { key: 'flood', label: '침수 흔적·배수' }, { key: 'exit', label: '비상 탈출로' }] },
-  { key: 'hygiene', title: '위생', items: [{ key: 'clean', label: '내부 청결' }, { key: 'mold', label: '곰팡이·습기' }] },
-];
 const RESIDENT: ResidentStatus[] = ['양호', '주의', '긴급', '부재'];
-const SUPPORTS = ['집 수리', '주거 이전', '긴급복지', '돌봄 연계', '의료', '안부 확인'];
 const ITEM_COUNT = SECTIONS.reduce((n, s) => n + s.items.length, 0);
 const draftKey = (buildingId: string) => `itgeo.mobile.draft.${buildingId}`;
 
@@ -36,13 +32,19 @@ export default function Record() {
   const { buildingId = '' } = useParams();
   const [params, setParams] = useSearchParams();
   const groupId = params.get('group') ?? '';
+  const editing = params.get('edit') === '1';   // 확인 결과 → '확인 내용 수정' : 마지막 기록 내용을 채운 채로 연다
   const tab = params.get('tab') === 'household' ? 'household' : 'building';
   const { state, act } = useStore();
   const navigate = useNavigate();
   const b = state.buildings[buildingId];
   // 서버 모드는 방문할 때마다 새 기록 (웹 05 타임라인에 한 줄씩 쌓임). 시연 모드는 저장한 기록을 이어서 고침
   //   임시 저장이 있으면 그것부터
-  const [rec, setRec] = useState<FieldRecord>(() => loadDraft(buildingId) ?? ((state.mode === 'demo' && state.records[buildingId]) || emptyRecord(buildingId)));
+  //   수정으로 들어오면 마지막 기록 내용부터 (서버에 이미 올린 사진은 다시 올리지 않으므로 빼고 시작)
+  const [rec, setRec] = useState<FieldRecord>(() => {
+    const last = state.records[buildingId];
+    if (editing && last) return state.mode === 'demo' ? last : { ...last, photos: [], photoIds: undefined, recordId: undefined };
+    return loadDraft(buildingId) ?? ((state.mode === 'demo' && last) || emptyRecord(buildingId));
+  });
   const [closed, setClosed] = useState<Record<string, boolean>>({});
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);   // 저장 중 안내 문구
@@ -59,6 +61,12 @@ export default function Record() {
       const { failedPhotos } = await act.saveRecord(rec, (done, total) => setSaving(`사진 올리는 중… ${done} / ${total}`));
       if (failedPhotos) act.toast(`사진 ${failedPhotos}장은 올리지 못했어요. 기록은 저장됐어요.`);
       try { localStorage.removeItem(draftKey(b.id)); } catch { /* 무시 */ }
+      if (editing) {
+        // 수정은 확인 결과 화면으로 돌아간다 (서버 모드는 새 기록으로 쌓여서 웹 기록 타임라인에도 한 줄 추가됨)
+        act.toast('수정한 내용을 저장했어요.');
+        navigate(`/result/${b.id}`, { replace: true });
+        return;
+      }
       navigate(`/record/${b.id}/saved?group=${groupId}`, { replace: true });
     } catch (e) {
       act.toast(e instanceof Error ? e.message : '저장하지 못했어요.');
