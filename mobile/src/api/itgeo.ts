@@ -1,5 +1,5 @@
 // 서버 응답(스프링 TO) 타입과, 앱 화면 모델(data/types.ts)로 바꾸는 함수
-import type { ArchiveItem, Building, FieldRecord, Group, ResidentStatus } from '../data/types';
+import type { ArchiveItem, Building, FieldRecord, Group, HistoryRow, ResidentStatus, ScheduleItem } from '../data/types';
 import { api, postForm, postJson } from './client';
 
 // ---------- 서버 타입 (필요한 칸만) ----------
@@ -31,6 +31,13 @@ export interface ArchiveDetailTO {
   building: BuildingTO; residents: { hhCnt: number; mbrCnt: number; summary: string } | null; planId: number | null; records: RecordTO[];
 }
 export interface WalkPathTO { mode: string; totalDistance: number; totalTime: number; legs: { distance: number; time: number }[]; path: [number, number][] }
+/** api/mobile/schedule.do 한 줄 (ScheduleItemTO) */
+export interface ScheduleItemTO {
+  scheduleId: number; schedDate: string; surveyId: number; title: string; planId: number; factorId: number; bldId: string;
+  visitOrder: number | null; addr: string; bldNm: string | null; useNm: string | null; sggCd: string; score: number;
+  recordId: number | null; visitTime: string | null; result: ScheduleItem['result'] | null; supports: string | null; prevResult: string | null;
+  bldFactors?: string[] | null; hhVulns?: string[] | null;   // schedule/day.do 만
+}
 export interface ConfigTO { naverClientId: string; factorLabels: Record<string, string> }
 
 // ---------- 공통 값 (서버와 같은 키) ----------
@@ -59,6 +66,13 @@ export const replaceItem = (surveyId: number, oldFactorId: number, newFactorId: 
   postForm('api/mobile/group/replace.do', { surveyId, oldFactorId, newFactorId });
 export const walkPath = (pts: { lat: number; lng: number }[], mode: 'walk' | 'car' = 'walk') =>
   postForm<WalkPathTO>('api/field/walk.do', { lngs: pts.map((p) => p.lng), lats: pts.map((p) => p.lat), mode });
+/** 확인 탭 달력 : 웹 현장확인 리스트 달력과 같은 일정 (start 포함 ~ end 미포함, yyyy-MM-dd) */
+export const fetchSchedule = (start: string, end: string) =>
+  api<ScheduleItemTO[]>(`api/mobile/schedule.do?start=${start}&end=${end}`);
+/** 홈 주간 일정 : 그날 일정 + 건물 취약점 · 가구 취약점 */
+export const fetchScheduleDay = (date: string) => api<ScheduleItemTO[]>(`api/mobile/schedule/day.do?date=${date}`);
+/** 홈 수정 모드의 + : 보관함 건물을 리스트 맨 뒤에 넣기 */
+export const addItem = (surveyId: number, factorId: number) => postForm('api/mobile/group/add.do', { surveyId, factorId });
 export const photoPath = (photoId: number) => `api/mobile/photo.do?photoId=${photoId}`;
 
 /** 현장 기록 저장 → 사진은 한 장씩 따로 올린다 (JSON, 서버 폼 크기 제한 회피) */
@@ -226,5 +240,42 @@ export function archiveFromServer(a: ArchiveRowTO): ArchiveItem {
     factors: splitFactors(a.factorText),
     score: a.score,
     groupId: a.surveyId != null ? String(a.surveyId) : undefined,
+  };
+}
+
+const RESULT_LABEL: Record<string, string> = { MET: '만남', ABSENT: '부재', REFUSED: '거부', OTHER: '기타' };
+/** building.do 의 records → 홈 '이력' 줄 (최근 기록이 먼저) */
+export function historyFromServer(rs: RecordTO[]): HistoryRow[] {
+  return rs.map((r) => ({
+    id: String(r.recordId),
+    at: r.visitedAt,
+    result: RESULT_LABEL[r.result] ?? r.result,
+    author: r.userNm ?? '',
+    resident: r.residentStatus ?? undefined,
+    supports: r.supports ?? [],
+    memo: r.content ?? '',
+    fromWeb: r.source !== 'APP',
+  }));
+}
+
+export function scheduleFromServer(t: ScheduleItemTO): ScheduleItem {
+  return {
+    key: `${t.scheduleId}-${t.planId}`,
+    scheduleId: t.scheduleId,
+    date: t.schedDate,
+    groupId: String(t.surveyId),
+    title: t.title,
+    bldId: t.bldId,
+    order: t.visitOrder,
+    place: `${shortAddr(t.addr)} ${t.bldNm || t.useNm || ''}`.trim(),
+    score: t.score,
+    recordId: t.recordId ?? undefined,
+    time: t.visitTime ?? undefined,
+    result: t.result ?? undefined,
+    supports: t.supports ? t.supports.split(',').map((x) => x.trim()).filter(Boolean) : [],
+    prevResult: t.prevResult ?? undefined,
+    factorId: t.factorId,
+    bldFactors: t.bldFactors ?? undefined,
+    hhVulns: t.hhVulns ?? undefined,
   };
 }

@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import itgeo.to.ScheduleEventTO;
+import itgeo.to.ScheduleItemTO;
 
 // 달력 (survey_schedule). SQL 은 mapper-schedule.xml (namespace = mapper-schedule)
 @Repository
@@ -24,6 +25,15 @@ public class ScheduleDAO {
 		p.put("start", start);
 		p.put("end", end);
 		return sqlSession.selectList("mapper-schedule.selectMyEvents", p);
+	}
+
+	// 모바일 달력 : 내 일정(start <= sched_date < end)을 리스트 안 건물까지 펼친 줄들
+	public List<ScheduleItemTO> selectMyItems(long userId, String start, String end) {
+		Map<String, Object> p = new HashMap<>();
+		p.put("userId", userId);
+		p.put("start", start);
+		p.put("end", end);
+		return sqlSession.selectList("mapper-schedule.selectMyItems", p);
 	}
 
 	// 날짜에 리스트 넣기 : 내가 볼 수 있는 리스트일 때만 들어감. 들어간 줄 수 (0 = 못 넣음)

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import itgeo.common.BadRequestException;
 import itgeo.dao.ScheduleDAO;
 import itgeo.to.ScheduleEventTO;
+import itgeo.to.ScheduleItemTO;
 
 /**
  * 달력 (풀캘린더). 날짜에 현장확인 리스트를 묶음째 넣은 것 = survey_schedule. 내 일정만 보인다.
@@ -29,6 +30,13 @@ public class ScheduleService {
 		LocalDate s = toDate(start), e = toDate(end);
 		if (!s.isBefore(e) || s.plusDays(MAX_DAYS).isBefore(e)) throw new BadRequestException("달력 날짜 범위가 올바르지 않습니다.");
 		return scheduleDAO.selectMyEvents(userId, s.toString(), e.toString());
+	}
+
+	/** 모바일 달력 (월간) : 날짜 범위 확인은 웹 달력과 같은 규칙 (두 달까지) */
+	public List<ScheduleItemTO> myItems(long userId, String start, String end) {
+		LocalDate s = toDate(start), e = toDate(end);
+		if (!s.isBefore(e) || s.plusDays(MAX_DAYS).isBefore(e)) throw new BadRequestException("달력 날짜 범위가 올바르지 않습니다.");
+		return scheduleDAO.selectMyItems(userId, s.toString(), e.toString());
 	}
 
 	/** 날짜에 리스트 넣기. 실패하면 이유를 담은 BadRequestException */

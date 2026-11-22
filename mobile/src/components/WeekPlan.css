@@ -1,0 +1,93 @@
+.wk { margin-top: 22px; }
+.wk__heading { font-size: 17px; font-weight: 700; margin-bottom: 12px; }
+
+/* 이번 주 : 7칸이 줄 전체를 채움 */
+.wk__strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; width: 100%; }
+.wk__day {
+  height: 76px; border-radius: 8px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  background: var(--el); border: 1px solid var(--soft);
+}
+.wk__wd { font-size: 11px; color: var(--sub); }
+.wk__num {
+  min-width: 26px; height: 26px; padding: 0 4px; border-radius: 13px;
+  display: grid; place-items: center;
+  font-size: 15px; font-weight: 700; color: var(--text);
+}
+.wk__cnt { height: 13px; font-size: 10.5px; line-height: 13px; color: var(--primary); }
+.wk__day.is-sun .wk__wd, .wk__day.is-sun .wk__num { color: #e5736f; }
+.wk__day.is-sat .wk__wd, .wk__day.is-sat .wk__num { color: #6fa3e5; }
+.wk__day.is-today .wk__num { background: var(--primary); color: var(--white); }
+.wk__day.is-sel { border-color: var(--primary); background: rgba(68, 142, 222, 0.14); }
+
+/* 고른 날의 리스트 : 주간 칸과 조금 떨어져서 */
+.wk__lists { margin-top: 28px; display: flex; flex-direction: column; gap: 28px; }
+.wk__empty { padding: 24px 0; font-size: 13px; color: var(--sub); text-align: center; }
+
+.wl__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding-bottom: 10px; border-bottom: 1px solid var(--line);
+}
+.wl__title { flex: 1; min-width: 0; font-size: 16px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wl__edit {
+  flex: none; height: 30px; padding: 0 12px; border-radius: 6px;
+  background: var(--el); border: 1px solid var(--line);
+  font-size: 13px; font-weight: 500; color: var(--text);
+}
+.wl.is-editing .wl__edit { background: var(--primary); border-color: var(--primary); color: var(--white); }
+
+/* 건물 줄 : 블록 없이 bar(아래 선)로만 나눔 */
+.wl__rows { list-style: none; margin: 0; padding: 0; }
+.wl__row { position: relative; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--soft); background: var(--bg); }
+.wl__main { flex: 1; min-width: 0; padding: 12px 0; display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.wl__addr { font-size: 15px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 취약점 줄 : 가로로 최대 3개 + (+n) */
+.wk-vulns { display: flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.wk-vulns__label { flex: none; width: 28px; font-size: 11px; color: var(--muted); }
+.wk-chip {
+  flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  height: 22px; padding: 0 7px; border-radius: 4px; line-height: 20px;
+  background: var(--el); border: 1px solid var(--line);
+  font-size: 11.5px; color: var(--text);
+}
+.wk-vulns__more { flex: none; font-size: 11.5px; color: var(--sub); }
+.wk-vulns__none { font-size: 11.5px; color: var(--muted); }
+
+/* 수정 모드 : 왼쪽 가운데 점 6개 핸들 · 오른쪽 삭제 */
+.wl__handle { flex: none; align-self: stretch; width: 28px; display: grid; place-items: center; touch-action: none; cursor: grab; }
+.wl__del {
+  flex: none; height: 32px; padding: 0 10px; border-radius: 6px;
+  background: var(--el); border: 1px solid var(--line);
+  font-size: 13px; font-weight: 500; color: var(--red);
+}
+.wl__row.is-dragging { z-index: 5; opacity: 0.92; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
+.wl__row.drop-before::before, .wl__row.drop-after::after {
+  content: ''; position: absolute; left: 0; right: 0; height: 3px; border-radius: 2px; background: var(--primary);
+}
+.wl__row.drop-before::before { top: -2px; }
+.wl__row.drop-after::after { bottom: -2px; }
+
+/* 리스트 맨 아래 가운데 + */
+.wl__add {
+  display: grid; place-items: center;
+  width: 40px; height: 40px; margin: 12px auto 0; border-radius: 20px;
+  border: 1px dashed var(--line); color: var(--primary);
+  font-size: 24px; line-height: 1;
+}
+
+/* + 로 여는 건물 추가 창 */
+.wadd { display: flex; flex-direction: column; }
+.wadd__search {
+  display: flex; align-items: center; gap: 8px;
+  height: 44px; margin-top: 14px; padding: 0 12px;
+  background: var(--el); border: 1px solid var(--line); border-radius: 6px;
+}
+.wadd__search input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; font-size: 14px; color: var(--text); }
+.wadd__search input::placeholder { color: var(--muted); }
+.wadd__list { list-style: none; margin: 10px 0 0; padding: 0; max-height: 46vh; overflow-y: auto; }
+.wadd__list li { border-bottom: 1px solid var(--soft); }
+.wadd__list button { width: 100%; padding: 11px 2px; display: flex; flex-direction: column; gap: 4px; text-align: left; }
+.wadd__name { font-size: 14px; font-weight: 700; color: var(--text); }
+.wadd__sub { font-size: 12px; color: var(--sub); }
+.wadd__none { padding: 20px 0; font-size: 13px; color: var(--sub); text-align: center; }@charset "UTF-8";

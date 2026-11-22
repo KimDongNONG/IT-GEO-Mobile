@@ -59,6 +59,19 @@ public class ResidentCountTO {
 		return sb.toString();
 	}
 
+	/** 모바일 홈 "가구 취약점" 줄 : 해당 있는 유형 전부, 많은 순 ("75세 이상 3명" 식) */
+	public java.util.List<String> getVulnList() {
+		String[] names = { "고위험고립", "사회적고립", "75세 이상", "심한 장애", "사각지대", "건보료 체납", "독박돌봄", "지하 거주", "옥탑 거주", "차상위·기초생활" };
+		String[] units = { "가구", "가구", "명", "명", "가구", "가구", "가구", "가구", "가구", "가구" };
+		int[] counts = { highRiskHh, socialIsoHh, old75, severeDsbl, blindHh, arrearsHh, careBurdenHh, ugrndHh, rooftopHh, nearPoorHh };
+		java.util.List<int[]> idx = new java.util.ArrayList<>();
+		for (int i = 0; i < counts.length; i++) if (counts[i] > 0) idx.add(new int[] { counts[i], i });
+		idx.sort((a, b) -> b[0] - a[0]);
+		java.util.List<String> out = new java.util.ArrayList<>();
+		for (int[] x : idx) out.add(names[x[1]] + " " + x[0] + units[x[1]]);
+		return out;
+	}
+
 	private static void append(StringBuilder sb, int n, String label, String unit) {
 		if (n <= 0) return;
 		if (sb.length() > 0) sb.append(" · ");

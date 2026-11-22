@@ -4,8 +4,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,11 +22,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import itgeo.common.BadRequestException;
 import itgeo.common.ForbiddenException;
 import itgeo.dao.MobileDAO;
+import itgeo.to.AnalysisCriteriaTO;
+import itgeo.to.BuildingDetailTO;
+import itgeo.to.BuildingTO;
 import itgeo.to.MemberTO;
 import itgeo.to.PhotoTO;
 import itgeo.to.RecordDetailTO;
+import itgeo.to.ScheduleItemTO;
 
 /**
  * 모바일 앱 현장 기록 저장 (reference/db/06_mobile_record.sql).
@@ -56,6 +65,12 @@ public class MobileService {
 
 	@Autowired
 	ArchiveService archiveService;
+
+	@Autowired
+	ScheduleService scheduleService;
+
+	@Autowired
+	MapService mapService;
 
 	@Value("${app.upload.dir:}")
 	String uploadDir;
@@ -128,6 +143,42 @@ public class MobileService {
 		Path f = uploadRoot().resolve(p.getFileName()).normalize();
 		if (!f.startsWith(uploadRoot()) || !Files.isRegularFile(f)) return null;
 		return f;
+	}
+
+	/** 모바일 홈 : 하루 일정 + 건물 취약점 · 가구 취약점 (05 건물 상세와 같은 데이터, 같은 건물은 한 번만 읽음) */
+	public List<ScheduleItemTO> dayItems(MemberTO m, String date) {
+		LocalDate d;
+		try {
+			d = LocalDate.parse(date);
+		} catch (DateTimeParseException | NullPointerException e) {
+			throw new BadRequestException("날짜 형식이 올바르지 않습니다.");
+		}
+		List<ScheduleItemTO> items = scheduleService.myItems(m.getUserId(), d.toString(), d.plusDays(1).toString());
+		String gu = m.isGuUser() ? m.getSggCd() : null;
+		Map<String, BuildingDetailTO> cache = new HashMap<>();
+		for (ScheduleItemTO it : items) {
+			if (gu != null && !gu.equals(it.getSggCd())) { it.setBldFactors(List.of()); it.setHhVulns(List.of()); continue; }
+			BuildingDetailTO bd = cache.computeIfAbsent(it.getBldId(), id -> {
+				AnalysisCriteriaTO c = new AnalysisCriteriaTO();
+				c.setBldId(id);
+				c.setUserId(m.getUserId());
+				if (gu != null) c.setGu(gu);
+				return mapService.getBuildingDetail(c);
+			});
+			it.setBldFactors(bd == null ? List.of() : factorsOf(bd.getBuilding()));
+			it.setHhVulns(bd == null || bd.getResidents() == null ? List.of() : bd.getResidents().getVulnList());
+		}
+		return items;
+	}
+
+	/** 요인 점수가 0보다 큰 것 = 건물 취약점 */
+	static List<String> factorsOf(BuildingTO b) {
+		List<String> out = new ArrayList<>();
+		if (b == null) return out;
+		int[] pts = { b.getPtUgrnd(), b.getPtGosiwon(), b.getPtRooftop(), b.getPtViol(), b.getPtOld(), b.getPtFlood(), b.getPtLow(), b.getPtCheap() };
+		String[] keys = { "ugrnd", "gosiwon", "rooftop", "viol", "old", "flood", "low", "cheap" };
+		for (int i = 0; i < keys.length; i++) if (pts[i] > 0) out.add(ArchiveService.FACTOR_LABELS.get(keys[i]));
+		return out;
 	}
 
 	/** app.upload.dir 이 비어 있으면 [사용자 홈]/itgeo-upload (예전 이름 itgeo-upload 폴더만 있으면 그 폴더를 계속 씀) */

@@ -30,11 +30,13 @@ import itgeo.service.ArchiveService;
 import itgeo.service.FieldService;
 import itgeo.service.MemberService;
 import itgeo.service.MobileService;
+import itgeo.service.ScheduleService;
 import itgeo.to.ArchiveDetailTO;
 import itgeo.to.ArchiveRowTO;
 import itgeo.to.FieldItemTO;
 import itgeo.to.FieldListTO;
 import itgeo.to.MemberTO;
+import itgeo.to.ScheduleItemTO;
 
 /**
  * 모바일 앱(mobile/) 전용 JSON API. 화면용 컨트롤러와 같은 서비스를 쓰고 JSON 만 돌려준다.
@@ -47,11 +49,14 @@ import itgeo.to.MemberTO;
  *  POST api/mobile/group/order.do  surveyId, factorIds[]  → 방문 순서 저장
  *  POST api/mobile/group/remove.do surveyId, factorId     → 리스트에서 건물 빼기 (보관함에는 남음)
  *  POST api/mobile/group/replace.do surveyId, oldFactorId, newFactorId → 건물 바꾸기 (같은 자리)
+ *  POST api/mobile/group/add.do    surveyId, factorId     → 리스트 끝에 건물 넣기 (보관함에서)
  *  GET  api/mobile/archive.do                             → 내 보관함 (어느 리스트에 담겼는지 포함)
  *  GET  api/mobile/building.do     bldId                  → 건물 + 사전 탐지 요인 + 확인 기록 (05 와 같은 데이터)
  *  POST api/mobile/record.do       bldId, result, chk_<요인키>=Y|N|?, score_<항목키>=1~5, resident, supports[], content → recordId
  *  POST api/mobile/photo/upload.do JSON {recordId, label, data(base64 data URL)} → photoId
  *  GET  api/mobile/photo.do        photoId                → 사진 파일 (웹 05 타임라인도 이 주소로 보여 줌)
+ *  GET  api/mobile/schedule.do    start, end (yyyy-MM-dd, end 미포함) → 달력에 넣은 리스트를 건물까지 펼친 줄 (확인 탭 월간 달력)
+ *  GET  api/mobile/schedule/day.do date (yyyy-MM-dd)   → 하루 일정 + 건물 취약점 · 가구 취약점 (홈 주간 일정)
  *  GET  api/mobile/config.do                              → 네이버 지도 키 · 점수 항목 · 지원 목록 · 요인 라벨
  *
  * 로그인 안 된 api/ 요청은 LoginInterceptor 가 redirect 대신 401 JSON 을 돌려준다.
@@ -72,6 +77,9 @@ public class MobileRESTController {
 
 	@Autowired
 	MobileService mobileService;
+
+	@Autowired
+	ScheduleService scheduleService;
 
 	@Value("${app.naver.client-id}")
 	String naverClientId;
@@ -142,6 +150,17 @@ public class MobileRESTController {
 		ids.set(at, newFactorId);
 		long id = fieldService.saveField(m.getUserId(), gu(m), surveyId, null, null, ids);   // 남의 건물 · 다른 구면 IllegalArgumentException → 400
 		return msg(id > 0, id > 0 ? null : "리스트를 찾을 수 없습니다.");
+	}
+
+	@PostMapping(value = "api/mobile/group/add.do", produces = JSON)
+	public Map<String, Object> groupAdd(@RequestParam("surveyId") long surveyId, @RequestParam("factorId") long factorId,
+			HttpSession session) {
+		MemberTO m = member(session);
+		List<Long> ids = itemIds(m, surveyId);
+		if (ids.contains(factorId)) throw new IllegalArgumentException("이미 이 리스트에 있는 건물입니다.");
+		ids.add(factorId);
+		long id = fieldService.saveField(m.getUserId(), gu(m), surveyId, null, null, ids);   // 남의 건물 · 다른 구면 IllegalArgumentException → 400
+		return msg(id > 0, id > 0 ? null : "리스트를 저장하지 못했습니다.");
 	}
 
 	// ---------- 보관함 · 건물 ----------
@@ -228,6 +247,20 @@ public class MobileRESTController {
 		out.put("supports", MobileService.SUPPORTS);
 		out.put("factorLabels", ArchiveService.FACTOR_LABELS);
 		return out;
+	}
+
+	// ---------- 확인 탭 달력 · 홈 주간 일정 ----------
+
+	// 웹 현장확인 리스트 달력(api/field/schedule.do)과 같은 survey_schedule 을 읽는다. 내 일정만, 한 번에 두 달까지
+	@GetMapping(value = "api/mobile/schedule.do", produces = JSON)
+	public List<ScheduleItemTO> schedule(@RequestParam("start") String start, @RequestParam("end") String end, HttpSession session) {
+		MemberTO m = member(session);
+		return scheduleService.myItems(m.getUserId(), start, end);
+	}
+
+	@GetMapping(value = "api/mobile/schedule/day.do", produces = JSON)
+	public List<ScheduleItemTO> scheduleDay(@RequestParam("date") String date, HttpSession session) {
+		return mobileService.dayItems(member(session), date);
 	}
 
 	// ---------- 공통 ----------

@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/AppStore';
 import { STATUS_LABEL, type WorkStatus } from '../data/types';
 import { IconBack, IconTabChat, IconTabCheck, IconTabHome, IconTabRoute } from './icons';
@@ -43,33 +43,22 @@ export function Screen({
 export function TabBar() {
   const { state } = useStore();
   const { pathname } = useLocation();
+  // 켜짐 여부는 지금 경로(pathname)만 보고 정한다.
+  // 예전에는 NavLink 의 isActive 도 같이 봤는데, 이동할 곳이 없을 때 to 가 '/' 로 바뀌어서
+  // 홈 화면에서 '동선' · '확인' 아이콘까지 같이 켜지는 문제가 있었다.
   const tabs = [
-    { to: '/', label: '홈', Icon: IconTabHome, end: true },
-    { to: state.groups[0] ? `/route/${state.groups[0].id}` : '/', label: '동선', Icon: IconTabRoute, match: '/route' },
-    { to: state.lastResultId ? `/result/${state.lastResultId}` : '/', label: '확인', Icon: IconTabCheck, match: '/result' },
-    { to: '/talk', label: '소통지원', Icon: IconTabChat },
+    { to: '/', label: '홈', Icon: IconTabHome, on: pathname === '/' },
+    { to: state.groups[0] ? `/route/${state.groups[0].id}` : '/', label: '동선', Icon: IconTabRoute, on: pathname.startsWith('/route') },
+    { to: '/calendar', label: '일정', Icon: IconTabCheck, on: pathname.startsWith('/calendar') || pathname.startsWith('/result') },
+    { to: '/talk', label: '소통지원', Icon: IconTabChat, on: pathname.startsWith('/talk') },
   ];
   return (
     <nav className="tabbar" aria-label="하단 메뉴">
-      {tabs.map(({ to, label, Icon, end, match }) => (
-        <NavLink
-          key={label}
-          to={to}
-          end={end}
-          className={({ isActive }) =>
-            `tabbar__item ${isActive || (match && pathname.startsWith(match)) ? 'is-active' : ''}`
-          }
-        >
-          {({ isActive }) => {
-            const on = isActive || (!!match && pathname.startsWith(match));
-            return (
-              <>
-                <Icon color={on ? 'var(--primary)' : 'var(--sub)'} />
-                <span>{label}</span>
-              </>
-            );
-          }}
-        </NavLink>
+      {tabs.map(({ to, label, Icon, on }) => (
+        <Link key={label} to={to} className={`tabbar__item ${on ? 'is-active' : ''}`} aria-current={on ? 'page' : undefined}>
+          <Icon color={on ? 'var(--primary)' : 'var(--sub)'} />
+          <span>{label}</span>
+        </Link>
       ))}
     </nav>
   );
