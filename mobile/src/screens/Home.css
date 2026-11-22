@@ -1,15 +1,10 @@
 .home { padding-top: var(--top); }
 
-/* 인사 줄 : 날짜 · "안녕하세요, 이름 님" · 로그아웃 */
-.home__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
-.home__date { font-size: 13px; color: var(--sub); }
-.home__hello { margin-top: 4px; font-size: 22px; font-weight: 700; color: var(--text); }
-.home__hello small { font-size: 13px; font-weight: 500; color: var(--sub); }
-.home__out {
-  flex: none; height: 32px; padding: 0 12px; border-radius: 16px;
-  background: var(--el); border: 1px solid var(--line);
-  font-size: 12px; color: var(--sub);
-}
+/* 인사 줄 : 날짜(· 시연) · 로그아웃 / "안녕하세요, 이름 님". 오른쪽 위 SOS 자리는 비운다 */
+.home__top { margin-bottom: 18px; padding-right: var(--sos-space); }
+.home__date { display: flex; align-items: center; gap: 10px; min-height: 24px; font-size: 13px; color: var(--sub); }
+.home__out { margin-left: auto; font-size: 12px; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+.home__hello { margin-top: 4px; font-size: 22px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---------- 전체 현장 확인 카드 (접고 펼치기) : 다크 바탕에 메인 색을 살짝 섞은 카드 ---------- */
 .hstat {

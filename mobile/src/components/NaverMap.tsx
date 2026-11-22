@@ -20,7 +20,8 @@ function loadNaver(clientId: string): Promise<any> {
   if (loader) return loader;
   loader = new Promise((resolve, reject) => {
     const s = document.createElement('script');
-    s.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(clientId)}`;
+    // submodules=geocoder : 긴급신고에서 현재 위치 → 주소 (reverseGeocode). 콘솔에서 Reverse Geocoding 을 켜야 주소가 나온다 (안 켜도 지도는 뜸)
+    s.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(clientId)}&submodules=geocoder`;
     s.async = true;
     s.onload = () => (window.naver?.maps ? resolve(window.naver) : reject(new Error('naver')));
     s.onerror = () => reject(new Error('naver'));
@@ -33,6 +34,30 @@ function loadNaver(clientId: string): Promise<any> {
     document.head.appendChild(s);
   }).catch((e) => { loader = null; throw e; });
   return loader;
+}
+
+/** 경위도 → 주소 (도로명 우선, 없으면 지번). 키가 없거나 SDK · 역지오코딩을 못 쓰면 null */
+export async function reverseGeocode(clientId: string | null | undefined, lat: number, lng: number): Promise<string | null> {
+  if (!clientId) return null;
+  try {
+    const naver = await loadNaver(clientId);
+    const svc = naver?.maps?.Service;
+    if (!svc?.reverseGeocode) return null;
+    return await new Promise<string | null>((resolve) => {
+      const t = setTimeout(() => resolve(null), 5000);
+      svc.reverseGeocode(
+        { coords: new naver.maps.LatLng(lat, lng), orders: [svc.OrderType.ROAD_ADDR, svc.OrderType.ADDR].join(',') },
+        (status: any, res: any) => {
+          clearTimeout(t);
+          if (status !== svc.Status.OK) { resolve(null); return; }
+          const a = res?.v2?.address;
+          resolve(a?.roadAddress || a?.jibunAddress || null);
+        },
+      );
+    });
+  } catch {
+    return null;
+  }
 }
 
 export interface MapStop {

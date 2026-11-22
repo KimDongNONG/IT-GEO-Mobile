@@ -11,6 +11,7 @@ import Saved from './screens/Saved';
 import Result from './screens/Result';
 import Talk from './screens/Talk';
 import Calendar from './screens/Calendar';
+import Emergency from './components/Emergency';
 
 // Capacitor 앱 안에서는 파일 기반으로 열리므로 HashRouter를 씀
 export default function App() {
@@ -20,6 +21,8 @@ export default function App() {
         <div className="app">
           <Gate />
           <Toast />
+          {/* 긴급신고 SOS : 로그인 화면을 포함한 모든 화면 오른쪽 위 */}
+          <Emergency />
         </div>
       </HashRouter>
     </AppStoreProvider>

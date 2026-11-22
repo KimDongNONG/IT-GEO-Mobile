@@ -1,4 +1,7 @@
 // M3 현장 기록(건물) · M3-1 현장 기록(가구) · M4/M4-1 제출 확인
+//   위 = 건물 카드(방문 순번 · 점검 진행 n / 5 항목), 건물 | 가구 탭
+//   건물 탭 : 섹션 카드(안전 · 위생)마다 1~5 점 네모 버튼 (1 양호 ~ 5 위험, 고른 칸은 체크 + 점수 색). 다 고른 섹션은 체크 표시
+//   메모 · 사진 섹션은 두 탭 모두 맨 아래. 오른쪽 위 '임시 저장' = 폰에 잠깐 보관 (사진 제외), 다시 들어오면 이어서 쓴다
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
@@ -14,8 +17,16 @@ const SECTIONS = [
 ];
 const RESIDENT: ResidentStatus[] = ['양호', '주의', '긴급', '부재'];
 const SUPPORTS = ['집 수리', '주거 이전', '긴급복지', '돌봄 연계', '의료', '안부 확인'];
-const SCORE_R = [23, 19, 16, 19, 23];
-const SCORE_C = ['var(--score-1)', 'var(--score-2)', 'var(--score-3)', 'var(--score-4)', 'var(--score-5)'];
+const ITEM_COUNT = SECTIONS.reduce((n, s) => n + s.items.length, 0);
+const draftKey = (buildingId: string) => `itgeo.mobile.draft.${buildingId}`;
+
+/** 임시 저장한 기록 (사진은 용량 때문에 빼고 저장) */
+function loadDraft(buildingId: string): FieldRecord | null {
+  try {
+    const v = localStorage.getItem(draftKey(buildingId));
+    return v ? { ...JSON.parse(v), photos: [] } : null;
+  } catch { return null; }
+}
 
 function emptyRecord(buildingId: string): FieldRecord {
   return { buildingId, scores: {}, supports: [], memo: '', photos: [], factorChecks: {} };
@@ -30,7 +41,8 @@ export default function Record() {
   const navigate = useNavigate();
   const b = state.buildings[buildingId];
   // 서버 모드는 방문할 때마다 새 기록 (웹 05 타임라인에 한 줄씩 쌓임). 시연 모드는 저장한 기록을 이어서 고침
-  const [rec, setRec] = useState<FieldRecord>(() => (state.mode === 'demo' && state.records[buildingId]) || emptyRecord(buildingId));
+  //   임시 저장이 있으면 그것부터
+  const [rec, setRec] = useState<FieldRecord>(() => loadDraft(buildingId) ?? ((state.mode === 'demo' && state.records[buildingId]) || emptyRecord(buildingId)));
   const [closed, setClosed] = useState<Record<string, boolean>>({});
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);   // 저장 중 안내 문구
@@ -46,6 +58,7 @@ export default function Record() {
     try {
       const { failedPhotos } = await act.saveRecord(rec, (done, total) => setSaving(`사진 올리는 중… ${done} / ${total}`));
       if (failedPhotos) act.toast(`사진 ${failedPhotos}장은 올리지 못했어요. 기록은 저장됐어요.`);
+      try { localStorage.removeItem(draftKey(b.id)); } catch { /* 무시 */ }
       navigate(`/record/${b.id}/saved?group=${groupId}`, { replace: true });
     } catch (e) {
       act.toast(e instanceof Error ? e.message : '저장하지 못했어요.');
@@ -54,6 +67,16 @@ export default function Record() {
   };
 
   const back = () => (groupId ? navigate(`/route/${groupId}`) : navigate(-1));
+  const saveDraft = () => {
+    try {
+      localStorage.setItem(draftKey(b.id), JSON.stringify({ ...rec, photos: [] }));
+      act.toast(rec.photos.length ? '임시 저장했어요. 사진은 저장되지 않으니 제출 전에 다시 붙여 주세요.' : '임시 저장했어요. 다시 들어오면 이어서 쓸 수 있어요.');
+    } catch {
+      act.toast('임시 저장하지 못했어요.');
+    }
+  };
+  const answered = SECTIONS.reduce((n, s) => n + s.items.filter((it) => rec.scores[it.key] != null).length, 0);
+  const visitNo = groupId ? (state.groups.find((g) => g.id === groupId)?.buildingIds.indexOf(b.id) ?? -1) + 1 : 0;
   const setScore = (k: string, v: number) => setRec((r) => ({ ...r, scores: { ...r.scores, [k]: v } }));
   const toggle = (k: string) => setClosed((c) => ({ ...c, [k]: !c[k] }));
 
@@ -67,7 +90,7 @@ export default function Record() {
   };
 
   const memoSection = (num: number) => (
-    <Section num={num} title="메모" closed={closed.memo} onToggle={() => toggle('memo')}>
+    <Section num={num} title="메모 · 사진" closed={closed.memo} onToggle={() => toggle('memo')}>
       <div className="rec__photo-btns">
         <button className="rec__photo-btn" onClick={() => addPhoto(CameraSource.Camera)}><IconCamera />사진 촬영</button>
         <button className="rec__photo-btn" onClick={() => addPhoto(CameraSource.Photos)}><IconUpload />사진 업로드</button>
@@ -92,10 +115,20 @@ export default function Record() {
   );
 
   return (
-    <Screen title="현장 기록" back={back} right={<span className="badge badge--plain">진행 중</span>} bottom="actions" className="rec">
+    <Screen title="현장 기록" back={back} right={<button className="rec__draft" onClick={saveDraft}>임시 저장</button>} bottom="actions" className="rec">
       <div className="rec__bld card">
-        <p className="rec__bld-name">{b.gu} {b.dong} {b.type}</p>
-        <p className="rec__bld-sub">취약도 {b.score} · {b.households}</p>
+        <div className="rec__bld-top">
+          {visitNo > 0 && <span className="rec__bld-no">{visitNo}</span>}
+          <div className="rec__bld-tx">
+            <p className="rec__bld-name">{b.gu} {b.dong}</p>
+            <p className="rec__bld-sub">{b.type} · 취약도 {b.score}{b.households ? ` · ${b.households.split(' (')[0]}` : ''}</p>
+          </div>
+        </div>
+        <div className="rec__prog">
+          <span>점검 진행</span>
+          <b>{answered} / {ITEM_COUNT} 항목</b>
+        </div>
+        <div className="rec__bar"><i style={{ width: `${(answered / ITEM_COUNT) * 100}%` }} /></div>
       </div>
 
       <div className="rec__tabs card" role="tablist">
@@ -109,27 +142,34 @@ export default function Record() {
 
       {tab === 'building' ? (
         <>
-          {SECTIONS.map((s, si) => (
+          {SECTIONS.map((s, si) => {
+            const n = s.items.filter((it) => rec.scores[it.key] != null).length;
+            const full = n === s.items.length;
+            const allGood = s.items.every((it) => rec.scores[it.key] === 1);
+            return (
             <Section
               key={s.key}
               num={si + 1}
               title={s.title}
+              done={full}
+              count={<span className={`sec__cnt ${full ? 'is-full' : ''}`}>{n} / {s.items.length}{full ? ' 완료' : ''}</span>}
               closed={closed[s.key]}
               onToggle={() => toggle(s.key)}
               extra={
-                <button className="rec__allgood" onClick={() => s.items.forEach((it) => setScore(it.key, 1))}>모두 양호</button>
+                <button className={`rec__allgood ${allGood ? 'is-on' : ''}`} onClick={() => s.items.forEach((it) => setScore(it.key, 1))}>모두 양호</button>
               }
             >
               {s.items.map((it) => (
                 <ScoreRow key={it.key} label={it.label} value={rec.scores[it.key]} onChange={(v) => setScore(it.key, v)} />
               ))}
             </Section>
-          ))}
+            );
+          })}
           {memoSection(3)}
         </>
       ) : (
         <>
-          <Section num={4} title="거주자" closed={closed.resident} onToggle={() => toggle('resident')}>
+          <Section num={1} title="거주자" done={!!rec.resident} closed={closed.resident} onToggle={() => toggle('resident')}>
             <p className="rec__q">거주자 상태</p>
             <div className="seg" role="radiogroup">
               {RESIDENT.map((r) => (
@@ -156,12 +196,12 @@ export default function Record() {
               })}
             </div>
           </Section>
-          {memoSection(5)}
+          {memoSection(2)}
         </>
       )}
 
       <ActionBar>
-        <Btn onClick={back}>이전 화면으로</Btn>
+        <Btn onClick={back}>이전</Btn>
         <Btn variant="primary" onClick={() => setConfirming(true)}>저장하고 완료</Btn>
       </ActionBar>
 
@@ -179,14 +219,14 @@ export default function Record() {
 }
 
 function Section({
-  num, title, closed, onToggle, extra, children,
-}: { num: number; title: string; closed?: boolean; onToggle: () => void; extra?: React.ReactNode; children: React.ReactNode }) {
+  num, title, done, count, closed, onToggle, extra, children,
+}: { num: number; title: string; done?: boolean; count?: React.ReactNode; closed?: boolean; onToggle: () => void; extra?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="sec card">
+    <section className={`sec card ${closed ? 'is-closed' : ''}`}>
       <header className="sec__head">
-        <span className="sec__num">{num}</span>
-        <h2 className="sec__title">{title}</h2>
-        {extra}
+        <span className={`sec__num ${done ? 'is-done' : ''}`}>{done ? <IconCheck16 color="#FFFFFF" /> : num}</span>
+        <h2 className="sec__title">{title}{count}</h2>
+        {!closed && extra}
         <button className="sec__toggle" onClick={onToggle} aria-label={closed ? '펼치기' : '접기'} aria-expanded={!closed}>
           {closed ? <IconDown /> : <IconUp />}
         </button>
@@ -196,22 +236,20 @@ function Section({
   );
 }
 
+/** 1 ~ 5 점 네모 버튼 : 고른 칸은 체크 + 점수 색 (1·2 양호 초록, 3 노랑, 4 주황, 5 빨강) */
 function ScoreRow({ label, value, onChange }: { label: string; value?: number; onChange: (v: number) => void }) {
   return (
     <div className="score">
-      <p className="score__label">{label}</p>
+      <p className="score__label">
+        {label}
+        {value == null && <span className="score__none">선택 안 함</span>}
+      </p>
       <div className="score__opts" role="radiogroup" aria-label={label}>
-        {SCORE_R.map((r, i) => {
-          const v = i + 1;
+        {[1, 2, 3, 4, 5].map((v) => {
           const on = value === v;
           return (
-            <button key={v} role="radio" aria-checked={on} aria-label={`${v}점`} onClick={() => onChange(v)}>
-              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                <circle cx="24" cy="24" r={r} stroke={SCORE_C[i]} strokeWidth="2" fill={on ? SCORE_C[i] : 'none'} />
-                {on && (r === 23
-                  ? <path d="M17.5312 24.7188L21.8438 29.0312L30.4688 19.6875" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                  : <path d="M18.6562 24.5938L22.2188 28.1562L29.3438 20.4375" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />)}
-              </svg>
+            <button key={v} role="radio" aria-checked={on} aria-label={`${v}점`} className={on ? `is-on lv${v}` : ''} onClick={() => onChange(v)}>
+              {on ? <IconCheck16 color="#FFFFFF" /> : v}
             </button>
           );
         })}
@@ -226,7 +264,7 @@ function SubmitDialog({
 }: { rec: FieldRecord; setRec: React.Dispatch<React.SetStateAction<FieldRecord>>; onCancel: () => void; onSubmit: () => void; saving: string | null }) {
   const { state } = useStore();
   const b = state.buildings[rec.buildingId];
-  const itemCount = SECTIONS.reduce((n, s) => n + s.items.length, 0);
+  const itemCount = ITEM_COUNT;
   const warn = Object.values(rec.scores).filter((v) => v >= 4).length;
   const picked = b.factorEvidence.filter((f) => rec.factorChecks[f.name] !== undefined).length;
   const ready = picked === b.factorEvidence.length;

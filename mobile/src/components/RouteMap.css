@@ -13,6 +13,7 @@
   font-size: 12px; font-weight: 700; color: var(--text);
 }
 .rmap__marker.is-fill { background: var(--primary); color: var(--bg); }
+.rmap__marker.is-done { background: var(--muted); border-color: var(--muted); color: var(--white); }
 .rmap__pin.is-sel .rmap__marker {
   width: 40px; height: 40px; border: 2px solid var(--white);
   font-size: 16px; color: var(--white);

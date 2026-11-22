@@ -33,7 +33,7 @@
 }
 
 .nav__card {
-  position: absolute; top: calc(var(--top) + 8px); left: 16px; right: 16px;
+  position: absolute; top: calc(var(--top) + 8px); left: 16px; right: calc(16px + var(--sos-space));   /* 오른쪽 위 SOS 자리 비움 */
   display: flex; align-items: center; gap: 12px; padding: 12px;
 }
 .nav__icon { flex: none; width: 52px; height: 52px; border-radius: 6px; background: var(--primary); display: grid; place-items: center; }

@@ -30,6 +30,7 @@ export default function RouteMap({ buildings, selectedId, group }: { buildings: 
   const fallback = <SchematicMap buildings={buildings} selectedId={selectedId} />;
   if (!real || !state.naverClientId) return fallback;
 
+  const cur = buildings.find((b) => b.status !== 'done');   // 지금 갈 곳 (채운 핀)
   const km = walk ? walk.totalDistance / 1000 : routeSummary(buildings).km;
   const minutes = walk ? Math.round(walk.totalTime / 60) : routeSummary(buildings).minutes;
   return (
@@ -41,7 +42,7 @@ export default function RouteMap({ buildings, selectedId, group }: { buildings: 
         padding={28}
         stops={[
           { id: '_start', lat: office.lat, lng: office.lng, kind: 'start' },
-          ...located.map((b, i) => ({ id: b.id, lat: b.lat!, lng: b.lng!, num: i + 1, kind: (b.status === 'done' ? 'done' : i === 0 ? 'fill' : 'plain') as 'done' | 'fill' | 'plain', label: b.dong })),
+          ...located.map((b, i) => ({ id: b.id, lat: b.lat!, lng: b.lng!, num: i + 1, kind: (b.status === 'done' ? 'done' : b.id === cur?.id ? 'fill' : 'plain') as 'done' | 'fill' | 'plain', label: b.dong })),
         ]}
         fallback={fallback}
       />
@@ -67,6 +68,7 @@ function SchematicMap({ buildings, selectedId }: { buildings: Building[]; select
   });
   const points = buildings.map((b) => `${b.pos.x * W},${b.pos.y * H}`).join(' ');
   const s = routeSummary(buildings);
+  const curIdx = buildings.findIndex((b) => b.status !== 'done');   // 지금 갈 곳 (채운 핀). 확인한 곳은 회색 체크
 
   return (
     <div className="rmap">
@@ -77,11 +79,11 @@ function SchematicMap({ buildings, selectedId }: { buildings: Building[]; select
 
       {buildings.map((b, i) => {
         const isSel = b.id === selectedId;
-        const first = i === 0;
+        const done = b.status === 'done';
         return (
           <div key={b.id} className={`rmap__pin ${isSel ? 'is-sel' : ''} ${sel && !isSel ? 'is-dim' : ''}`} style={toPct(b)}>
             {isSel && <span className="rmap__halo" />}
-            <span className={`rmap__marker ${first || isSel ? 'is-fill' : ''}`}>{i + 1}</span>
+            <span className={`rmap__marker ${done ? 'is-done' : i === curIdx || isSel ? 'is-fill' : ''}`}>{done ? '✓' : i + 1}</span>
             {isSel && <span className="rmap__label">{b.dong}</span>}
           </div>
         );

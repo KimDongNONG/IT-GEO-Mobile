@@ -52,11 +52,11 @@ export default function Home() {
   return (
     <div className="screen screen--tabs home">
       <div className="home__top">
-        <div>
-          <p className="home__date">{now.getMonth() + 1}월 {now.getDate()}일 {WEEKDAYS[now.getDay()]}요일</p>
-          <h1 className="home__hello">안녕하세요, {state.member?.name ?? ''} 님{state.mode === 'demo' && <small> · 시연</small>}</h1>
-        </div>
-        <button className="home__out" onClick={act.logout}>{state.mode === 'demo' ? '나가기' : '로그아웃'}</button>
+        <p className="home__date">
+          {now.getMonth() + 1}월 {now.getDate()}일 {WEEKDAYS[now.getDay()]}요일{state.mode === 'demo' && ' · 시연'}
+          <button className="home__out" onClick={act.logout}>{state.mode === 'demo' ? '나가기' : '로그아웃'}</button>
+        </p>
+        <h1 className="home__hello">안녕하세요, {state.member?.name ?? ''} 님</h1>
       </div>
 
       {/* 전체 현장 확인 : 머리 줄을 누르면 접고 펼친다 */}

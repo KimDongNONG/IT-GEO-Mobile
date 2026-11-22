@@ -20,7 +20,7 @@
   gap: 12px;
   margin-bottom: 16px;
 }
-.screen__head--noback { margin-top: -54px; }
+.screen__head--noback { margin-top: -54px; padding-right: var(--sos-space); }   /* 맨 윗줄 제목 : 오른쪽 위 SOS 자리 비움 */
 .screen__title { font-size: 22px; font-weight: 700; color: var(--text); }
 
 /* ---------- 하단 탭 ---------- */

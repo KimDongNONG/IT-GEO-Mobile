@@ -1,0 +1,45 @@
+/* 긴급신고 버튼 : 모든 화면 오른쪽 위 고정. 앱 폭(최대 480px) 안쪽 오른쪽에 맞춘다.
+   각 화면의 오른쪽 위 요소는 --sos-space 만큼 비켜 둔다 (Home.css · RoutePlan.css · Navigate.css · ui.css) */
+:root { --sos-size: 44px; --sos-space: calc(var(--sos-size) + 12px); }
+
+.sos {
+  position: fixed; z-index: 70;
+  top: max(var(--safe-top), 40px);
+  right: max(12px, calc((100vw - 480px) / 2 + 12px));
+  width: var(--sos-size); height: var(--sos-size); border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--red); color: var(--white);
+  font-size: 13px; font-weight: 800; letter-spacing: 0.02em;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 14px rgba(217, 58, 58, 0.45), 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.sos:active { transform: scale(0.94); }
+
+/* 신고 창 : 화면 아래에서 올라오는 시트 (다른 모달보다 위) */
+.sos-sheet { position: fixed; inset: 0; z-index: 80; display: flex; align-items: flex-end; justify-content: center; }
+.sos-sheet__dim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.6); }
+.sos-sheet__box {
+  position: relative; width: 100%; max-width: 480px;
+  padding: 22px var(--gutter) calc(20px + var(--safe-bottom));
+  background: var(--panel); border-top: 2px solid var(--red); border-radius: 18px 18px 0 0;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.sos-sheet__title { font-size: 20px; font-weight: 800; color: var(--text); }
+.sos-sheet__desc { font-size: 13px; color: var(--sub); margin-bottom: 4px; }
+.sos-sheet__note { font-size: 12px; color: var(--muted); text-align: center; }
+
+.sos-loc { padding: 12px 14px; border-radius: 10px; background: var(--el); border: 1px solid var(--line); }
+.sos-loc__label { font-size: 12px; color: var(--sub); }
+.sos-loc__main { margin-top: 4px; font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.4; }
+.sos-loc__sub { margin-top: 4px; font-size: 12px; color: var(--sub); }
+.sos-loc__retry { margin-top: 8px; height: 30px; padding: 0 12px; border-radius: 6px; background: var(--soft); border: 1px solid var(--line); font-size: 13px; color: var(--text); }
+
+.sos-btn {
+  height: 52px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 800; text-decoration: none;
+}
+.sos-btn--call { background: var(--red); color: var(--white); }
+.sos-btn--sms { background: var(--el); border: 1px solid var(--red); color: #ff8a8a; }
+.sos-btn--sms.is-wait { opacity: 0.55; }
+.sos-btn--close { height: 44px; background: none; color: var(--sub); font-size: 14px; font-weight: 500; }
