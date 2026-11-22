@@ -1,0 +1,53 @@
+<%--
+  AI 현장 확인보고서 모달 2개 (05 건물 확인 이력 오른쪽 [AI 현장 확인보고서 생성]). 동작은 resources/js/ai-report.js
+    rpFormatModal  : 포맷(PDF · 한글 HWPX) 고르기 → [생성]
+    rpPreviewModal : 미리보기 + 다운로드 아이콘 (= 고른 포맷으로 서버에 저장 후 내려받기)
+  보고서명 = 사용한 현장조사이력의 가장 오래된 날짜 ~ 가장 최근 날짜 + " AI 보고서"
+  다른 화면에서도 쓸 수 있게 건물 ID 는 #adPage[data-bld] 에서 읽는다
+--%>
+<div class="ml-bg" id="rpFormatModal" role="dialog" aria-modal="true" aria-labelledby="rpFormatTitle" hidden>
+  <div class="ml-modal rp-format">
+    <div class="ml-head">
+      <div>
+        <h3 id="rpFormatTitle">AI 현장 확인보고서 생성</h3>
+        <p class="muted">이 시설의 현장조사이력을 AI 가 정리해 보고서 초안을 만듭니다. 어떤 포맷으로 만들까요?</p>
+      </div>
+      <button type="button" class="dlg-x" data-rp-close aria-label="닫기">×</button>
+    </div>
+    <div class="rp-format-body">
+      <div class="rp-opts" role="radiogroup" aria-label="보고서 포맷">
+        <label class="rp-opt"><input type="radio" name="rpFormat" value="PDF" checked>
+          <span class="rp-ext">PDF</span><b>PDF 문서</b><small>인쇄 · 배포용. 어디서나 같은 모양으로 열립니다.</small></label>
+        <label class="rp-opt"><input type="radio" name="rpFormat" value="HWPX">
+          <span class="rp-ext hwp">HWPX</span><b>한글 문서</b><small>한글(.hwpx)에서 바로 고쳐 쓸 수 있습니다.</small></label>
+      </div>
+      <dl class="rp-info">
+        <dt>보고서명</dt><dd id="rpName">-</dd>
+        <dt>사용할 이력</dt><dd id="rpRange">-</dd>
+      </dl>
+    </div>
+    <div class="ml-foot">
+      <span class="muted" id="rpBusy"></span>
+      <button type="button" class="btn btn-line" data-rp-close>취소</button>
+      <button type="button" class="btn btn-primary" id="rpGenerate">생성</button>
+    </div>
+  </div>
+</div>
+
+<div class="ml-bg" id="rpPreviewModal" role="dialog" aria-modal="true" aria-labelledby="rpPreviewTitle" hidden>
+  <div class="ml-modal rp-preview">
+    <div class="ml-head">
+      <div>
+        <h3 id="rpPreviewTitle">보고서 미리보기</h3>
+        <p class="muted"><span id="rpPreviewName"></span> · <span id="rpPreviewFmt"></span></p>
+      </div>
+      <div class="rp-head-btns">
+        <button type="button" class="rp-dl" id="rpDownload" data-tip="선택한 포맷으로 서버에 저장하고 내려받기" aria-label="다운로드">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+        </button>
+        <button type="button" class="dlg-x" data-rp-close aria-label="닫기">×</button>
+      </div>
+    </div>
+    <div class="rp-preview-body" id="rpPreviewBody"></div>
+  </div>
+</div>

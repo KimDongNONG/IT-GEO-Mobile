@@ -1,81 +1,51 @@
 package itgeo.controller;
 
+import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.HttpSession;
-import itgeo.service.ArchiveService;
-import itgeo.service.FieldService;
+import itgeo.service.DashboardService;
 import itgeo.to.DashboardTO;
-import itgeo.to.FieldListTO;
 import itgeo.to.MemberTO;
-import itgeo.to.StatusCountTO;
 
-// 대시보드(분석 리포트, Figma 06). 숫자는 ArchiveService(상태) + FieldService(리스트) 에서
+// 대시보드 (dashboard.do). 숫자는 DashboardService, 날씨 · 일정 클릭 · 보고서는 DashboardRESTController (JSON)
 @Controller
 public class DashboardController {
 
-	@Autowired
-	ArchiveService archiveService;
+	private static final ObjectMapper JSON = new ObjectMapper();
 
 	@Autowired
-	FieldService fieldService;
+	DashboardService dashboardService;
 
-	// GET dashboard.do?gu&month(1|3|6)&status
 	@GetMapping("dashboard.do")
-	public String dashboard(@RequestParam(value = "gu", required = false) String gu,
-			@RequestParam(value = "month", defaultValue = "1") int month,
-			@RequestParam(value = "status", required = false) String status,
-			HttpSession session, Model model) {
+	public String dashboard(HttpSession session, Model model) throws JsonProcessingException {
 		MemberTO member = (MemberTO) session.getAttribute("loginMember");
-		long userId = member.getUserId();
-		if (member.isGuUser()) gu = member.getSggCd();          // 구청 계정 : 소속 구만 (화면의 gu 는 무시)
-		if (gu != null && gu.isBlank()) gu = null;
-		int months = month == 3 ? 3 : month == 6 ? 6 : 1;
+		DashboardTO d = dashboardService.getDashboard(member);
+		LocalDate today = LocalDate.now();
 
-		DashboardTO d = new DashboardTO();
-		StatusCountTO sc = archiveService.getStatusCount(userId, gu);
-		d.setStatus(sc);
-		d.setTotal(sc.getTodo() + sc.getDoing() + sc.getDone());
-
-		List<FieldListTO> doing = fieldService.getFieldList(userId, gu, "doing", null, false);
-		d.setDoingLists(doing.size() > 3 ? doing.subList(0, 3) : doing);
-		d.setListRemain(doing.size());
-		int remain = 0, totalBld = 0;
-		for (FieldListTO f : doing) { remain += f.getItemCnt() - f.getDoneCnt(); totalBld += f.getItemCnt(); }
-		d.setListRemainBld(remain);
-		d.setListTotalBld(totalBld);
-
-		// 월별 완료 : 최근 5개월을 빈 달까지 채운다
-		List<DashboardTO.MonthCountTO> raw = archiveService.getMonthlyDone(userId, 5, gu);
-		List<DashboardTO.MonthCountTO> monthly = new ArrayList<>();
-		YearMonth now = YearMonth.now();
-		for (int i = 4; i >= 0; i--) {
-			String ym = now.minusMonths(i).toString();
-			DashboardTO.MonthCountTO m = new DashboardTO.MonthCountTO();
-			m.setYm(ym);
-			for (DashboardTO.MonthCountTO r : raw) if (ym.equals(r.getYm())) m.setCnt(r.getCnt());
-			monthly.add(m);
-		}
-		d.setMonthly(monthly);
-		d.setMonthDone(monthly.get(4).getCnt());
-		d.setPrevMonthDone(monthly.get(3).getCnt());
-		d.setCumDone(sc.getDone());
-
-		d.setByDong(archiveService.getStatusByDong(userId, gu));
+		// 화면 스크립트(dashboard.js)가 쓰는 값 : 동별 정렬 · 월별 막대 · 오늘 일정 · 이번 달 달력 점
+		Map<String, Object> js = new HashMap<>();
+		js.put("today", today.toString());
+		js.put("byDong", d.getByDong());
+		js.put("monthly", d.getMonthly());
+		js.put("schedules", dashboardService.getSchedules(member, today.toString()));
+		js.put("marks", dashboardService.getScheduleMarks(member, YearMonth.now().toString()));
 
 		model.addAttribute("d", d);
-		model.addAttribute("gu", gu == null ? "" : gu);
-		model.addAttribute("months", months);
-		model.addAttribute("status", status == null ? "" : status);
-		model.addAttribute("nowYm", now.toString());
+		model.addAttribute("today", today);
+		model.addAttribute("nowMonth", today.getMonthValue());
+		// </script> 로 끊기지 않게 "</" 를 "<\/" 로
+		model.addAttribute("dashJson", JSON.writeValueAsString(js).replace("</", "<\\/"));
 		return "dashboard";
 	}
 }

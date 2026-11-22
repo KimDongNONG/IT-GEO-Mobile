@@ -183,7 +183,7 @@ public class FieldService {
 	}
 
 	/**
-	 * 리스트의 구를 정한다 (CLAUDE.md 5-1 : 현장확인 리스트는 한 구 안의 건물만).
+	 * 리스트의 구를 정한다 (현장확인 리스트는 한 구 안의 건물만).
 	 *  userGu(구청 계정) > 리스트에 이미 정해진 구 > 담는 건물들의 구. 건물이 두 구에 걸치거나 정해진 구와 다르면 예외.
 	 */
 	private String oneGu(String userGu, String listGu, List<Long> factorIds) {

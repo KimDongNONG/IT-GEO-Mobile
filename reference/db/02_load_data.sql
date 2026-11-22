@@ -104,6 +104,11 @@ LOAD DATA LOCAL INFILE 'C:/final_data/itgeo_db/yeongdeungpo_population_dummy.csv
    med_inc_ratio, near_poor_copay_yn, dsbl_pension_type, dsbl_pension_mon_amt, nhis_qual_type, nhis_qual_chg_day, nhis_prem_mon_amt, elec_arrears_yn, gas_dc_type)
   SET sgg_cd = '11560', mbr_key = mbr_id + 3000000, hh_key = hh_id + 3000000;
 
+-- 확인 : 구마다 bad = 0 이어야 한다. 0 이 아니면 아래 3번을 실행하지 말 것 (household 에서 Error 1048)
+--   bad 가 total 과 같음 → 그 구 LOAD 의 CHARACTER SET · FIELDS 가 파일과 다름 (영등포 = utf8mb4 · 쉼표)
+--   bad 가 1 ~ 몇 줄     → 파일의 빈 줄. SET SQL_SAFE_UPDATES = 0; DELETE FROM stg_pop WHERE hh_key IS NULL; 후 진행
+SELECT sgg_cd, COUNT(*) AS total, SUM(hh_key IS NULL) AS bad FROM stg_pop GROUP BY sgg_cd;
+
 -- ---------------------------------------------------------------------
 -- 3. 임시 → 본 테이블
 -- ---------------------------------------------------------------------

@@ -178,6 +178,13 @@
 	</dependency>
 	-->
 
+		<!-- AI 현장 확인보고서 PDF 저장 (HTML → PDF, PDFBox 기반) -->
+	<dependency>
+	    <groupId>com.openhtmltopdf</groupId>
+	    <artifactId>openhtmltopdf-pdfbox</artifactId>
+	    <version>1.0.10</version>
+	</dependency>
+
 		<!-- Source: https://mvnrepository.com/artifact/org.projectlombok/lombok -->
 	<dependency>
 	    <groupId>org.projectlombok</groupId>

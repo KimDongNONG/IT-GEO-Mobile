@@ -2,6 +2,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <c:set var="pageTitle" value="업무 캘린더"/>
 <c:set var="pageCss" value="pages"/>
+
 <c:set var="activeMenu" value="calendar"/>
 <c:set var="ctx" value="${pageContext.request.contextPath}"/>
 <!DOCTYPE html>
@@ -13,9 +14,9 @@
 <%-- 달력 공용 스타일 (현장 확인 리스트 달력과 같은 파일) + 이 페이지 전용 workcal.css.
      workcal.css 는 ?v= 를 붙여 직접 불러온다 : 브라우저에 남은 옛 파일(마우스를 올리면 수정 · 빼기가 나왔다 들어가던 것)을 쓰지 않게. 파일을 고치면 v 값도 바꾼다 --%>
 <link rel="stylesheet" href="${ctx}/resources/css/pages_calendar.css">
-<link rel="stylesheet" href="${ctx}/resources/css/workcal.css?v=20261120d">
+<link rel="stylesheet" href="${ctx}/resources/css/workcal.css?v=20261122a">
 
-<div class="page">
+<div class="page page-scroll">
   <%-- 제목 줄 : 업무 캘린더 · ‹ 2026년 11월 › · 오늘 ········ 범례 · 이번 달 리스트 n개 --%>
   <div class="wc-head">
     <h1>업무 캘린더</h1>

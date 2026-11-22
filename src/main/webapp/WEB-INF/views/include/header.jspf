@@ -1,6 +1,7 @@
 <%--
   공통 상단 헤더 : 로고 · 탭 5개 · "부서 · 이름 직급" · 로그아웃
   include 하기 전에 activeMenu 를 정한다 : map | field | calendar | archive | dashboard
+  (선택) recentTitle · recentSub : 대시보드 "이어서 보기"에 보일 글자 (없으면 common.js 가 화면 제목으로)
   loginMember 는 세션(LoginController 가 넣음)
 --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
@@ -46,3 +47,5 @@
 <c:if test="${not empty sessionScope.loginMember and not sessionScope.loginMember.guUser}">
   <%@ include file="/WEB-INF/views/include/dataupdate-modal.jspf" %>
 </c:if>
+<%-- 대시보드 "이어서 보기" : 지도 · 현장 확인 리스트 · 보관함 화면을 열면 common.js 가 api/dashboard/recent.do 로 기록 --%>
+<div id="recentMeta" hidden data-menu="${activeMenu}" data-title="<c:out value='${recentTitle}'/>" data-sub="<c:out value='${recentSub}'/>"></div>

@@ -9,29 +9,44 @@
 --     [D] field_report         : 현장 신고                                    (06 [E])
 --     [E] survey_photo         : 현장 사진. 신고 사진도 받도록 report_id 추가 (11-18 [B] + 06 [F])
 --     [F] survey_schedule      : 달력                                         (06 [G])
---   [A][B]는 ALTER 라서 여러 번 실행하면 오류. 나머지는 IF NOT EXISTS
+--   [A][B]는 없는 칸 · 키만 추가, 나머지는 IF NOT EXISTS → 여러 번 실행해도 됨
 -- =====================================================================
 USE itgeo;
 SET SQL_SAFE_UPDATES = 0;
 
 -- [A] 방문이력 : 방문 호실 FK
-ALTER TABLE visit_history
-  ADD KEY idx_visit_residency (residency_id),
-  ADD CONSTRAINT fk_visit_residency
-    FOREIGN KEY (residency_id) REFERENCES residency (residency_id)
-    ON DELETE SET NULL ON UPDATE CASCADE;
+-- (칸 · 키는 없을 때만 추가 → 여러 번 실행해도 됨)
+SET @s = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'visit_history' AND index_name = 'idx_visit_residency') = 0,
+  'ALTER TABLE visit_history ADD KEY idx_visit_residency (residency_id)', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema = DATABASE() AND table_name = 'visit_history' AND constraint_name = 'fk_visit_residency') = 0,
+  'ALTER TABLE visit_history ADD CONSTRAINT fk_visit_residency FOREIGN KEY (residency_id) REFERENCES residency (residency_id) ON DELETE SET NULL ON UPDATE CASCADE', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
 
 -- [B] 현장 기록 : 앱 컬럼
 --   [확인] 앱이 방문 1번에 기록을 1개만 만드는지. 여러 개 만들면 uq_record_visit 줄을 지울 것
 --   SELECT visit_id, COUNT(*) FROM survey_record GROUP BY visit_id HAVING COUNT(*) > 1;  -- 0줄이어야 함
-ALTER TABLE survey_record
-  ADD COLUMN status       ENUM('DRAFT','DONE') NOT NULL DEFAULT 'DONE' COMMENT '작성 중 / 완료 (완료 = 잠금)' AFTER score_adj,
-  ADD COLUMN completed_at DATETIME     NULL COMMENT '완료(잠금) 시각' AFTER status,
-  ADD COLUMN ai_summary   TEXT         NULL COMMENT 'AI 녹취 요약·보고서 초안' AFTER completed_at,
-  ADD COLUMN is_temp      TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '오프라인 [임시] 기록 1/0' AFTER ai_summary,
-  ADD COLUMN client_uuid  CHAR(36)     NULL COMMENT '앱이 만든 ID (오프라인 재전송 중복 방지)' AFTER is_temp,
-  ADD UNIQUE KEY uq_record_visit (visit_id),
-  ADD UNIQUE KEY uq_record_client (client_uuid);
+SET @s = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'survey_record' AND column_name = 'status') = 0,
+  'ALTER TABLE survey_record ADD COLUMN status ENUM(''DRAFT'',''DONE'') NOT NULL DEFAULT ''DONE'' COMMENT ''작성 중 / 완료 (완료 = 잠금)'' AFTER score_adj', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'survey_record' AND column_name = 'completed_at') = 0,
+  'ALTER TABLE survey_record ADD COLUMN completed_at DATETIME NULL COMMENT ''완료(잠금) 시각'' AFTER status', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'survey_record' AND column_name = 'ai_summary') = 0,
+  'ALTER TABLE survey_record ADD COLUMN ai_summary TEXT NULL COMMENT ''AI 녹취 요약·보고서 초안'' AFTER completed_at', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'survey_record' AND column_name = 'is_temp') = 0,
+  'ALTER TABLE survey_record ADD COLUMN is_temp TINYINT(1) NOT NULL DEFAULT 0 COMMENT ''오프라인 [임시] 기록 1/0'' AFTER ai_summary', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'survey_record' AND column_name = 'client_uuid') = 0,
+  'ALTER TABLE survey_record ADD COLUMN client_uuid CHAR(36) NULL COMMENT ''앱이 만든 ID (오프라인 재전송 중복 방지)'' AFTER is_temp', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'survey_record' AND index_name = 'uq_record_visit') = 0,
+  'ALTER TABLE survey_record ADD UNIQUE KEY uq_record_visit (visit_id)', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'survey_record' AND index_name = 'uq_record_client') = 0,
+  'ALTER TABLE survey_record ADD UNIQUE KEY uq_record_client (client_uuid)', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
 UPDATE survey_record SET completed_at = created_at WHERE status = 'DONE' AND completed_at IS NULL;
 
 -- [C] 현장 기록 상세 (앱에서 저장한 기록만 한 줄)  ※ 11-18 DDL 그대로

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mapper-mobilelink">
+
+	<!-- ================================================================
+	     모바일 현장조사기록 연동 (reference/db/07_ai_report.sql)
+	       mobile_link_record : 앱이 JSON 으로 보낸 기록 (NEW = 미확인, DONE = AI 정리로 이력에 기재)
+	       mobile_link_photo  : 그 기록의 사진
+	       ai_report          : AI 현장 확인보고서
+	     ================================================================ -->
+
+	<sql id="linkCols">
+		l.link_id, l.bld_id, l.client_uuid, l.sender_user_id, l.author_nm
+		     , DATE_FORMAT(l.visited_at, '%Y-%m-%d %H:%i') visited_at, l.result, l.resident_status
+		     , l.scores, l.factor_check, l.supports, l.memo, l.transcript, l.status, l.record_id, l.ai_summary
+		     , l.confirmed_by, DATE_FORMAT(l.confirmed_at, '%Y-%m-%d %H:%i') confirmed_at
+		     , DATE_FORMAT(l.received_at, '%Y-%m-%d %H:%i') received_at
+	</sql>
+
+	<!-- 같은 앱 기록을 다시 보냈는지 (client_uuid) -->
+	<select id="getLinkByClient" parameterType="String" resultType="itgeo.to.MobileLinkTO">
+		SELECT <include refid="mapper-mobilelink.linkCols"/> FROM mobile_link_record l WHERE l.client_uuid = #{clientUuid}
+	</select>
+
+	<insert id="addLink" parameterType="itgeo.to.MobileLinkTO" useGeneratedKeys="true" keyProperty="linkId">
+		INSERT INTO mobile_link_record (bld_id, client_uuid, sender_user_id, author_nm, visited_at, result, resident_status,
+		                                scores, factor_check, supports, memo, transcript)
+		VALUES (#{bldId}, #{clientUuid}, #{senderUserId}, #{authorNm}, #{visitedAt}, #{result}, #{residentStatus},
+		        #{scores}, #{factorCheck}, #{supports}, #{memo}, #{transcript})
+	</insert>
+
+	<!-- 05 타임라인 위 "N개의 미확인 현장조사기록" -->
+	<select id="getPendingCount" parameterType="String" resultType="int">
+		SELECT COUNT(*) FROM mobile_link_record WHERE bld_id = #{bldId} AND status = 'NEW'
+	</select>
+
+	<!-- 확인 전 기록의 방문 날짜 범위 (AI 보고서 기간 안내용) : {d_from, d_to} yyyy-MM-dd, 없으면 둘 다 NULL -->
+	<select id="getPendingRange" parameterType="String" resultType="java.util.HashMap">
+		SELECT DATE_FORMAT(MIN(visited_at), '%Y-%m-%d') d_from, DATE_FORMAT(MAX(visited_at), '%Y-%m-%d') d_to
+		  FROM mobile_link_record WHERE bld_id = #{bldId} AND status = 'NEW'
+	</select>
+
+	<!-- 모달 왼쪽 목록 : 미확인 기록 (최근 방문이 위) -->
+	<select id="getPendingList" parameterType="String" resultType="itgeo.to.MobileLinkTO">
+		SELECT <include refid="mapper-mobilelink.linkCols"/>
+		  FROM mobile_link_record l
+		 WHERE l.bld_id = #{bldId} AND l.status = 'NEW'
+		 ORDER BY l.visited_at DESC, l.link_id DESC
+	</select>
+
+	<select id="getLink" parameterType="long" resultType="itgeo.to.MobileLinkTO">
+		SELECT <include refid="mapper-mobilelink.linkCols"/> FROM mobile_link_record l WHERE l.link_id = #{linkId}
+	</select>
+
+	<!-- 이력에 기재된 기록들의 앱 원본 (AI 보고서 재료 · 타임라인 표시) -->
+	<select id="getLinksByRecords" resultType="itgeo.to.MobileLinkTO">
+		SELECT <include refid="mapper-mobilelink.linkCols"/>
+		  FROM mobile_link_record l
+		 WHERE l.record_id IN <foreach collection="list" item="id" open="(" separator="," close=")">#{id}</foreach>
+	</select>
+
+	<!-- 모달 [수정 내용 저장] · [AI 정리] 전 저장 : 취약점수 · 메모만 고칠 수 있다 (미확인 기록만) -->
+	<update id="updateLink" parameterType="itgeo.to.MobileLinkTO">
+		UPDATE mobile_link_record SET scores = #{scores}, memo = #{memo}
+		 WHERE link_id = #{linkId} AND status = 'NEW'
+	</update>
+
+	<!-- 녹취록 삭제 (추가 · 수정은 없음) -->
+	<update id="deleteTranscript" parameterType="long">
+		UPDATE mobile_link_record SET transcript = NULL WHERE link_id = #{linkId} AND status = 'NEW'
+	</update>
+
+	<!-- AI 정리로 이력에 기재 → DONE. 이미 DONE 이면 0 건 (두 번 누름 · 다른 사람이 먼저 확인) -->
+	<update id="confirmLink" parameterType="itgeo.to.MobileLinkTO">
+		UPDATE mobile_link_record
+		   SET status = 'DONE', record_id = #{recordId}, ai_summary = #{aiSummary}, confirmed_by = #{confirmedBy}, confirmed_at = NOW()
+		 WHERE link_id = #{linkId} AND status = 'NEW'
+	</update>
+
+	<!-- 현장 기록을 붙일 plan : 확인하는 사람의 현장확인 리스트 → 없으면 보낸 사람 → 없으면 그 건물이 담긴 아무 리스트 (최근) -->
+	<select id="getPlanForBld" resultType="Long">
+		SELECT sp.plan_id
+		  FROM survey_plan sp
+		  JOIN survey_list sl ON sl.survey_id = sp.survey_id
+		  JOIN vulnerability_factor f ON f.factor_id = sp.factor_id
+		 WHERE f.bld_id = #{bldId}
+		 ORDER BY (sl.user_id = #{userId}) DESC
+		        , (sl.user_id = IFNULL(#{senderUserId}, 0)) DESC
+		        , sp.plan_id DESC
+		 LIMIT 1
+	</select>
+
+	<!-- ===== 사진 ===== -->
+	<insert id="addPhoto" parameterType="itgeo.to.MobileLinkPhotoTO" useGeneratedKeys="true" keyProperty="photoId">
+		INSERT INTO mobile_link_photo (link_id, file_name, label) VALUES (#{linkId}, #{fileName}, #{label})
+	</insert>
+
+	<select id="getPhotosByLinks" resultType="itgeo.to.MobileLinkPhotoTO">
+		SELECT p.photo_id, p.link_id, p.file_name, p.label, DATE_FORMAT(p.created_at, '%Y-%m-%d %H:%i') created_at
+		  FROM mobile_link_photo p
+		 WHERE p.link_id IN <foreach collection="list" item="id" open="(" separator="," close=")">#{id}</foreach>
+		 ORDER BY p.photo_id
+	</select>
+
+	<!-- 05 타임라인 : 이력에 기재된 기록의 사진 (record_id 로) -->
+	<select id="getPhotosByRecords" resultType="itgeo.to.MobileLinkPhotoTO">
+		SELECT p.photo_id, p.link_id, p.file_name, p.label, l.record_id, DATE_FORMAT(p.created_at, '%Y-%m-%d %H:%i') created_at
+		  FROM mobile_link_photo p
+		  JOIN mobile_link_record l ON l.link_id = p.link_id
+		 WHERE l.record_id IN <foreach collection="list" item="id" open="(" separator="," close=")">#{id}</foreach>
+		 ORDER BY p.photo_id
+	</select>
+
+	<!-- 사진 1장 + 어느 건물 · 어떤 상태의 기록인지 (보기 권한 · 삭제 가능 여부) -->
+	<select id="getPhoto" parameterType="long" resultType="itgeo.to.MobileLinkPhotoTO">
+		SELECT p.photo_id, p.link_id, p.file_name, p.label, l.bld_id, l.status, l.record_id
+		  FROM mobile_link_photo p
+		  JOIN mobile_link_record l ON l.link_id = p.link_id
+		 WHERE p.photo_id = #{photoId}
+	</select>
+
+	<select id="getPhotoCount" parameterType="long" resultType="int">
+		SELECT COUNT(*) FROM mobile_link_photo WHERE link_id = #{linkId}
+	</select>
+
+	<delete id="deletePhoto" parameterType="long">
+		DELETE FROM mobile_link_photo WHERE photo_id = #{photoId}
+	</delete>
+
+	<!-- ===== AI 현장 확인보고서 ===== -->
+	<insert id="addReport" parameterType="map" useGeneratedKeys="true" keyProperty="reportId">
+		INSERT INTO ai_report (bld_id, user_id, title, format, period_from, period_to, record_cnt, file_name, content)
+		VALUES (#{bldId}, #{userId}, #{title}, #{format}, #{periodFrom}, #{periodTo}, #{recordCnt}, #{fileName}, #{content})
+	</insert>
+
+	<select id="getReport" parameterType="long" resultType="map">
+		SELECT report_id, bld_id, user_id, title, format, file_name FROM ai_report WHERE report_id = #{reportId}
+	</select>
+</mapper>

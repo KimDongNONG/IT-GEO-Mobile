@@ -137,7 +137,7 @@ $(function () {
   function add(factorId) {
     if (has(factorId)) return;
     var p = byFactor[factorId]; if (!p) return;
-    /* 한 리스트 = 한 구 (CLAUDE.md 5-1). 서버(FieldService.oneGu)도 같은 검사를 한다 */
+    /* 한 리스트 = 한 구. 서버(FieldService.oneGu)도 같은 검사를 한다 */
     var gu = D.gu || (items[0] && items[0].sggCd);
     if (gu && p.sggCd && p.sggCd !== gu) {
       Common.toast('현장확인 리스트에는 한 구 안의 건물만 담을 수 있어요. 이 리스트는 ' + (FM.GU_OFFICE[gu] ? FM.GU_OFFICE[gu].name.replace('청', '') : gu) + ' 리스트입니다.');

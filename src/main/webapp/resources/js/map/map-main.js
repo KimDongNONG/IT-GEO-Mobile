@@ -337,7 +337,7 @@ $(function () {
     state.scenRun = scen; state.modRun = scenMod;
     state.criteria = c;
     state.cellByLevel = {};
-    /* 리스트 범위 (CLAUDE.md 5-1, 2026-11-19 리뷰 8)
+    /* 리스트 범위 (2026-11-19 리뷰 8)
          ① 구 · 동을 고르지 않았을 때      = 지금 지도 화면(bbox) 안의 건물
          ② 상단에서 구 · 동을 고정했을 때  = 고정한 구 · 동 전체 (화면 범위 무시 → 화면에 걸친 이웃 구 건물이 섞이지 않는다)
          ③ [이 지역에서 재검색]            = 구 · 동 고정과 상관없이 언제나 지도 화면(bbox) — 위 #btnRefetch */

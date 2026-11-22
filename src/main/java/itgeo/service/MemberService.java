@@ -34,6 +34,14 @@ public class MemberService {
 		return m;
 	}
 
+	// 로그인 ID 로 1명 (비밀번호 비움, 없으면 null). 모바일 현장조사기록 수신 때 보낸 사람 찾기용
+	public MemberTO findByLoginId(String loginId) {
+		if (loginId == null || loginId.isBlank()) return null;
+		MemberTO m = dao.getMemberByLoginId(loginId.trim());
+		if (m != null) m.setPasswordHash(null);
+		return m;
+	}
+
 	// 05 인수인계 받는 담당자 후보 (같은 구, 비밀번호 비움)
 	public List<MemberTO> getUserList(String sggCd) {
 		List<MemberTO> list = dao.getUserList(sggCd);

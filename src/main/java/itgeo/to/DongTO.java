@@ -7,7 +7,7 @@ import lombok.Data;
 
 /**
  * 구·동 선택 목록 (building 에서 집계).
- * 동 선택 2단계 (CLAUDE.md 5-1) : 법정동(emd_nm) 한 줄에 행정동(adm_nm) 목록 adms 가 달린다.
+ * 동 선택 2단계 : 법정동(emd_nm) 한 줄에 행정동(adm_nm) 목록 adms 가 달린다.
  * bbox = [minLng, minLat, maxLng, maxLat] : 동을 고르면 지도를 이 범위로 옮긴다.
  */
 @Data

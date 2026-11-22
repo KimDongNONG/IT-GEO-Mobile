@@ -7,10 +7,16 @@
 USE itgeo;
 SET SQL_SAFE_UPDATES = 0;   -- Workbench 안전 모드(Error 1175) 끄기
 
-ALTER TABLE building
-  ADD COLUMN adm_cd CHAR(10)    NULL COMMENT '행정동 코드' AFTER emd_nm,
-  ADD COLUMN adm_nm VARCHAR(20) NULL COMMENT '행정동명 (구로1동 등)' AFTER adm_cd,
-  ADD KEY idx_building_adm (sgg_cd, adm_nm);
+-- 칸 · 인덱스는 없을 때만 추가 (다시 실행해도 Error 1060 Duplicate column 이 나지 않음)
+SET @s = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'building' AND column_name = 'adm_cd') = 0,
+  'ALTER TABLE building ADD COLUMN adm_cd CHAR(10) NULL COMMENT ''행정동 코드'' AFTER emd_nm', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'building' AND column_name = 'adm_nm') = 0,
+  'ALTER TABLE building ADD COLUMN adm_nm VARCHAR(20) NULL COMMENT ''행정동명 (구로1동 등)'' AFTER adm_cd', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'building' AND index_name = 'idx_building_adm') = 0,
+  'ALTER TABLE building ADD KEY idx_building_adm (sgg_cd, adm_nm)', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
 
 DROP TABLE IF EXISTS stg_adm;
 CREATE TABLE stg_adm (bld_id VARCHAR(28) PRIMARY KEY, adm_cd CHAR(10), adm_nm VARCHAR(20)) DEFAULT CHARSET=utf8mb4;

@@ -4,8 +4,9 @@
 <%--
   05 건물 확인 이력 (= 보관함 상세, 피그마 05 그대로). ArchiveController.detail → d(ArchiveDetailTO)
   상단 : 건물 · 배지 · 담당자/최근 확인일/확인 횟수/이관 부서/점수 보정 · [지도에서 보기][재확인 요청][부서로 넘기기]
-  가운데 : [현장 확인 결과 입력] 폼 + 확인 이력 타임라인 (survey_record 최신순, [전체][요인 맞음][요인 아님] 필터는 JS)
-  오른쪽 : 부서 이관 기록 · 분석 반영 · 인수인계 메모
+  가운데 : 모바일 미확인 현장조사기록 안내(누르면 확인 모달) + [현장 확인 결과 입력] 폼
+          + 확인 이력 타임라인 (survey_record 최신순 = 최근이 위, 이 칸만 스크롤. [전체][요인 맞음][요인 아님] 필터는 JS)
+  오른쪽 : 부서 이관 기록 · 분석 반영 · 인수인계 메모 · [AI 현장 확인보고서 생성] (대시보드 보고서와 같은 형식 고르기 · 미리보기 창)
 --%>
 <c:set var="pageTitle" value="건물 확인 이력"/>
 <c:set var="pageCss" value="pages"/>
@@ -20,7 +21,11 @@
 <body>
 <%@ include file="/WEB-INF/views/include/header.jspf" %>
 
-<div class="page ad-page">
+<%-- 모바일 연동 · AI 보고서 스크립트가 읽는 값 (mobile-link.js · ai-report.js) --%>
+<c:set var="recCnt" value="${fn:length(d.records)}"/>
+<%-- data-from · data-to = AI 보고서 기간 (웹 이력 + 모바일 앱 확인 전 기록), data-app-cnt = 앱 확인 전 기록 수 --%>
+<div class="page page-scroll ad-page" id="adPage" data-bld="${b.bldId}" data-place="<c:out value='${title}'/>" data-rec-cnt="${recCnt}" data-app-cnt="${d.pendingAppCnt}"
+     data-from="${d.reportFrom}" data-to="${d.reportTo}">
   <div class="crumb"><a href="${ctx}/archive.do">보관함</a> › <c:out value="${title}"/></div>
   <c:if test="${not empty msg}"><div class="flash"><c:out value="${msg}"/></div></c:if>
 
@@ -92,6 +97,18 @@
         </div>
       </div>
 
+      <%-- 모바일 앱에서 받은 현장조사기록 중 아직 확인하지 않은 수 (mobile_link_record.status = NEW). 누르면 확인 모달 (include/mobile-link-modal.jspf) --%>
+      <div class="ml-banner-wrap">
+        <c:choose>
+          <c:when test="${d.pendingAppCnt > 0}">
+            <button type="button" class="ml-banner on" id="btnMobileLink" aria-haspopup="dialog"><i class="ml-dot" aria-hidden="true"></i><b>${d.pendingAppCnt}</b>개의 미확인 현장조사기록이 있습니다</button>
+          </c:when>
+          <c:otherwise>
+            <div class="ml-banner" role="status">확인할 현장조사기록이 없습니다</div>
+          </c:otherwise>
+        </c:choose>
+      </div>
+
       <%-- 현장 체크 입력 폼 → POST archivecheck.do (visit_history + survey_record) --%>
       <form class="card ad-form" id="checkForm" method="post" action="${ctx}/archivecheck.do" style="display:none">
         <input type="hidden" name="bldId" value="${b.bldId}">
@@ -126,6 +143,8 @@
         <div class="f-foot"><button type="button" class="btn btn-line" data-close="#checkForm">취소</button><button type="submit" class="btn btn-primary" ${empty d.planId ? 'disabled' : ''}>저장</button></div>
       </form>
 
+      <%-- 기록이 쌓여도 페이지는 늘어나지 않고 이 칸만 스크롤 (높이는 archive-detail.js 가 화면에 맞춤) --%>
+      <div class="tl-scroll" id="tlScroll">
       <div class="timeline" id="timeline">
         <c:forEach var="r" items="${d.records}" varStatus="s">
           <div class="tl-item" data-yes="${r.hasYes}" data-no="${r.hasNo}">
@@ -159,6 +178,7 @@
         </c:forEach>
         <c:if test="${empty d.records}"><div class="card empty">아직 현장 확인 기록이 없습니다. 위 [현장 확인 결과 입력]으로 첫 기록을 남기세요.</div></c:if>
         <p class="tl-none muted" id="tlNone" style="display:none">조건에 맞는 기록이 없습니다.</p>
+      </div>
       </div>
     </section>
 
@@ -205,6 +225,13 @@
         </form>
         <button type="button" class="btn btn-line btn-block" id="btnHandover">담당자 변경(인수인계)</button>
       </div>
+
+      <%-- AI 현장 확인보고서 (대시보드 보고서와 같은 흐름) : 형식 고르기 → 작성 중 알림 → 미리보기 창 → 다운로드 아이콘 = 서버 저장 (ai-report.js) --%>
+      <div class="ai-report-wrap">
+        <div class="rep-notice" id="rpNotice" role="status" hidden><i class="spin" aria-hidden="true"></i><span id="rpNoticeTxt"></span></div>
+        <button type="button" class="btn btn-primary btn-block ai-report-btn" id="btnAiReport"
+          ${recCnt == 0 and d.pendingAppCnt == 0 ? 'disabled title="현장조사이력이나 모바일 앱 기록이 있어야 보고서를 만들 수 있습니다"' : ''}>AI 현장 확인보고서 생성</button>
+      </div>
     </aside>
   </div>
 </div>
@@ -214,7 +241,11 @@
   <input type="hidden" name="listId" id="addListId"><input type="hidden" name="factorIds" value="${empty d.factor ? '' : d.factor.factorId}">
 </form>
 
+<%@ include file="/WEB-INF/views/include/mobile-link-modal.jspf" %>
+
 <script src="${ctx}/resources/js/common.js"></script>
 <script src="${ctx}/resources/js/archive-detail.js"></script>
+<script src="${ctx}/resources/js/mobile-link.js"></script>
+<script src="${ctx}/resources/js/ai-report.js"></script>
 </body>
 </html>

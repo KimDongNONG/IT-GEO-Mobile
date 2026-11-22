@@ -34,6 +34,24 @@ window.Common = (function () {
     });
   }
 
+  /* POST JSON 본문 (모바일 현장조사기록 수정 · AI 정리처럼 중첩 값이 있는 요청). 실패 처리는 api 와 같다 */
+  function apiJson(path, body) {
+    return $.ajax({
+      url: url(path),
+      method: 'POST',
+      data: JSON.stringify(body || {}),
+      contentType: 'application/json; charset=UTF-8',
+      dataType: 'json'
+    }).fail(function (xhr) {
+      if (xhr.status === 200 || xhr.status === 302 || xhr.status === 401) {
+        location.href = url('loginform.do');
+        return;
+      }
+      var m = xhr.responseJSON && xhr.responseJSON.msg;
+      toast(m || '서버 요청에 실패했습니다. (' + xhr.status + ')');
+    });
+  }
+
   var toastTimer = null;
   function toast(msg) {
     var $el = $('#app-toast');
@@ -159,5 +177,29 @@ window.Common = (function () {
     });
   }
 
-  return { ctx: CTX, esc: esc, url: url, api: api, toast: toast, dialog: dialog, shortAddr: shortAddr, num: num, resizer: resizer, theme: theme };
+  /**
+   * 대시보드 "이어서 보기" 기록 (DashboardRESTController recent.do → recent_view, 탭마다 마지막 1건).
+   * 화면을 열면 자동으로 한 번. 화면 안에서 보는 대상이 바뀌면 Common.recent({ title, sub }) 로 다시 부르면 된다
+   */
+  var RECENT_SUB = { 'map.do': '지도 · 분석', 'fieldlist.do': '리스트 목록', 'fielddetail.do': '현장 확인 중', 'fieldedit.do': '리스트 편집 중', 'archive.do': '보관함 목록', 'archivedetail.do': '건물 확인 이력' };
+  function recent(opt) {
+    var $m = $('#recentMeta'), menu = $m.attr('data-menu');
+    if (menu !== 'map' && menu !== 'field' && menu !== 'archive') return;
+    var page = location.pathname.split('/').pop();
+    if (!RECENT_SUB[page]) return;
+    opt = opt || {};
+    var h1 = $.trim($('.page h1').first().clone().children().remove().end().text());
+    $.ajax({
+      url: url('api/dashboard/recent.do'), method: 'POST', dataType: 'json',
+      data: {
+        menu: menu,
+        url: page + location.search,
+        title: opt.title || $m.attr('data-title') || h1,
+        sub: opt.sub || $m.attr('data-sub') || RECENT_SUB[page]
+      }
+    });   /* 실패해도 화면에는 알리지 않는다 */
+  }
+  $(function () { recent(); });
+
+  return { ctx: CTX, esc: esc, url: url, api: api, apiJson: apiJson, recent: recent, toast: toast, dialog: dialog, shortAddr: shortAddr, num: num, resizer: resizer, theme: theme };
 })();

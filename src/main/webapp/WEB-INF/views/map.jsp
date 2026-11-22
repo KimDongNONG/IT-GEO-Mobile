@@ -125,7 +125,7 @@
     <script>try { if (localStorage.getItem('itgeo.scenFold') === '1') document.getElementById('scenBar').classList.add('folded'); } catch (e) {}</script>
 
     <%-- 오른쪽 위 (2차 11-17 H) : [전체 구] [전체 동] [검색] [지도 유형]. 오른쪽 패널 왼쪽 끝에 붙어 같이 움직인다 --%>
-    <%-- 구 선택 : 구청 계정(loginMember.sggCd 있음)은 소속 구로 잠금, 서울시청은 자유 (CLAUDE.md 5-1 계정 2종류) --%>
+    <%-- 구 선택 : 구청 계정(loginMember.sggCd 있음)은 소속 구로 잠금, 서울시청은 자유 (계정 2종류) --%>
     <c:set var="lockGu" value="${sessionScope.loginMember.sggCd}"/>
     <div class="map-top">
       <select class="field sel" id="selGu" ${not empty lockGu ? 'disabled title="소속 구로 고정됩니다"' : ''}>

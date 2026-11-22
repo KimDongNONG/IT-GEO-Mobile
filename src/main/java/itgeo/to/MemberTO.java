@@ -8,7 +8,7 @@ import lombok.Data;
  * 로그인 사용자 = users 테이블. 클래스명은 화면 기준(Member) 그대로.
  * 세션 키 loginMember 에 담기므로 Serializable (Tomcat 재배포 때 세션 유지). 세션에는 passwordHash 를 비워서 넣는다.
  *
- * 계정 2종류 (CLAUDE.md 5-1)
+ * 계정 2종류
  *  - 서울시청  : sggCd NULL. 3개 구를 같은 기준으로 분석(발굴). 구 선택 자유.
  *  - 구청 주무관 : sggCd 있음. 구 선택칸은 소속 구로 잠금, 보관함·현장확인·대시보드도 소속 구만.
  */

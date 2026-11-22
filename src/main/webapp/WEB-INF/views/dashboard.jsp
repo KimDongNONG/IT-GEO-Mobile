@@ -1,6 +1,14 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%--
+  대시보드 (DashboardController → DashboardTO d, dashJson)
+  ┌ 상단 한 줄 : 기상청 현재 기온 · 기상특보 · 관측 기준 시각 (dashboard.js 가 api/dashboard/weather.do 로)
+  ├ 왼쪽   : 고위험 가구 확인율 · 월간 캘린더(업무 캘린더 survey_schedule, 읽기 전용) · 이어서 보기(recent_view)
+  ├ 가운데 : 오늘 일정 (달력 날짜를 누르면 그날 일정)          ┐ 위
+  ├ 오른쪽 : 동별 남은 고위험 가구 (많은 순 / 가나다순)         ┘
+  └ 아래   : 월별 추이 (확인 완료 건물 수, 최근 6개월) · N월 현황 보고서 (보고서 만들기 · 지난 보고서 보기)
+--%>
 <c:set var="pageTitle" value="대시보드"/>
 <c:set var="pageCss" value="pages"/>
 <c:set var="activeMenu" value="dashboard"/>
@@ -11,102 +19,157 @@
 <body>
 <%@ include file="/WEB-INF/views/include/header.jspf" %>
 
-<div class="page dash-page">
-  <form class="page-head dash-head" method="get" action="${ctx}/dashboard.do">
-    <h1>대시보드</h1>
-    <div class="right">
-      <%-- 구청 계정은 소속 구로 잠금 (DashboardController 가 gu 를 강제). 서울시청은 구끼리 비교 --%>
-      <c:set var="lockGu" value="${sessionScope.loginMember.sggCd}"/>
-      <select class="field" name="gu" style="width:150px;height:36px" ${not empty lockGu ? 'disabled title="소속 구로 고정됩니다"' : ''}>
-        <c:if test="${empty lockGu}"><option value="">전체 3개 구</option></c:if>
-        <option value="11530" ${gu == '11530' ? 'selected' : ''}>구로구</option>
-        <option value="11470" ${gu == '11470' ? 'selected' : ''}>양천구</option>
-        <option value="11560" ${gu == '11560' ? 'selected' : ''}>영등포구</option>
-      </select>
-      <select class="field" disabled style="width:130px;height:36px"><option>${nowYm}</option></select>
-      <div class="seg">
-        <button type="submit" name="month" value="1" class="${months == 1 ? 'on' : ''}">1개월</button>
-        <button type="submit" name="month" value="3" class="${months == 3 ? 'on' : ''}">3개월</button>
-        <button type="submit" name="month" value="6" class="${months == 6 ? 'on' : ''}">6개월</button>
-      </div>
-      <button type="submit" class="btn btn-primary btn-sm">조회</button>
-    </div>
-  </form>
-
-  <%-- KPI 4 --%>
-  <div class="kpi-grid">
-    <div class="card kpi"><div class="k-title"><i style="background:var(--ok)"></i>조사 대기 중</div><div class="k-val">${d.status.todo}<small>동</small></div><div class="k-sub">취약공간 ${d.total}동 중 현장 확인 전</div></div>
-    <div class="card kpi"><div class="k-title"><i style="background:var(--warn)"></i>조사 중</div><div class="k-val">${d.status.doing}<small>동</small></div><div class="k-sub">현장확인 리스트에 담겨 확인 중</div></div>
-    <div class="card kpi"><div class="k-title"><i style="background:var(--warn)"></i>현장 확인 리스트 잔여</div><div class="k-val">${d.listRemain}<small>개</small></div><div class="k-sub">남은 건물 ${d.listRemainBld}곳 · 전체 ${d.listTotalBld}곳</div></div>
-    <div class="card kpi"><div class="k-title"><i style="background:var(--primary)"></i>최근 한 달 완료</div><div class="k-val">${d.monthDone}<small>건</small></div><div class="k-sub"><c:choose><c:when test="${d.monthDone >= d.prevMonthDone}">지난달보다 ${d.monthDone - d.prevMonthDone}건 늘었어요</c:when><c:otherwise>지난달보다 ${d.prevMonthDone - d.monthDone}건 줄었어요</c:otherwise></c:choose> · 누적 ${d.cumDone}건</div></div>
+<%-- 화면 고정 + 내부 스크롤 (pages.css .page-scroll) : .dash2 는 최대 폭(1600px)이 있어 바깥 감싸개가 스크롤한다 → 스크롤바는 창 오른쪽 끝, 양옆 여백에서도 휠이 먹는다 --%>
+<div class="page-scroll">
+<div class="page dash2">
+  <%-- ① 날씨 : 기온 → 특보(있을 때만) → 기상청 HH:00 --%>
+  <div class="wx-line" id="wxLine" aria-live="polite">
+    <b class="wx-temp" id="wxTemp">--°</b>
+    <span class="wx-warns" id="wxWarns"></span>
+    <span class="wx-time" id="wxTime">기상청 --:--</span>
   </div>
 
-  <div class="dash-grid">
-    <%-- 조사 상태 분포 (도넛) --%>
-    <div class="card">
-      <div class="card-head"><h3>조사 상태 분포</h3><small>전체 취약공간 ${d.total}동 기준</small></div>
-      <div class="donut-wrap">
-        <div class="donut-box"><canvas id="donut"></canvas><div class="donut-center"><b>${d.total}</b><span>취약공간(동)</span></div></div>
-        <div>
-          <c:set var="tot" value="${d.total == 0 ? 1 : d.total}"/>
-          <div class="lg-row"><span><i style="background:var(--primary)"></i>확인 완료</span><span>${d.status.done}동 · <fmt:formatNumber value="${d.status.done * 100 / tot}" maxFractionDigits="0"/>%</span></div>
-          <div class="lg-bar"><b style="width:${d.status.done * 100 / tot}%;background:var(--primary)"></b></div>
-          <div class="lg-row"><span><i style="background:var(--warn)"></i>조사 중</span><span>${d.status.doing}동 · <fmt:formatNumber value="${d.status.doing * 100 / tot}" maxFractionDigits="0"/>%</span></div>
-          <div class="lg-bar"><b style="width:${d.status.doing * 100 / tot}%;background:var(--warn)"></b></div>
-          <div class="lg-row"><span><i style="background:var(--ok)"></i>조사 대기</span><span>${d.status.todo}동 · <fmt:formatNumber value="${d.status.todo * 100 / tot}" maxFractionDigits="0"/>%</span></div>
-          <div class="lg-bar"><b style="width:${d.status.todo * 100 / tot}%;background:var(--ok)"></b></div>
+  <div class="d2-grid">
+    <%-- ② 고위험 가구 확인율 : 내 현장확인 리스트 건물의 고위험 가구 기준 --%>
+    <section class="card d2-rate">
+      <h3 class="d2-title">고위험 가구 확인율</h3>
+      <div class="rate-body">
+        <div class="donut2" style="--pct:${d.highPct}">
+          <svg viewBox="0 0 120 120" width="120" height="120" aria-hidden="true">
+            <circle class="dn-bg" cx="60" cy="60" r="48" fill="none"/>
+            <circle class="dn-val" cx="60" cy="60" r="48" fill="none" pathLength="100" stroke-dasharray="${d.highPct} 100"/>
+          </svg>
+          <b>${d.highPct}%</b>
+        </div>
+        <dl class="rate-list">
+          <div><dt>남은 곳</dt><dd class="c-remain">${d.highRemain}</dd></div>
+          <div><dt>확인</dt><dd class="c-check">${d.highChecked}</dd></div>
+          <div><dt>전체</dt><dd class="c-total">${d.highTotal}</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <%-- ③ 월간 캘린더 : 업무 캘린더와 같은 데이터, 보기만 (추가 · 수정은 캘린더 페이지) --%>
+    <section class="card d2-cal">
+      <div class="d2-head">
+        <div class="cal-nav">
+          <button type="button" id="calPrev" aria-label="이전 달">‹</button>
+          <h3 class="d2-title" id="calTitle">${nowMonth}월</h3>
+          <button type="button" id="calNext" aria-label="다음 달">›</button>
+        </div>
+        <small>날짜를 누르면 그날 일정</small>
+      </div>
+      <div class="cal-week"><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span></div>
+      <div class="cal-days" id="calDays"></div>
+    </section>
+
+    <%-- ⑤ 이어서 보기 : 탭마다 마지막으로 본 화면 (최대 3), 제목 = 상단 탭 이름 --%>
+    <section class="card d2-cont">
+      <h3 class="d2-title">이어서 보기</h3>
+      <div class="cont-list">
+        <c:forEach var="r" items="${d.recent}">
+          <c:set var="tabNm" value="${r.menu == 'map' ? '취약공간 분석 지도' : r.menu == 'field' ? '현장 확인 리스트' : '보관함'}"/>
+          <a class="cont-item" href="${ctx}/<c:out value='${r.url}'/>">
+            <i class="cont-ico ico-${r.menu}" aria-hidden="true"></i>
+            <span class="cont-txt">
+              <b>${tabNm}</b>
+              <small><c:out value="${r.title}"/><c:if test="${not empty r.title and not empty r.sub}"> · </c:if><c:out value="${r.sub}"/></small>
+            </span>
+            <time data-at="${r.viewedAt}"></time>
+          </a>
+        </c:forEach>
+        <c:if test="${empty d.recent}"><div class="empty">최근에 본 화면이 없습니다.</div></c:if>
+      </div>
+    </section>
+
+    <%-- ③ ④ 오늘 일정 (기본) / 달력에서 고른 날 일정 --%>
+    <section class="card d2-today">
+      <div class="d2-head">
+        <h3 class="d2-title"><span id="dayTitle">오늘 일정</span> <small id="daySub"></small></h3>
+        <small id="dayCount"></small>
+      </div>
+      <div class="sch-list" id="schList"></div>
+      <div class="sch-foot"><span>일정 추가 · 수정은 <a href="${ctx}/calendar.do">업무 캘린더</a>에서 해요</span><button type="button" class="link-btn" id="backToday" hidden>오늘로 돌아가기</button></div>
+    </section>
+
+    <%-- ⑦ 동별 남은 고위험 가구 --%>
+    <section class="card d2-dong">
+      <div class="d2-head">
+        <h3 class="d2-title">동별 남은 고위험 가구
+          <span class="sort-sel"><select id="dongSort" aria-label="정렬">
+            <option value="remain">많은 순</option>
+            <option value="name">가나다순</option>
+          </select></span>
+        </h3>
+        <a class="link-more" href="${ctx}/map.do">지도에서 보기 →</a>
+      </div>
+      <div class="dong-list" id="dongList"></div>
+      <div class="d2-legend"><span><i class="lg remain"></i>아직 확인 안 함</span><span><i class="lg check"></i>확인함</span></div>
+    </section>
+
+    <%-- ⑥ 월별 추이 : 현장 확인 리스트 "확인 완료" 건물 수 (이번 달 막대만 진하게) --%>
+    <section class="card d2-trend">
+      <c:set var="m0" value="${d.monthly[0].ym}"/>
+      <h3 class="d2-title">월별 추이 <small>${fn:substring(m0, 5, 6) == '0' ? fn:substring(m0, 6, 7) : fn:substring(m0, 5, 7)}월 ~ ${nowMonth}월</small></h3>
+      <div class="trend-box"><canvas id="trendChart"></canvas></div>
+      <div class="d2-legend"><span><i class="lg check"></i>확인 완료 (건물 수)</span></div>
+    </section>
+
+    <%-- ⑧ 이번 달 현황 보고서 : 숫자는 다른 그래프에 이미 있으니 박스에는 버튼과 지난 보고서만 --%>
+    <section class="card d2-result rp-box">
+      <div class="rep-notice" id="repNotice" role="status" hidden><i class="spin" aria-hidden="true"></i><span id="repNoticeTxt"></span></div>
+      <div class="rp-head">
+        <h3 class="d2-title">${nowMonth}월 현황 보고서</h3>
+        <%-- 보고서 저장소 : 만든 보고서가 있으면 보인다 (보고서를 만들면 dashboard.js 가 보이게 함) --%>
+        <button type="button" class="rp-folder" id="btnReportBox" title="보고서 저장소" aria-label="보고서 저장소" ${empty d.lastReport ? 'hidden' : ''}>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>
+        </button>
+      </div>
+      <p class="rp-desc">대시보드 수치로 이번 달 보고서를 만들어요</p>
+      <c:choose>
+        <c:when test="${not empty d.lastReport}">
+          <button type="button" class="rp-last" id="lastReport" data-id="${d.lastReport.reportId}">지난 보고서 · ${d.lastReport.month}월 보고서 (${d.lastReport.createdAt}) 보기 ›</button>
+        </c:when>
+        <c:otherwise>
+          <button type="button" class="rp-last" id="lastReport" hidden></button>
+          <span class="rp-none" id="noReport">아직 만든 보고서가 없어요</span>
+        </c:otherwise>
+      </c:choose>
+      <button type="button" class="btn-report" id="btnReport" data-month="${nowMonth}">✦ 보고서 만들기</button>
+    </section>
+  </div>
+</div>
+</div><%-- /.page-scroll --%>
+
+<%-- 보고서 저장소 (폴더 아이콘) : 왼쪽 = 만든 보고서 목록, 오른쪽 = 내용 확인 · 종합 의견과 상태(초안/확정) 수정 · 저장 · PDF 로 보기 (dashboard.js) --%>
+<div class="ml-bg" id="rbModal" role="dialog" aria-modal="true" aria-labelledby="rbTitle" hidden>
+  <div class="ml-modal rb-modal">
+    <div class="ml-head">
+      <div>
+        <h3 id="rbTitle">보고서 저장소 <b id="rbCnt">0</b>건</h3>
+        <p class="muted">만든 AI 통계 보고서입니다. 항목을 누르면 내용을 다시 보고, 종합 의견과 상태를 고쳐 저장할 수 있어요. 1 ~ 4번 숫자는 대시보드 집계값이라 고치지 않습니다.</p>
+      </div>
+      <button type="button" class="dlg-x" data-rb-close aria-label="닫기">×</button>
+    </div>
+    <div class="ml-body">
+      <ul class="ml-list" id="rbList" role="listbox" aria-label="보고서 목록"></ul>
+      <div class="ml-right">
+        <div class="ml-detail" id="rbDetail"><p class="muted ml-empty">보고서를 고르세요.</p></div>
+        <div class="ml-foot">
+          <span class="muted" id="rbDirty"></span>
+          <button type="button" class="btn btn-line" id="rbPdf" disabled>PDF 로 보기</button>
+          <button type="button" class="btn btn-primary" id="rbSave" disabled>저장</button>
         </div>
       </div>
-    </div>
-
-    <%-- 월별 현장 확인 완료 (막대) --%>
-    <div class="card">
-      <div class="card-head"><h3>월별 현장 확인 완료</h3><small>최근 5개월 · 단위 건</small></div>
-      <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">이번 달 ${d.monthDone}건 확인했어요. 지난달보다 ${d.monthDone - d.prevMonthDone}건 차이예요.</p>
-      <div class="chart-box"><canvas id="monthly"></canvas></div>
-    </div>
-  </div>
-
-  <div class="dash-grid">
-    <%-- 진행 중인 현장확인 리스트 --%>
-    <div class="card">
-      <div class="card-head"><h3>진행 중인 현장확인 리스트</h3><a href="${ctx}/fieldlist.do" style="color:var(--primary);font-size:13px">현장 확인 리스트로 이동 ›</a></div>
-      <div class="mini-cards">
-        <c:forEach var="f" items="${d.doingLists}">
-          <div class="mini-card">
-            <div class="mc-top"><span class="badge"><c:out value="${f.guName}"/> <c:out value="${f.emdNm}"/></span><span>진행 중</span></div>
-            <b><c:out value="${f.title}"/></b>
-            <div class="mc-sub" title="<c:out value='${f.firstAddr}'/>"><c:out value="${f.firstAddr}"/></div>
-            <div class="prog"><span class="muted">확인 진행</span><i><b style="width:${f.progressPct}%"></b></i><span>${f.doneCnt}/${f.itemCnt}</span></div>
-            <div class="mc-foot"><span>남은 ${f.itemCnt - f.doneCnt}곳</span><a href="${ctx}/fielddetail.do?listId=${f.surveyId}">상세보기 ›</a></div>
-          </div>
-        </c:forEach>
-        <c:if test="${empty d.doingLists}"><div class="empty" style="grid-column:1/-1">진행 중인 리스트가 없습니다.</div></c:if>
-      </div>
-    </div>
-
-    <%-- 동별 진행 현황 --%>
-    <div class="card">
-      <div class="card-head"><h3>동별 진행 현황</h3><small><i class="lg-dot fill" style="border-color:var(--primary)"></i>확인 완료 <i class="lg-dot fill" style="border-color:var(--warn);background:var(--warn)"></i>조사 중 <i class="lg-dot fill" style="border-color:var(--ok);background:var(--ok)"></i>조사 대기</small></div>
-      <p class="muted" style="font-size:12px;margin-bottom:12px">취약 건물이 많은 6개 동</p>
-      <c:forEach var="r" items="${d.byDong}">
-        <c:set var="rt" value="${r.total == 0 ? 1 : r.total}"/>
-        <div class="dong-row"><span><c:out value="${r.emdNm}"/></span>
-          <div class="bar"><b style="width:${r.done * 100 / rt}%;background:var(--primary)"></b><b style="width:${r.doing * 100 / rt}%;background:var(--warn)"></b><b style="width:${r.todo * 100 / rt}%;background:var(--ok)"></b></div>
-          <span class="tot">${r.total}동</span></div>
-      </c:forEach>
-      <c:if test="${empty d.byDong}"><div class="empty">보관함에 건물이 없습니다.</div></c:if>
     </div>
   </div>
 </div>
 
-<script>
-  window.DASH = {
-    status: { done: ${d.status.done}, doing: ${d.status.doing}, todo: ${d.status.todo} },
-    monthly: [<c:forEach var="m" items="${d.monthly}" varStatus="s">{ ym: '${m.ym}', cnt: ${m.cnt} }<c:if test="${!s.last}">,</c:if></c:forEach>]
-  };
-</script>
+<script>window.DASH = ${dashJson};</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<%-- 보고서 PDF : 보고서 양식(HTML)을 그림으로(html2canvas) → A4 PDF(jsPDF). 브라우저 안에서만 만들고 보기 창으로 연다 --%>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="${ctx}/resources/js/common.js"></script>
 <script src="${ctx}/resources/js/dashboard.js"></script>
 </body>

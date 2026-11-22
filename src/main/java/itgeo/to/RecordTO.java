@@ -45,6 +45,10 @@ public class RecordTO {
 	private List<String> supports = new ArrayList<>();            // 필요한 지원
 	private List<PhotoTO> photos = new ArrayList<>();             // 현장 사진
 
+	// 팀 모바일 연동(MobileLinkService.fillTimeline)이 채우는 칸. 화면 표시는 아직 위 isFromApp() · photos 기준
+	private boolean fromApp;                                      // setFromApp 만 Lombok 이 만든다 (isFromApp 은 아래 직접 정의)
+	private List<MobileLinkPhotoTO> appPhotos = new ArrayList<>(); // 앱에서 받은 사진 (mobile_link_photo)
+
 	/** 웹 타임라인용 "건물 주변 3 · 침수 흔적·배수 4 …" */
 	public String getScoreText() {
 		StringBuilder sb = new StringBuilder();

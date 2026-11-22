@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mapper-dashboard">
+
+	<!-- ================================================================
+	     대시보드 (dashboard.do). 테이블 = reference/db/07_ai_report.sql(recent_view · monthly_report) + 업무 캘린더 survey_schedule(06) + 기존 현장확인 테이블
+	     "업무 리스트에 저장한 건물" = 내 현장확인 리스트(survey_list)에 담긴 건물(survey_plan)
+	     "고위험 가구" = 가구 위험_등급(household.risk_grade) '고위험고립' → bld_resident_stat.high_iso_cnt (04_update.sql [D])
+	     건물 하나가 여러 리스트에 담겨 있어도 1번만 센다. 리스트 중 한 곳에서라도 확인 기록이 있으면 확인
+	     before (yyyy-MM-dd) 를 주면 그 날 0시 전에 남긴 확인 기록만 센다 (보고서의 "전월 대비 확인율")
+	     ================================================================ -->
+	<sql id="myFieldBlds">
+		SELECT b.bld_id, b.emd_nm, IFNULL(rs.high_iso_cnt, 0) high_cnt
+		     , MAX(EXISTS (SELECT 1 FROM survey_record sr WHERE sr.plan_id = sp.plan_id
+		                   <if test="before != null">AND sr.created_at &lt; #{before}</if>)) checked
+		  FROM survey_plan sp
+		  JOIN survey_list sl ON sl.survey_id = sp.survey_id
+		  JOIN vulnerability_factor f ON f.factor_id = sp.factor_id
+		  JOIN building b ON b.bld_id = f.bld_id
+		  LEFT JOIN bld_resident_stat rs ON rs.bld_id = b.bld_id
+		 WHERE sl.user_id = #{userId}
+		 <if test="gu != null and gu != ''">AND b.sgg_cd = #{gu}</if>
+		 GROUP BY b.bld_id, b.emd_nm, rs.high_iso_cnt
+	</sql>
+
+	<!-- 고위험 가구 확인율 : 전체 / 확인 (가구 수). before 가 있으면 그 시점 기준 -->
+	<select id="getHighRiskRate" resultType="java.util.HashMap">
+		SELECT IFNULL(SUM(x.high_cnt), 0) total
+		     , IFNULL(SUM(IF(x.checked, x.high_cnt, 0)), 0) checked
+		  FROM (<include refid="mapper-dashboard.myFieldBlds"/>) x
+		 WHERE x.high_cnt > 0
+	</select>
+
+	<!-- 동별 남은 고위험 가구 (정렬은 화면에서 : 많은 순 기본 / 가나다순) -->
+	<select id="getHighRiskByDong" resultType="itgeo.to.DashboardTO$DongRiskTO">
+		SELECT x.emd_nm, SUM(x.high_cnt) total, SUM(IF(x.checked, x.high_cnt, 0)) checked
+		  FROM (<include refid="mapper-dashboard.myFieldBlds"/>) x
+		 WHERE x.high_cnt > 0
+		 GROUP BY x.emd_nm
+		 ORDER BY SUM(x.high_cnt) - SUM(IF(x.checked, x.high_cnt, 0)) DESC, x.emd_nm
+	</select>
+
+	<!-- 월별 추이 = 확인 완료 : 현장 확인 리스트 항목이 처음 "확인 완료"가 된 달 기준 (항목당 1번) -->
+	<select id="getMonthlyChecked" resultType="itgeo.to.DashboardTO$MonthStatTO">
+		SELECT DATE_FORMAT(x.first_at, '%Y-%m') ym, COUNT(*) checked
+		  FROM (SELECT sp.plan_id, MIN(sr.created_at) first_at
+		          FROM survey_record sr
+		          JOIN survey_plan sp ON sp.plan_id = sr.plan_id
+		          JOIN survey_list sl ON sl.survey_id = sp.survey_id
+		          JOIN vulnerability_factor f ON f.factor_id = sp.factor_id
+		          JOIN building b ON b.bld_id = f.bld_id
+		         WHERE sl.user_id = #{userId}
+		         <if test="gu != null and gu != ''">AND b.sgg_cd = #{gu}</if>
+		         GROUP BY sp.plan_id) x
+		 WHERE x.first_at >= #{from} AND x.first_at &lt; #{to}
+		 GROUP BY ym
+	</select>
+
+	<!-- ===== 월간 현황 보고서 (monthly_report.content = {"facts":…, "opinion":[…]} JSON) ===== -->
+	<insert id="addReport" parameterType="java.util.HashMap" useGeneratedKeys="true" keyProperty="reportId">
+		INSERT INTO monthly_report (user_id, sgg_cd, ym, content) VALUES (#{userId}, #{gu}, #{ym}, #{content})
+	</insert>
+
+	<!-- 보고서 박스 "지난 보고서 보기" : 내가 만든 가장 최근 보고서 1건 (같은 구 범위) -->
+	<select id="getLastReport" resultType="itgeo.to.DashboardTO$ReportRefTO">
+		SELECT report_id, ym, DATE_FORMAT(created_at, '%m.%d') created_at
+		  FROM monthly_report
+		 WHERE user_id = #{userId}
+		 <choose><when test="gu != null and gu != ''">AND sgg_cd = #{gu}</when><otherwise>AND sgg_cd IS NULL</otherwise></choose>
+		 ORDER BY report_id DESC
+		 LIMIT 1
+	</select>
+
+	<!-- 보고서 저장소 (폴더 아이콘) : 내가 만든 보고서 전부, 최근이 위 -->
+	<select id="getReportList" resultType="itgeo.to.DashboardTO$ReportRefTO">
+		SELECT report_id, ym, DATE_FORMAT(created_at, '%Y-%m-%d %H:%i') created_at, status, sgg_cd
+		  FROM monthly_report
+		 WHERE user_id = #{userId}
+		 ORDER BY report_id DESC
+		 LIMIT 200
+	</select>
+
+	<!-- 보고서 한 건 머리 정보 (내 것만) -->
+	<select id="getReportMeta" resultType="itgeo.to.DashboardTO$ReportRefTO">
+		SELECT report_id, ym, DATE_FORMAT(created_at, '%Y-%m-%d %H:%i') created_at, status, sgg_cd
+		  FROM monthly_report
+		 WHERE report_id = #{reportId} AND user_id = #{userId}
+	</select>
+
+	<!-- 보고서 수정 저장 (내 것만) : 내용 JSON · 초안/확정 -->
+	<update id="updateReport">
+		UPDATE monthly_report SET content = #{content}, status = #{status}
+		 WHERE report_id = #{reportId} AND user_id = #{userId}
+	</update>
+
+	<!-- 저장한 보고서 다시 보기 (내 것만) -->
+	<select id="getReportContent" resultType="string">
+		SELECT content FROM monthly_report WHERE report_id = #{reportId} AND user_id = #{userId}
+	</select>
+
+	<!-- ===== 업무 캘린더 (읽기 전용) =====
+	     업무 캘린더(calendar.do)는 날짜에 현장확인 리스트를 넣는다 (survey_schedule : user_id, survey_id, sched_date).
+	     대시보드는 그 리스트의 건물(survey_plan)을 방문 순서대로 펼쳐서 센다. 시각은 없다
+	       재방문(REVISIT) = 일정 날짜 전에 이미 확인 기록이 있던 건물
+	       확인 결과       = 일정 날짜 이후에 남긴 가장 최근 확인 기록의 방문 결과 -->
+	<sql id="schedBlds">
+		  FROM survey_schedule s
+		  JOIN survey_plan sp ON sp.survey_id = s.survey_id
+		 WHERE s.user_id = #{userId}
+	</sql>
+	<sql id="revisitExpr">EXISTS (SELECT 1 FROM survey_record r0 JOIN visit_history v0 ON v0.visit_id = r0.visit_id
+	                           WHERE r0.plan_id = sp.plan_id AND v0.visited_at &lt; s.sched_date)</sql>
+
+	<!-- 보고서 4. 이번 달 방문 일정 : 전체 건물 수 / 오늘까지(오늘 포함) 날짜가 된 건물 수 [from, to) -->
+	<select id="getScheduleCount" resultType="java.util.HashMap">
+		SELECT COUNT(*) total, IFNULL(SUM(s.sched_date &lt;= #{today}), 0) done
+		<include refid="mapper-dashboard.schedBlds"/>
+		   AND s.sched_date >= #{from} AND s.sched_date &lt; #{to}
+	</select>
+
+	<!-- 달력 점 : 날짜별 건물 수 · 재방문 수 [from, to) -->
+	<select id="getScheduleMarks" resultType="itgeo.to.DashboardTO$DayMarkTO">
+		SELECT DATE_FORMAT(s.sched_date, '%Y-%m-%d') day, COUNT(*) cnt, SUM(<include refid="mapper-dashboard.revisitExpr"/>) revisit
+		<include refid="mapper-dashboard.schedBlds"/>
+		   AND s.sched_date >= #{from} AND s.sched_date &lt; #{to}
+		 GROUP BY s.sched_date
+	</select>
+
+	<!-- 하루 일정 : 그날 넣은 리스트의 건물 (리스트 이름 → 방문 순서) -->
+	<select id="getScheduleList" resultType="itgeo.to.ScheduleTO">
+		SELECT s.schedule_id, sp.plan_id, b.bld_id
+		     , DATE_FORMAT(s.sched_date, '%Y-%m-%d') sched_date
+		     , sp.visit_order
+		     , TRIM(CONCAT(IF(LOCATE('구 ', b.addr) > 0, SUBSTRING(b.addr, LOCATE('구 ', b.addr) + 2), b.addr), ' ', IFNULL(b.bld_nm, IFNULL(b.use_nm, '')))) title
+		     , IF(<include refid="mapper-dashboard.revisitExpr"/>, 'REVISIT', 'VISIT') sched_type
+		     , sl.title memo
+		     , (SELECT v.result FROM survey_record r JOIN visit_history v ON v.visit_id = r.visit_id
+		         WHERE r.plan_id = sp.plan_id AND v.visited_at >= s.sched_date
+		         ORDER BY v.visited_at DESC, r.record_id DESC LIMIT 1) check_result
+		  FROM survey_schedule s
+		  JOIN survey_list sl ON sl.survey_id = s.survey_id
+		  JOIN survey_plan sp ON sp.survey_id = s.survey_id
+		  JOIN vulnerability_factor f ON f.factor_id = sp.factor_id
+		  JOIN building b ON b.bld_id = f.bld_id
+		 WHERE s.user_id = #{userId} AND s.sched_date = #{date}
+		 ORDER BY sl.title, s.schedule_id, sp.visit_order IS NULL, sp.visit_order, sp.plan_id
+	</select>
+
+	<!-- ===== 이어서 보기 ===== -->
+	<insert id="saveRecent" parameterType="itgeo.to.RecentViewTO">
+		INSERT INTO recent_view (user_id, menu, url, title, sub, viewed_at)
+		VALUES (#{userId}, #{menu}, #{url}, #{title}, #{sub}, NOW())
+		<!-- VALUES() 함수는 MySQL 8.0.20 부터 사용 중단 예정이라 쓰지 않고 같은 값을 다시 넣는다 (MySQL 8 · MariaDB 모두 동작) -->
+		ON DUPLICATE KEY UPDATE url = #{url}, title = #{title}, sub = #{sub}, viewed_at = NOW()
+	</insert>
+
+	<select id="getRecentList" resultType="itgeo.to.RecentViewTO">
+		SELECT r.user_id, r.menu, r.url, r.title, r.sub, DATE_FORMAT(r.viewed_at, '%Y-%m-%d %H:%i') viewed_at
+		  FROM recent_view r
+		 WHERE r.user_id = #{userId}
+		 ORDER BY r.viewed_at DESC, r.menu
+		 LIMIT 3
+	</select>
+</mapper>

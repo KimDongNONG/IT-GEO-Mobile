@@ -1,0 +1,28 @@
+<%--
+  모바일 미확인 현장조사기록 확인 모달 (05 건물 확인 이력, 타임라인 위 안내를 누르면 열림). 동작은 resources/js/mobile-link.js
+    왼쪽 : 앱에서 받은 현장조사기록 목록 (최근 방문이 위)
+    오른쪽 : 정리내용 = ① 취약점수(수정) ② 메모(수정) ③ 사진(삭제만) ④ 녹취록(삭제만), 오른쪽 아래 [수정 내용 저장] [AI 정리]
+  [AI 정리] = AI 요약 → 날짜별 현장조사이력에 기존 형식(관찰 메모 · 현장 체크 · 점수 보정)으로 기재 → 이 목록에서 빠짐
+--%>
+<div class="ml-bg" id="mlModal" role="dialog" aria-modal="true" aria-labelledby="mlTitle" hidden>
+  <div class="ml-modal">
+    <div class="ml-head">
+      <div>
+        <h3 id="mlTitle">미확인 현장조사기록 <b id="mlCnt">0</b>건</h3>
+        <p class="muted">모바일 앱에서 보낸 기록입니다. 내용을 확인 · 수정한 뒤 [AI 정리]로 현장조사이력에 기재하세요.</p>
+      </div>
+      <button type="button" class="dlg-x" data-ml-close aria-label="닫기">×</button>
+    </div>
+    <div class="ml-body">
+      <ul class="ml-list" id="mlList" role="listbox" aria-label="받은 현장조사기록"></ul>
+      <div class="ml-right">
+        <div class="ml-detail" id="mlDetail"><p class="muted ml-empty">기록을 불러오는 중…</p></div>
+        <div class="ml-foot">
+          <span class="muted" id="mlDirty"></span>
+          <button type="button" class="btn btn-line" id="mlSave" disabled>수정 내용 저장</button>
+          <button type="button" class="btn btn-primary" id="mlAi" disabled>AI 정리</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

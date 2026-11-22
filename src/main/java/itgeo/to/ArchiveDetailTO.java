@@ -28,6 +28,25 @@ public class ArchiveDetailTO {
 	private String lastRankNm;
 	private int scoreAdj;            // 점수 보정 합
 	private String transferDept;     // "주택과 점검 요청" (최근)
+	private int pendingAppCnt;       // 모바일 앱에서 받았지만 아직 확인 안 한 현장조사기록 수 (타임라인 위 안내)
+	private String pendingAppFrom;   // 그 기록들의 가장 오래된 · 가장 최근 방문 날짜 (yyyy-MM-dd, 없으면 null)
+	private String pendingAppTo;
+
+	/** AI 보고서 기간 (웹 이력 + 앱 확인 전 기록) : 가장 오래된 날 yyyy-MM-dd, 기록이 없으면 "" */
+	public String getReportFrom() {
+		String a = records == null || records.isEmpty() ? null : records.get(records.size() - 1).getVisitedAt().substring(0, 10);
+		return minMax(a, pendingAppFrom, true);
+	}
+	/** AI 보고서 기간 : 가장 최근 날 */
+	public String getReportTo() {
+		String a = records == null || records.isEmpty() ? null : records.get(0).getVisitedAt().substring(0, 10);
+		return minMax(a, pendingAppTo, false);
+	}
+	private static String minMax(String a, String b, boolean min) {
+		if (a == null) return b == null ? "" : b;
+		if (b == null) return a;
+		return (a.compareTo(b) <= 0) == min ? a : b;
+	}
 
 	/** 저장 점수 (보관함에 없으면 현재 점수) */
 	public int getSavedScore() {
