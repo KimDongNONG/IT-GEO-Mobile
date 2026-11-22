@@ -62,7 +62,7 @@ window.MAP_CONFIG = {
   /* 핀 머리 그림 : building.use_nm → 용도 묶음 */
   USE_GROUP: { '단독주택': '단독주택', '공동주택': '공동주택', '업무시설': '업무시설', '제1종근린생활시설': '업무시설', '제2종근린생활시설': '업무시설' },
 
-  /* 가중치 = 위험 유형 4묶음, 합계 100 (5-1). 서버 파라미터 = key + 'W' (spaceW bldW floodW econW) */
+  /* 가중치 = 위험 유형 4묶음, 묶음마다 0~100 (def = 기본값). 점수에는 비율로 환산 (map-layer.js). 서버 파라미터 = key + 'W' (spaceW bldW floodW econW) */
   WEIGHT_GROUPS: [
     { key: 'space', label: '주거 공간', def: 45, factors: ['ugrnd', 'rooftop', 'gosiwon'], names: '지하층 · 옥탑 · 고시원' },
     { key: 'bld',   label: '건물 상태', def: 20, factors: ['old', 'viol'],                names: '노후 · 위반건축물' },

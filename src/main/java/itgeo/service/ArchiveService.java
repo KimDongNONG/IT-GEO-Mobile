@@ -285,6 +285,7 @@ public class ArchiveService {
 				if (r == null) continue;
 				r.setSource(d.getSource());
 				r.setResidentStatus(d.getResidentStatus());
+				r.setTranscript(d.getTranscript());
 				if (d.getSupports() != null && !d.getSupports().isBlank()) r.setSupports(Arrays.asList(d.getSupports().split(",")));
 				if (d.getScores() != null && !d.getScores().isBlank()) {
 					try {

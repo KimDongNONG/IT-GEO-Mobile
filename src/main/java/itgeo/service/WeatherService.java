@@ -30,10 +30,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import itgeo.to.WeatherTO;
 
 /**
- * 기상청 (공공데이터포털 data.go.kr) : 현재 기온 + 기상특보. 대시보드 상단 한 줄.
+ * 기상청 : 현재 기온 + 기상특보. 대시보드 상단 한 줄.
  *  - 기온 : 단기예보 조회서비스 · 초단기실황 getUltraSrtNcst 의 T1H. 매시 정각 관측, 매시 40분쯤 올라옴 → 1시간 단위
  *  - 특보 : 기상특보 조회서비스 · 특보현황 getPwnStatus 의 발효 현황(t6) 중 "서울" 이 들어간 특보만
- * 키는 app.properties 의 app.kma.service-key (두 서비스 모두 활용 신청 필요). 비어 있으면 화면은 "날씨 연동 전" 으로 보인다.
+ * 키 (app.properties)
+ *  - 기온 : app.kma.service-key = 기상청 API허브(apihub.kma.go.kr) authKey. 비어 있으면 화면은 "날씨 연동 전"
+ *  - 특보 : app.kma.warn-key    = 공공데이터포털(apis.data.go.kr) 인증키. 비어 있으면 특보 칸만 비운다
+ * 특보를 못 받아도(키 없음 · 403 등) 기온은 그대로 보인다.
  * 같은 구는 10분 동안 다시 부르지 않는다 (메모리 캐시).
  */
 @Service
@@ -42,7 +45,7 @@ public class WeatherService {
 	private static final Logger log = LoggerFactory.getLogger(WeatherService.class);
 	private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 	private static final long TTL_MS = 10 * 60 * 1000L;
-	private static final String NCST_URL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst";
+	private static final String NCST_URL = "https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0/getUltraSrtNcst";
 	private static final String WARN_URL = "https://apis.data.go.kr/1360000/WthrWrnInfoService/getPwnStatus";
 	/** "o 한파주의보 : 서울, 인천, 경기도(…)" 한 줄 */
 	private static final Pattern WARN_LINE = Pattern.compile("o\\s*([^\\s:]+(?:주의보|경보))\\s*:\\s*([^\\r\\n]*)");
@@ -56,6 +59,9 @@ public class WeatherService {
 
 	@Value("${app.kma.service-key:}")
 	String serviceKey;
+
+	@Value("${app.kma.warn-key:}")
+	String warnKey;
 
 	private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 	private final ObjectMapper json = new ObjectMapper();
@@ -74,7 +80,12 @@ public class WeatherService {
 		String key = g[0] + "," + g[1] + "@" + base;
 		try {
 			Double temp = cached("t:" + key, () -> fetchTemp(g, base));
-			List<String> warns = cached("w:" + base.toLocalDate() + base.getHour(), this::fetchWarnings);
+			List<String> warns = null;
+			if (warnKey != null && !warnKey.isBlank()) try {
+				warns = cached("w:" + base.toLocalDate() + base.getHour(), this::fetchWarnings);
+			} catch (Exception e) {
+				log.warn("기상특보 호출 실패 (기온만 표시) : {}", e.toString());
+			}
 			w.setTemp(temp);
 			if (warns != null) w.setWarnings(warns);
 			w.setBaseTime(base.format(DateTimeFormatter.ofPattern("HH:00")));
@@ -89,7 +100,7 @@ public class WeatherService {
 
 	/** 초단기실황 T1H (기온 ℃) */
 	private Double fetchTemp(int[] g, LocalDateTime base) throws Exception {
-		String url = NCST_URL + "?serviceKey=" + key() + "&pageNo=1&numOfRows=20&dataType=JSON"
+		String url = NCST_URL + "?authKey=" + enc(serviceKey) + "&pageNo=1&numOfRows=20&dataType=JSON"
 				+ "&base_date=" + base.format(DateTimeFormatter.BASIC_ISO_DATE)
 				+ "&base_time=" + base.format(DateTimeFormatter.ofPattern("HH00"))
 				+ "&nx=" + g[0] + "&ny=" + g[1];
@@ -102,7 +113,7 @@ public class WeatherService {
 
 	/** 특보현황 : 발효 중인 특보 중 서울이 들어간 것 (없으면 빈 목록) */
 	private List<String> fetchWarnings() throws Exception {
-		String url = WARN_URL + "?serviceKey=" + key() + "&pageNo=1&numOfRows=10&dataType=JSON";
+		String url = WARN_URL + "?serviceKey=" + enc(warnKey) + "&pageNo=1&numOfRows=10&dataType=JSON";
 		JsonNode root = get(url);
 		String code = root.path("response").path("header").path("resultCode").asText();
 		Set<String> out = new LinkedHashSet<>();
@@ -125,9 +136,9 @@ public class WeatherService {
 		return json.readTree(body);
 	}
 
-	/** 포털의 일반 인증키(Decoding)를 넣었으면 인코딩, 이미 인코딩된 키(%포함)면 그대로 */
-	private String key() {
-		String k = serviceKey.trim();
+	/** 키에 특수문자가 들어 있으면 인코딩, 이미 인코딩된 키(%포함)면 그대로 */
+	private static String enc(String key) {
+		String k = key.trim();
 		return k.contains("%") ? k : URLEncoder.encode(k, StandardCharsets.UTF_8);
 	}
 

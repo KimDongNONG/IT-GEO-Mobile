@@ -38,7 +38,7 @@ import itgeo.to.ResidentTO;
  *  api/map/resident.do   정보 확인하기(동·호수)                     ?residentId
  *
  * 구청 계정 (15단계 A) : 목록류는 gu 를 세션 구로 강제(scope), 건물·가구 상세는 그 건물의 sgg_cd 가 내 구와 다르면 403 {ok:false, msg}.
- * 가중치 (15단계 B) : 합 100 · 0~100 이 아니면 400 (MapService.assertWeights). 응답 모양은 GlobalExceptionHandler.
+ * 가중치 : 묶음마다 0~100, 켜진 묶음 합 > 0 이 아니면 400 (MapService.assertWeights). 점수에는 비율로 환산. 응답 모양은 GlobalExceptionHandler.
  */
 @RestController
 public class MapRESTController {

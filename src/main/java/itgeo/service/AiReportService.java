@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import itgeo.dao.MobileLinkDAO;
+import itgeo.dao.AiReportDAO;
 import itgeo.report.HwpxReportWriter;
 import itgeo.report.PdfReportWriter;
 import itgeo.to.AiReportTO;
@@ -30,13 +30,12 @@ import itgeo.to.ArchiveDetailTO;
 import itgeo.to.BuildingTO;
 import itgeo.to.MemberTO;
 import itgeo.to.MemoTO;
-import itgeo.to.MobileLinkTO;
 import itgeo.to.RecordTO;
 import itgeo.to.TransferTO;
 
 /**
  * AI 현장 확인보고서 (05 건물 확인 이력 → [AI 현장 확인보고서 생성]).
- *  1) generate : 그 시설의 현장조사이력 전부(+ 앱에서 받은 취약점수 · 녹취록, 이관 · 인수인계)를 LLM 에 주고 본문을 받아 초안을 만든다
+ *  1) generate : 그 시설의 현장조사이력 전부(+ 모바일 앱 기록의 항목 점수 · 거주자 상태 · 필요한 지원 · 녹취록, 이관 · 인수인계)를 LLM 에 주고 본문을 받아 초안을 만든다
  *  2) save     : 초안을 고른 포맷(PDF · HWPX)으로 그려 app.report.dir/<건물ID>/ 에 저장하고 ai_report 에 남긴다
  * 보고서명 = 사용한 현장조사이력의 가장 오래된 날짜 ~ 가장 최근 날짜 + " AI 보고서" (예: 2025.10.14~2026.11.22 AI 보고서)
  */
@@ -61,13 +60,10 @@ public class AiReportService {
 	ArchiveService archiveService;
 
 	@Autowired
-	MobileLinkService mobileLinkService;
-
-	@Autowired
 	LlmService llmService;
 
 	@Autowired
-	MobileLinkDAO dao;
+	AiReportDAO dao;
 
 	@Autowired
 	PdfReportWriter pdfWriter;
@@ -84,25 +80,17 @@ public class AiReportService {
 		if (!FORMATS.contains(fmt)) throw new IllegalArgumentException("보고서 포맷을 골라 주세요. (PDF · 한글)");
 		ArchiveDetailTO d = archiveService.getArchiveDetail(bldId, member.getUserId(), member.isGuUser() ? member.getSggCd() : null);
 		if (d == null) throw new IllegalArgumentException("건물을 찾을 수 없습니다.");
-		// 모바일 앱이 JSON 으로 보냈지만 아직 [AI 정리]로 이력에 기재하지 않은 기록도 함께 쓴다 (확인 전이라고 구분)
-		List<MobileLinkTO> pending = mobileLinkService.getPendingList(bldId);
-		pending.sort(Comparator.comparing(MobileLinkTO::getVisitedAt, Comparator.nullsLast(Comparator.naturalOrder())));
-		if (d.getRecords().isEmpty() && pending.isEmpty()) throw new IllegalStateException("현장조사이력과 모바일 앱 기록이 없어 보고서를 만들 수 없습니다.");
+		if (d.getRecords().isEmpty()) throw new IllegalStateException("현장조사이력이 없어 보고서를 만들 수 없습니다.");
 
 		// 오래된 기록부터 (경과 순서). 화면 타임라인은 최근이 위
 		List<RecordTO> recs = new ArrayList<>(d.getRecords());
 		recs.sort(Comparator.comparing(RecordTO::getVisitedAt, Comparator.nullsLast(Comparator.naturalOrder())).thenComparing(RecordTO::getRecordId));
-		List<Long> ids = new ArrayList<>();
-		for (RecordTO r : recs) ids.add(r.getRecordId());
-		Map<Long, MobileLinkTO> app = mobileLinkService.getLinksByRecords(ids);
+		int appCnt = 0;      // 모바일 앱에서 저장한 기록 수 (survey_record_detail 이 있는 기록)
+		for (RecordTO r : recs) if (r.isFromApp()) appCnt++;
 
-		// 보고서 기간 = 사용한 기록(웹 이력 + 앱 미확인 기록) 중 가장 오래된 날 ~ 가장 최근 날
-		List<String> days = new ArrayList<>();
-		for (RecordTO r : recs) days.add(r.getVisitedAt().substring(0, 10));
-		for (MobileLinkTO l : pending) days.add(l.getVisitedAt().substring(0, 10));
-		days.sort(null);
-		LocalDate from = LocalDate.parse(days.get(0));
-		LocalDate to = LocalDate.parse(days.get(days.size() - 1));
+		// 보고서 기간 = 사용한 현장조사이력 중 가장 오래된 날 ~ 가장 최근 날
+		LocalDate from = LocalDate.parse(recs.get(0).getVisitedAt().substring(0, 10));
+		LocalDate to = LocalDate.parse(recs.get(recs.size() - 1).getVisitedAt().substring(0, 10));
 
 		AiReportTO rp = new AiReportTO();
 		rp.setDraftId(UUID.randomUUID().toString());
@@ -111,7 +99,7 @@ public class AiReportService {
 		rp.setTitle(title(from, to));
 		rp.setPeriodFrom(from.toString());
 		rp.setPeriodTo(to.toString());
-		rp.setRecordCnt(recs.size() + pending.size());
+		rp.setRecordCnt(recs.size());
 		rp.setCreatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
 		rp.setWriter(join(" ", member.getUserNm(), member.getRankNm()) + (blank(member.getDeptNm()) ? "" : " · " + member.getDeptNm()));
 
@@ -122,45 +110,27 @@ public class AiReportService {
 		rp.getFacts().add(new String[] { "용도 · 규모", nvl(b.getUseNm(), "용도 미상") + floors(b) });
 		rp.getFacts().add(new String[] { "취약도", d.getSavedScore() + "점 → 현장 확인 보정 " + d.getAdjustedScore() + "점 (" + d.getAdjText() + ")" });
 		rp.getFacts().add(new String[] { "사전 탐지 요인", blank(d.getDetectedText()) ? "없음" : d.getDetectedText() });
-		rp.getFacts().add(new String[] { "조사 기간", from.format(DOT) + " ~ " + to.format(DOT) + " (현장조사이력 " + recs.size() + "건"
-				+ (pending.isEmpty() ? "" : " · 모바일 앱 확인 전 기록 " + pending.size() + "건") + ")" });
-		rp.getFacts().add(new String[] { "모바일 앱 연동", "이력에 기재된 앱 기록 " + app.size() + "건 · 확인 전 앱 기록 " + pending.size() + "건"
-				+ (app.isEmpty() && pending.isEmpty() ? " (앱에서 받은 기록 없음)" : "") });
+		rp.getFacts().add(new String[] { "조사 기간", from.format(DOT) + " ~ " + to.format(DOT) + " (현장조사이력 " + recs.size() + "건)" });
+		rp.getFacts().add(new String[] { "모바일 앱 연동", appCnt == 0 ? "앱에서 저장한 기록 없음" : "현장조사이력 중 모바일 앱 기록 " + appCnt + "건" });
 		rp.getFacts().add(new String[] { "부서 이관", blank(d.getTransferDept()) ? "없음" : d.getTransferDept() });
 
-		// 붙임 표 : 웹 이력 + 앱 확인 전 기록을 날짜순으로
-		List<String[]> rows = new ArrayList<>();
+		// 붙임 표 : 현장조사이력 날짜순. 앱 기록은 방문 결과 뒤에 (앱), 메모 뒤에 항목 점수 · 사진 · 녹취록 유무
 		for (RecordTO r : recs) {
-			rows.add(new String[] {
+			StringBuilder memo = new StringBuilder(nvl(r.getContent()));
+			if (r.isFromApp()) {
+				if (!r.getScores().isEmpty()) memo.append(memo.length() > 0 ? " / " : "").append("항목 점수 ").append(r.getScoreText());
+				if (!r.getPhotos().isEmpty()) memo.append(memo.length() > 0 ? " / " : "").append("사진 ").append(r.getPhotos().size()).append("장");
+			}
+			if (!blank(r.getTranscript())) memo.append(memo.length() > 0 ? " / " : "").append("녹취록 있음");
+			rp.getHistory().add(new String[] {
 					r.getVisitedAt(),
 					join(" ", r.getUserNm(), r.getRankNm()),
-					r.getResultLabel() + (app.containsKey(r.getRecordId()) ? " (앱)" : ""),
+					r.getResultLabel() + (r.isFromApp() ? " (앱)" : ""),
 					blank(r.getCheckText()) ? "-" : r.getCheckText(),
-					nvl(r.getContent()) });
-		}
-		for (MobileLinkTO l : pending) {
-			StringBuilder memo = new StringBuilder(blank(l.getMemo()) ? "" : l.getMemo());
-			if (!l.getScoreItems().isEmpty()) {
-				if (memo.length() > 0) memo.append(" / ");
-				memo.append("취약점수 ");
-				for (int i = 0; i < l.getScoreItems().size(); i++) {
-					MobileLinkTO.ScoreRow s = l.getScoreItems().get(i);
-					memo.append(i == 0 ? "" : ", ").append(s.getLabel()).append(' ').append(s.getScore());
-				}
-			}
-			if (!l.getPhotos().isEmpty()) memo.append(memo.length() > 0 ? " / " : "").append("사진 ").append(l.getPhotos().size()).append("장");
-			if (!blank(l.getTranscript())) memo.append(memo.length() > 0 ? " / " : "").append("녹취록 있음");
-			rows.add(new String[] {
-					l.getVisitedAt(),
-					nvl(l.getAuthorNm(), "-"),
-					l.getResultLabel() + " (앱 · 확인 전)",
-					blank(l.getCheckText()) ? "-" : l.getCheckText(),
 					memo.length() == 0 ? "-" : memo.toString() });
 		}
-		rows.sort(Comparator.comparing((String[] x) -> x[0]));
-		rp.getHistory().addAll(rows);
 
-		String answer = llmService.chat(systemPrompt(), userPrompt(d, place, recs, app, pending));
+		String answer = llmService.chat(systemPrompt(), userPrompt(d, place, recs));
 		rp.setSections(sections(answer));
 		return rp;
 	}
@@ -266,14 +236,13 @@ public class AiReportService {
 				"- 입력에 없는 사실을 지어내지 않는다. 기록끼리 다르면 날짜를 밝혀 변화로 적는다. 추정은 '~로 보임'으로 구분한다.",
 				"- 사람 이름, 연락처, 주민등록번호 등 개인을 특정할 수 있는 정보는 쓰지 않는다. 담당자는 '담당자', 거주자는 '거주자'로 적는다.",
 				"- 항목별 취약점수는 1(양호) ~ 5(위험)이며 4점 이상은 주의 항목이다.",
-				"- '담당자 확인 전' 모바일 앱 기록은 아직 확인되지 않은 현장 원본이다. 인용할 때는 '모바일 앱 기록(확인 전)'이라고 밝혀 확인된 이력과 구분한다.",
 				"- 아래 키를 가진 JSON 객체 하나만 출력한다. 값은 모두 문자열이다. 설명 문장이나 코드 블록 표시는 넣지 않는다.",
 				"{",
 				keys.toString().replaceAll(",\n$", ""),
 				"}");
 	}
 
-	static String userPrompt(ArchiveDetailTO d, String place, List<RecordTO> recs, Map<Long, MobileLinkTO> app, List<MobileLinkTO> pending) {
+	static String userPrompt(ArchiveDetailTO d, String place, List<RecordTO> recs) {
 		BuildingTO b = d.getBuilding();
 		StringBuilder u = new StringBuilder();
 		u.append("[대상 시설] ").append(place).append(" / ").append(nvl(b.getAddr())).append('\n');
@@ -290,40 +259,20 @@ public class AiReportService {
 			u.append("  관찰 메모: ").append(nvl(r.getContent())).append('\n');
 			if (r.getScoreAdj() != null) u.append("  점수 보정: ").append(r.getScoreAdj() > 0 ? "+" : "").append(r.getScoreAdj()).append('\n');
 			if (!blank(r.getTransferDept())) u.append("  이관: ").append(r.getTransferDept()).append(' ').append(nvl(r.getTransferReq())).append('\n');
-			MobileLinkTO l = app.get(r.getRecordId());
-			if (l != null) {
-				u.append("  [모바일 앱 원본]");
-				if (l.getResidentStatus() != null) u.append(" 거주자 상태 ").append(l.getResidentStatus()).append(';');
-				if (!l.getSupportList().isEmpty()) u.append(" 필요한 지원 ").append(String.join(", ", l.getSupportList())).append(';');
+			if (r.isFromApp()) {
+				u.append("  [모바일 앱 기록]");
+				if (r.getResidentStatus() != null) u.append(" 거주자 상태 ").append(r.getResidentStatus()).append(';');
+				if (!r.getSupports().isEmpty()) u.append(" 필요한 지원 ").append(String.join(", ", r.getSupports())).append(';');
+				if (!r.getPhotos().isEmpty()) u.append(" 사진 ").append(r.getPhotos().size()).append("장;");
 				u.append('\n');
-				for (MobileLinkTO.ScoreRow s : l.getScoreItems()) u.append("   - ").append(s.getLabel()).append(' ').append(s.getScore()).append("점\n");
-				if (!blank(l.getMemo())) u.append("   메모: ").append(l.getMemo()).append('\n');
-				if (!blank(l.getTranscript()) && budget > 0) {
-					String t = l.getTranscript();
-					int max = Math.min(budget, 4000);
-					u.append("   녹취록: ").append(t.length() > max ? t.substring(0, max) + " …(이하 생략)" : t).append('\n');
-					budget -= Math.min(t.length(), max);
-				}
+				for (Map.Entry<String, Integer> s : r.getScores().entrySet())
+					u.append("   - ").append(MobileService.SCORE_LABELS.getOrDefault(s.getKey(), s.getKey())).append(' ').append(s.getValue()).append("점\n");
 			}
-		}
-		if (pending != null && !pending.isEmpty()) {
-			u.append("\n[모바일 앱에서 받았지만 담당자 확인 전인 현장조사기록] 오래된 순, 총 ").append(pending.size()).append("건 (원본 그대로)\n");
-			int j = 1;
-			for (MobileLinkTO l : pending) {
-				u.append("\n(앱-").append(j++).append(") ").append(l.getVisitedAt()).append(" · 방문 결과 ").append(l.getResultLabel());
-				if (l.getResidentStatus() != null) u.append(" · 거주자 상태 ").append(l.getResidentStatus());
-				u.append('\n');
-				if (!blank(l.getCheckText())) u.append("  사전 탐지 요인 확인: ").append(l.getCheckText()).append('\n');
-				for (MobileLinkTO.ScoreRow s : l.getScoreItems()) u.append("  - ").append(s.getLabel()).append(' ').append(s.getScore()).append("점\n");
-				if (!l.getSupportList().isEmpty()) u.append("  필요한 지원: ").append(String.join(", ", l.getSupportList())).append('\n');
-				if (!blank(l.getMemo())) u.append("  메모: ").append(l.getMemo()).append('\n');
-				if (!l.getPhotos().isEmpty()) u.append("  사진 ").append(l.getPhotos().size()).append("장\n");
-				if (!blank(l.getTranscript()) && budget > 0) {
-					String t = l.getTranscript();
-					int max = Math.min(budget, 4000);
-					u.append("  녹취록: ").append(t.length() > max ? t.substring(0, max) + " …(이하 생략)" : t).append('\n');
-					budget -= Math.min(t.length(), max);
-				}
+			if (!blank(r.getTranscript()) && budget > 0) {
+				String t = r.getTranscript();
+				int max = Math.min(budget, 4000);
+				u.append("  녹취록: ").append(t.length() > max ? t.substring(0, max) + " …(이하 생략)" : t).append('\n');
+				budget -= Math.min(t.length(), max);
 			}
 		}
 		if (!d.getTransfers().isEmpty()) {

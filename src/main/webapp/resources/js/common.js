@@ -34,7 +34,7 @@ window.Common = (function () {
     });
   }
 
-  /* POST JSON 본문 (모바일 현장조사기록 수정 · AI 정리처럼 중첩 값이 있는 요청). 실패 처리는 api 와 같다 */
+  /* POST JSON 본문 (중첩 값이 있는 요청). 실패 처리는 api 와 같다 */
   function apiJson(path, body) {
     return $.ajax({
       url: url(path),

@@ -11,10 +11,9 @@
 <body>
 <%@ include file="/WEB-INF/views/include/header.jspf" %>
 
-<%-- 달력 공용 스타일 (현장 확인 리스트 달력과 같은 파일) + 이 페이지 전용 workcal.css.
-     workcal.css 는 ?v= 를 붙여 직접 불러온다 : 브라우저에 남은 옛 파일(마우스를 올리면 수정 · 빼기가 나왔다 들어가던 것)을 쓰지 않게. 파일을 고치면 v 값도 바꾼다 --%>
+<%-- 달력 공용 스타일 (현장 확인 리스트 달력과 같은 파일) + 이 페이지 전용 workcal.css --%>
 <link rel="stylesheet" href="${ctx}/resources/css/pages_calendar.css">
-<link rel="stylesheet" href="${ctx}/resources/css/workcal.css?v=20261122a">
+<link rel="stylesheet" href="${ctx}/resources/css/workcal.css">
 
 <div class="page page-scroll">
   <%-- 제목 줄 : 업무 캘린더 · ‹ 2026년 11월 › · 오늘 ········ 범례 · 이번 달 리스트 n개 --%>
@@ -163,6 +162,23 @@
       }
     });
 
+    /* 끄는 중 표시 : 카드 머리를 누르고 8px 넘게 움직이면 body.wc-dragging (달력 칸 점선 · 잡은 카드 흐리게), 놓으면 끔.
+       FullCalendar Draggable 은 외부 끌기 시작/끝 이벤트가 없어서 포인터로 직접 본다. 클릭(펼치기 · 수정 · 빼기)은 그대로 */
+    (function () {
+      var down = null;
+      $('#wcSideCol').on('pointerdown', '.wc-card .wc-row', function (e) {
+        if (e.button !== 0 || $(e.target).closest('a, button').length) return;
+        down = { x: e.clientX, y: e.clientY, $card: $(this).closest('.wc-card') };
+      });
+      $(document).on('pointermove.wcdrag', function (e) {
+        if (!down || $('body').hasClass('wc-dragging')) return;
+        if (Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y) >= 8) { $('body').addClass('wc-dragging'); down.$card.addClass('wc-src'); }
+      }).on('pointerup.wcdrag pointercancel.wcdrag', function () {
+        if (down) down.$card.removeClass('wc-src');
+        down = null; $('body').removeClass('wc-dragging');
+      });
+    })();
+
     /* 일정 빼기 (리스트 자체는 남는다). 달력 × 와 오른쪽 위 [빼기] 가 같이 쓴다 */
     function removeEvent(ev) {
       if (!ev || !confirm('"' + ev.title + '" 을(를) ' + ymd(ev.start) + ' 일정에서 뺄까요?\n리스트 자체는 지워지지 않습니다.')) return;
@@ -183,7 +199,7 @@
     function card(L, key, open, acts) {
       var $c = $('<div class="wc-card">').toggleClass('open', !!open).attr('data-id', L.id).attr('data-key', key);
       var $row = $('<div class="wc-row">');
-      $row.append($('<span class="wc-grip" title="끌어서 달력 날짜에 놓기" aria-hidden="true">'));   /* ||| 손잡이 : 끌 수 있다는 표시 */
+      $row.append($('<span class="wc-grip" title="잡고 끌어서 달력 날짜에 놓기" aria-hidden="true">'));   /* ||| 손잡이 : 끌 수 있다는 표시 */
       $row.append($('<i class="dot">').addClass('st-' + L.status));
       $row.append($('<div class="tx">').append($('<b>').text(L.title)).append($('<small>').text(L.itemCnt + '개 건물 · ' + L.doneCnt + '개 완료')));
       var $right = $('<div class="rt">');
@@ -213,7 +229,7 @@
       var d = new Date(selDate + 'T00:00:00');
       var evs = calendar.getEvents().filter(function (e) { return e.id && ymd(e.start) === selDate; });
       $('#wcDay').text((d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + WEEK[d.getDay()] + ')');
-      $('#wcDaySub').text('방문 리스트 ' + evs.length + '개' + (evs.length ? ' · 끌어서 다른 날짜에도 넣을 수 있어요' : ''));
+      $('#wcDaySub').text('방문 리스트 ' + evs.length + '개' + (evs.length ? ' · ⠿ 를 잡고 끌어서 다른 날짜에도 넣을 수 있어요' : ''));
       var $lists = $('#wcLists').empty();
       if (!evs.length) $lists.append($('<div class="wc-empty">').text('이 날짜에 넣은 리스트가 없습니다. 아래 "내 현장 확인 리스트" 에서 끌어다 놓으세요.'));
       evs.forEach(function (ev) {

@@ -177,7 +177,7 @@ window.MapPanel = (function () {
     $(document).on('keydown', function (e) { if (e.key === 'Escape') closeResidents(); });
 
     /* 보관함 저장 (13단계). 판정은 서버(ArchiveService.addArchive) :
-     *   DUP     = 이미 저장돼 있고 조사 전 → 저장 안 함. 안내 모달(Common.dialog) [보관함에서 보기] = 05 새 탭 / [닫기]
+     *   DUP     = 이미 저장돼 있고 조사 전 → 저장 안 함. 안내 모달(Common.dialog) [보관함에서 보기] = 보관함 목록 새 탭 / [닫기]
      *   UPDATED = 조사 이력 있음 → 새 점수로 다시 저장 (묻지 않음)
      *   ADDED   = 처음 저장 */
     $('#btnArchive').on('click', function () {
@@ -190,21 +190,21 @@ window.MapPanel = (function () {
             Common.dialog({
               title: '이미 저장된 건물입니다',
               html: '<div class="dlg-info"><span class="t">' + esc(titleOf(bld)) + '</span><span class="s">' + info + '</span></div>'
-                + '아직 현장 조사 기록이 없어 다시 저장하지 않았어요.<br>보관함(건물 확인 이력)에서 볼까요?',
+                + '아직 현장 조사 기록이 없어 다시 저장하지 않았어요.<br>보관함에서 볼까요?',
               okText: '보관함에서 보기', cancelText: '닫기'
             }).done(function (go) {
               /* 확인 클릭 직후라 팝업 차단에 걸리지 않는다 (사용자 동작 안에서 open) */
-              if (go) window.open(Common.url('archivedetail.do?bldId=' + encodeURIComponent(String(bldId))), '_blank');
+              if (go) window.open(Common.url('archive.do'), '_blank');   // 보관함 목록 (2026-11-22, 건물 확인 이력 대신)
             });
             return;
           }
           Common.toast(res.msg || '저장할 수 없습니다.');
           return;
         }
-        Common.toast(res.msg || '보관함에 저장했습니다.');
         current.building.archiveCnt = 1;
         $b.text(archiveLabel(current.building));
         if (onArchived) onArchived(res.statusCount);
+        savedDialog(bld, res);
       }).always(function () { $b.prop('disabled', false); });
     });
 
@@ -215,6 +215,39 @@ window.MapPanel = (function () {
     $('#dHistory').on('click', function (e) { if ($(this).hasClass('disabled')) e.preventDefault(); });
     $('#detailBack').on('click', function () { $('#detailView').hide(); $('#resultView').show(); if (window.Bld3D) Bld3D.hide(); });
     $('#detailClose, #resultClose').on('click', function () { $('#panelRight').removeClass('open'); if (window.Bld3D) Bld3D.hide(); });   /* 오른쪽 패널도 지도 위에 덮으므로 resize 없음 */
+  }
+
+  /* 저장 완료 안내 (2026-11-22) : 오른쪽 아래 버튼 글자만 바뀌어 잘 안 보이므로 모달로 알린다.
+       건물 · 저장일 · 점수 · 어떤 가중치(기본/폭우/폭염/한파/사용자 설정)로 저장했는지 + [보관함에서 보기]
+       [다시 보지 않기] 를 체크하고 닫으면 itgeo.archiveDlgOff = 1 → 다음부터는 예전처럼 아래 알림(toast)만 */
+  var DLG_OFF_KEY = 'itgeo.archiveDlgOff';
+  function scenLabel(c) {
+    if (c && c.modified) return '사용자 설정';
+    var key = (c && c.scenario) || 'base';
+    var hit = (window.MAP_CONFIG && MAP_CONFIG.SCENARIOS || []).filter(function (x) { return x.key === key; })[0];
+    return hit ? hit.name : '기본';
+  }
+  function savedDialog(bld, res) {
+    var off = false;
+    try { off = localStorage.getItem(DLG_OFF_KEY) === '1'; } catch (e) {}
+    var msg = res.msg || '보관함에 저장했습니다.';
+    if (off) { Common.toast(msg); return; }
+    var d = new Date(), pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    var day = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    var bldId = bld.bldId;
+    Common.dialog({
+      title: res.code === 'UPDATED' ? '점수를 갱신해 다시 저장했습니다' : '보관함에 저장했습니다',
+      html: '<div class="dlg-info"><span class="t">' + esc(titleOf(bld)) + '</span>'
+        + '<span class="s">' + day + ' 저장 · ' + esc(bld.score) + '점 · ' + esc(scenLabel(getCriteria ? getCriteria() : null)) + '</span></div>'
+        + '<label class="dlg-off"><input type="checkbox" class="dlg-off-chk"> 다시 보지 않기</label>',
+      okText: '보관함에서 보기', cancelText: '닫기'
+    }).done(function (go) {
+      if (go) window.open(Common.url('archive.do'), '_blank');   // 보관함 목록 (2026-11-22, 건물 확인 이력 대신)
+    });
+    /* 체크하는 순간 기억 (닫기 · 보관함에서 보기 · Esc 어느 쪽으로 닫아도 적용) */
+    $('.dlg-bg').last().on('change', '.dlg-off-chk', function () {
+      try { if (this.checked) localStorage.setItem(DLG_OFF_KEY, '1'); else localStorage.removeItem(DLG_OFF_KEY); } catch (e) {}
+    });
   }
 
   /* 여닫기 버튼으로 패널을 다시 열었을 때 : 보던 건물 상세가 있으면 3D 를 다시 준비한다 (닫을 때 Bld3D.hide 로 정리했으므로) */

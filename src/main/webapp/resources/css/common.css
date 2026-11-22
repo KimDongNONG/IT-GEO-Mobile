@@ -288,6 +288,9 @@ input[type=range] { accent-color: var(--primary); }
 .dlg-info { display: flex; flex-direction: column; gap: 4px; margin: 0 0 14px; padding: 12px 14px; background: var(--bg-card); border-left: 2px solid var(--primary); }
 .dlg-info .t { color: var(--text); font-size: 13.5px; font-weight: 700; }
 .dlg-info .s { font-size: 12px; color: var(--text-2); }
+/* 모달 안 [다시 보지 않기] (보관함 저장 완료 안내) : 정보 상자 아래 오른쪽 */
+.dlg-off { display: flex; justify-content: flex-end; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); cursor: pointer; user-select: none; }
+.dlg-off input { margin: 0; cursor: pointer; }
 
 /* 지도 확대 · 축소 버튼 (메인 지도 · 현장확인 상세 · 리스트 수정 공통). 네이버 기본 컨트롤은 모두 끄고 이것만 쓴다
    위치(right/top/bottom)는 화면별 css 에서 */

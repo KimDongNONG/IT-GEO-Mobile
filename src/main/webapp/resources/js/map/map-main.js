@@ -63,7 +63,11 @@ $(function () {
     map.fitBounds(new naver.maps.LatLngBounds(LL(box[1], box[0]), LL(box[3], box[2])), { top: 90, right: 60, bottom: 70, left: 60 });
   };
   var guOf = function (code) { return C.GU.filter(function (x) { return x.code === code; })[0]; };
-  var criteria = function () { return state.criteria || (state.criteria = MapLayer.getCriteria()); };
+  /* 분석 실행 전에 저장해도 지금 고른 시나리오를 같이 남긴다 (보관함 구분 칸). 실행 뒤에는 runAnalysis 가 넣은 값 그대로 */
+  var criteria = function () {
+    if (!state.criteria) { state.criteria = MapLayer.getCriteria(); state.criteria.scenario = scen; state.criteria.modified = scenMod; }
+    return state.criteria;
+  };
   /* 지도 조회 파라미터 = 확정 조건 + 현장 확인됨 기간 */
   var viewParams = function () { return $.extend({}, criteria(), { checkedMonths: state.checkedMonths }); };
 
@@ -702,9 +706,110 @@ $(function () {
 
   /* 로드뷰 : 켜면 파란 도로선(StreetLayer), 지도를 누르면 그 위치의 파노라마를 지도 영역 위에. 네이버 스크립트의 submodules=panorama 필요 */
   /* markAt = 건물 마커를 누른 시각, sameT = 같은 촬영 지점일 때 핀 · 시선을 바로 맞추는 예약 (리뷰 6) */
-  var street = { on: false, layer: null, pano: null, click: null, mark: null, target: null, aim: false, markAt: 0, sameT: null };
+  /* me = 지도 위 "지금 보는 곳" 표시 (위치 · 방향) */
+  var street = { on: false, layer: null, pano: null, click: null, mark: null, target: null, aim: false, markAt: 0, sameT: null, me: null };
   var hasPano = function () { return live() && !!naver.maps.StreetLayer && !!naver.maps.Panorama; };
-  function closePano() { $('#panoWrap').removeClass('open'); clearPanoMark(); }
+  function closePano() {
+    $('#panoWrap').removeClass('open'); $('.map-layout').removeClass('pano-split'); clearPanoMark();
+    resize();                                         // 지도를 다시 전체 폭으로
+    if (street.me) street.me.setMap(null);
+  }
+
+  /* ---- 비율 보기 (왼쪽 로드뷰 + 오른쪽 지도) ----
+     로드뷰 + 지도 폭(오른쪽 패널을 뺀 폭)을 100 으로 보고 로드뷰 비율 panoPct(20~80)를 손잡이로 정한다. 저장 itgeo.panoPct, 크게 보기 상태는 itgeo.panoFull.
+     지도(#map)도 남은 폭으로 실제로 줄어든다 (CSS .pano-split #map) → 바뀔 때마다 네이버 지도에 resize 를 알린다 */
+  var PANO_PCT_MIN = 20, PANO_PCT_MAX = 80, PANO_PCT_DEF = 50;
+  /* 자석 : 경계선이 3:7 · 5:5 · 7:3 자리 ±PANO_SNAP_PX 안에 들어오면 그 비율에 딱 붙고, 붙은 뒤에는 ±PANO_RELEASE_PX 밖으로 끌어야 떨어진다 (붙는 거리 < 떨어지는 거리 = 걸리는 느낌) */
+  var PANO_SNAPS = [30, 50, 70], PANO_SNAP_PX = 24, PANO_RELEASE_PX = 48;
+  var panoFull = false, panoPct = PANO_PCT_DEF;
+  try {
+    panoFull = localStorage.getItem('itgeo.panoFull') === '1';
+    panoPct = Number(localStorage.getItem('itgeo.panoPct')) || PANO_PCT_DEF;
+  } catch (e) {}
+  var rpWidth = function () { return $(panelRight).hasClass('open') ? (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rp-w')) || 400) : 0; };
+  var panoRoom = function () { return $map.closest('.map-wrap').width() - rpWidth(); };   // 로드뷰 + 지도 = 100
+  /* 비율 → 로드뷰 폭(px). 지도 크기가 바뀌므로 네이버 지도에도 알린다 */
+  function setPanoPct(pct) {
+    panoPct = Math.max(PANO_PCT_MIN, Math.min(PANO_PCT_MAX, Math.round(pct)));
+    document.documentElement.style.setProperty('--pano-w', Math.round(panoRoom() * panoPct / 100) + 'px');
+    $('#panoRatio').text('로드뷰 ' + panoPct + ' : ' + (100 - panoPct) + ' 지도');
+    state.quietUntil = Date.now() + 2500;             // 폭만 바뀐 것이라 [이 지역에서 재검색] 은 띄우지 않는다
+    resize();
+    return panoPct;
+  }
+  function applyPanoW() { setPanoPct(panoPct); }   // 창 · 오른쪽 패널 크기가 바뀌면 같은 비율로 다시
+  function setPanoFull(full) {
+    panoFull = full;
+    try { localStorage.setItem('itgeo.panoFull', full ? '1' : '0'); } catch (e) {}
+    $('#panoWrap').toggleClass('split', !full);
+    $('.map-layout').toggleClass('pano-split', !full && $('#panoWrap').hasClass('open'));
+    $('#panoSize').text(full ? '지도와 같이 보기' : '크게 보기');
+    if (!full) applyPanoW(); else resize();
+    fitPano();
+    if (!full && street.pano) panIntoView(street.pano.getPosition());
+  }
+  /* 로드뷰 위치가 지도에서 안 보이면(가장자리 · 오른쪽 패널 뒤) 지도를 옮겨 보이는 칸 가운데로. 지도 중심 기준 픽셀 차이로 계산해 새 중심으로 panTo */
+  function panIntoView(coord) {
+    if (!live() || panoFull || !coord || !$('#panoWrap').hasClass('open')) return;
+    var proj = map.getProjection(), a = proj.fromCoordToOffset(coord), c = proj.fromCoordToOffset(map.getCenter());
+    var w = $map.width(), h = $map.height(), x = w / 2 + (a.x - c.x), y = h / 2 + (a.y - c.y);
+    var l = 12, r = w - rpWidth() - 12, t = 60, b = h - 12;    // #map 안에서 보이는 칸 (오른쪽 패널 · 분석 기준 줄 제외)
+    if (x > l + 40 && x < r - 40 && y > t + 30 && y < b - 30) return;
+    var dx = x - (l + r) / 2, dy = (y > t + 30 && y < b - 30) ? 0 : y - (t + b) / 2;
+    state.quietUntil = Date.now() + 2500;
+    map.panTo(proj.fromOffsetToCoord(new naver.maps.Point(c.x + dx, c.y + dy)));
+  }
+  /* 지도 위 "지금 보는 곳" : 위치는 촬영 지점이 바뀔 때, 방향은 시선(pan)이 바뀔 때 따라간다 */
+  function updateMe() {
+    if (!live() || !street.pano) return;
+    var pos = street.pano.getPosition();
+    if (!pos) return;
+    if (!street.me) {
+      street.me = new naver.maps.Marker({ position: pos, zIndex: 1000, clickable: false,
+        icon: { content: '<div class="pano-me mk-inv"><svg id="panoMeDir" viewBox="0 0 60 60" width="60" height="60" aria-hidden="true"><path d="M30 30 18 4a28 28 0 0 1 24 0z"/></svg><b></b></div>', anchor: new naver.maps.Point(30, 30) } });
+    }
+    street.me.setPosition(pos);
+    if (!street.me.getMap()) street.me.setMap(map);
+    var dir = document.getElementById('panoMeDir'), pov = street.pano.getPov();
+    if (dir && pov) dir.style.transform = 'rotate(' + pov.pan + 'deg)';
+  }
+  $('#panoSize').on('click', function () { setPanoFull(!panoFull); });
+  /* 손잡이 끌기 : 마우스 위치 = 경계선. 로드뷰가 커지면 지도가 그만큼 줄어든다 (같이 조정). 다 끌면 비율 저장, 두 번 누르면 50:50
+     자유 드래그 + 자석 : 3:7 · 5:5 · 7:3 근처(±PANO_SNAP_PX)에서는 그 비율에 붙고(.snap = 점선 + 비율 표시 강조), 더 끌면 다시 마우스를 따라간다 */
+  $('#panoGrip').on('mousedown', function (e) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    var left = $map.closest('.map-wrap').offset().left, room = panoRoom(), $g = $(this).addClass('drag'), cur = null;
+    $('body').addClass('resizing dragging');
+    /* 끄는 동안만 3:7 · 5:5 · 7:3 자리에 흐린 안내선 */
+    var $guides = $('#panoGuides').empty().addClass('show');
+    PANO_SNAPS.forEach(function (p) { $guides.append($('<i>').attr('data-p', p).css('left', Math.round(room * p / 100) + 'px')); });
+    $(document).on('mousemove.pano', function (ev) {
+      var px = ev.clientX - left, snap = null;
+      if (cur != null && Math.abs(px - room * cur / 100) <= PANO_RELEASE_PX) snap = cur;    // 붙어 있으면 더 멀리 끌어야 떨어진다
+      else PANO_SNAPS.forEach(function (p) { if (snap == null && Math.abs(px - room * p / 100) <= PANO_SNAP_PX) snap = p; });
+      if (snap !== cur && snap != null) {                // 새로 붙은 순간 : 손잡이가 톡 튀고 안내선이 진해진다
+        $g.removeClass('pop'); void $g[0].offsetWidth; $g.addClass('pop');
+      }
+      cur = snap;
+      $g.toggleClass('snap', snap != null);
+      $guides.children().each(function () { $(this).toggleClass('on', Number($(this).attr('data-p')) === snap); });
+      setPanoPct(snap != null ? snap : px / room * 100);
+      fitPano();
+    })
+      .on('mouseup.pano', function () {
+        $(document).off('.pano');
+        $g.removeClass('drag snap pop');
+        $guides.removeClass('show').empty();
+        $('body').removeClass('resizing dragging');
+        try { localStorage.setItem('itgeo.panoPct', String(panoPct)); } catch (err) {}
+        fitPano();
+        if (street.pano) panIntoView(street.pano.getPosition());
+      });
+  }).on('dblclick', function () {
+    try { localStorage.removeItem('itgeo.panoPct'); } catch (err) {}
+    setPanoPct(PANO_PCT_DEF); fitPano();
+  });
 
   /* 건물 마커로 로드뷰에 들어왔을 때만 : 사진 속 그 건물 위치에 핀 1개 + 이름 (2차 O). 도로를 눌러 들어오면 핀 없음, 주변 다른 건물도 안 띄운다.
      네이버 공식 예제 "Panorama image marker" 방식 그대로 : 이미지 아이콘 Marker 를 setMap(pano), 시선은 pano.getProjection().fromCoordToPov(좌표).
@@ -749,19 +854,26 @@ $(function () {
   var PANO_TILT = -18;
   /* 파노라마 크기 = #pano 의 지금 크기. 문서에 자동 리사이즈가 없어서 영역이 바뀔 때마다(창 크기 · 오른쪽 패널 여닫기 · 폭 조절) 직접 맞춘다 */
   function fitPano() {
-    if (!street.pano || !$('#panoWrap').hasClass('open')) return;
-    var el = document.getElementById('pano');
+    if (!$('#panoWrap').hasClass('open')) return;
+    if (!panoFull && !$('body').hasClass('dragging')) applyPanoW();   // 창 · 패널 크기가 바뀌었으면 같은 비율로 다시 맞춘다
+    if (!street.pano) return;
+    var el = document.getElementById('panoWrap');       // #pano 는 네이버가 처음 크기를 박아 넣으므로 창(#panoWrap) 크기로 잰다
     if (el.clientWidth && el.clientHeight) street.pano.setSize(new naver.maps.Size(el.clientWidth, el.clientHeight));
   }
   /* target = 건물 마커로 들어온 경우의 그 건물 (bldId · lat · lng · addr …). 도로를 눌렀으면 없음 → 있던 핀은 지운다 */
   function openPano(coord, target) {
-    $('#panoWrap').addClass('open');                    // 먼저 보이게 해야 크기가 잡힌다
+    if (!panoFull) applyPanoW();
+    $('#panoWrap').addClass('open').toggleClass('split', !panoFull);   // 먼저 보이게 해야 크기가 잡힌다
+    $('.map-layout').toggleClass('pano-split', !panoFull);
+    $('#panoSize').text(panoFull ? '지도와 같이 보기' : '크게 보기');
     clearPanoMark();
     if (target) { street.target = target; street.aim = true; }
     if (!street.pano) {
       street.pano = new naver.maps.Panorama('pano', { position: coord, pov: { pan: 0, tilt: PANO_TILT, fov: 100 } });
       naver.maps.Event.addListener(street.pano, 'init', placePanoMark);            // 처음 만들 때 (공식 예제와 같은 시점)
-      naver.maps.Event.addListener(street.pano, 'pano_changed', function () { clearTimeout(street.sameT); placePanoMark(); });    // 위치를 옮긴 뒤
+      naver.maps.Event.addListener(street.pano, 'pano_changed', function () { clearTimeout(street.sameT); placePanoMark(); updateMe(); panIntoView(street.pano.getPosition()); });    // 위치를 옮긴 뒤 (지도 표시도 따라간다)
+      naver.maps.Event.addListener(street.pano, 'pov_changed', updateMe);          // 둘러보면 지도의 방향 부채꼴도 돈다
+      naver.maps.Event.addListener(street.pano, 'init', updateMe);
       naver.maps.Event.addListener(street.pano, 'pano_status', function (status) {
         if (status === 'ERROR') { closePano(); Common.toast('이 위치에는 로드뷰가 없습니다. 파란 도로선 위를 눌러 주세요.'); }
       });
@@ -774,6 +886,8 @@ $(function () {
          street.aim 이 아직 켜져 있다 = 이 건물로 placePanoMark 가 아직 안 돌았다. 맞춘 뒤에는 aim 이 꺼지므로 다음 화살표 이동 때 시야가 튀지 않는다 */
       if (target) street.sameT = setTimeout(function () { if (street.target === target && street.aim) placePanoMark(); }, 500);
     }
+    panIntoView(coord);                                 // 누른 곳이 로드뷰 창 뒤로 숨지 않게
+    updateMe();                                         // 닫았다 다시 열 때 지도 표시를 다시 올린다 (위치는 pano_changed 때 맞춰짐)
   }
   $(window).on('resize', fitPano);
   /* 오른쪽 패널 폭을 끄는 동안 · 여닫는 애니메이션(.26s)이 끝난 뒤에도 맞춘다 */

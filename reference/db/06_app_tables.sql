@@ -5,7 +5,7 @@
 --          06에서 겹치지 않는 것만 가져온다. 겹치던 survey_bld_check / survey_hh_check / attachment 는 뺀다.
 --     [A] visit_history        : residency_id FK 추가                         (06 [A])
 --     [B] survey_record        : 작성 상태·완료 잠금·AI 요약·오프라인 컬럼   (06 [B])
---     [C] survey_record_detail : 항목별 점수·거주자 상태·필요한 지원          (11-18 [A] 그대로)
+--     [C] survey_record_detail : 항목별 점수·거주자 상태·필요한 지원·녹취록   (11-18 [A] + 11-23 녹취록)
 --     [D] field_report         : 현장 신고                                    (06 [E])
 --     [E] survey_photo         : 현장 사진. 신고 사진도 받도록 report_id 추가 (11-18 [B] + 06 [F])
 --     [F] survey_schedule      : 달력                                         (06 [G])
@@ -56,10 +56,16 @@ CREATE TABLE IF NOT EXISTS survey_record_detail (
   scores          VARCHAR(500)    NULL     COMMENT '항목별 점수 JSON {"주변 환경":3,"침수 위험":4,…} (1~5)',
   supports        VARCHAR(300)    NULL     COMMENT '필요한 지원 (쉼표 구분) 예: 주거 지원,돌봄 연계',
   source          VARCHAR(10)     NOT NULL DEFAULT 'APP' COMMENT '어디서 저장했나 (APP)',
+  transcript      MEDIUMTEXT      NULL     COMMENT '녹취록 (앱 녹음 → 글자)',
   PRIMARY KEY (record_id),
   CONSTRAINT fk_record_detail FOREIGN KEY (record_id) REFERENCES survey_record (record_id)
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='현장 기록 상세 (모바일 앱)';
+
+-- 이미 만든 DB : 녹취록 칸만 없으면 추가 (2026-11-23)
+SET @s = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'survey_record_detail' AND column_name = 'transcript') = 0,
+  'ALTER TABLE survey_record_detail ADD COLUMN transcript MEDIUMTEXT NULL COMMENT ''녹취록 (앱 녹음 → 글자)'' AFTER source', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
 
 -- [D] 현장 신고  ※ 06 [E] 그대로
 CREATE TABLE IF NOT EXISTS field_report (

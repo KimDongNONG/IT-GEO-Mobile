@@ -1,11 +1,14 @@
 package itgeo.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -58,9 +61,59 @@ public class MapService {
 		for (DongTO e : emds) byKey.put(e.getSggCd() + "|" + e.getEmdNm(), e);
 		for (DongTO a : dao.getAdmList(gu)) {
 			DongTO e = byKey.get(a.getSggCd() + "|" + a.getEmdNm());
-			if (e != null) e.getAdms().add(a);
+			if (e != null && isAdmPair(a.getSggCd(), a.getEmdNm(), a.getAdmNm())) e.getAdms().add(a);
 		}
 		return emds;
+	}
+
+	/**
+	 * 법정동 아래에 보여 줄 행정동 짝 (경계가 실제로 겹치는 짝 : 법정동 면적 10% 이상 또는 행정동 면적 30% 이상).
+	 * 건물 행정동은 좌표로 붙였기 때문에 경계선 근처 건물 몇 동이 옆 행정동으로 잡혀(신월동 아래 목5동 · 신정3동 등) 목록이 섞였다.
+	 * 그런 건물은 법정동 전체를 고르면 그대로 나오고, 행정동 목록에만 안 보인다. 표에 없는 법정동은 거르지 않는다
+	 */
+	private static final Map<String, Set<String>> ADM_PAIRS = new HashMap<>();
+	static {
+		// 양천구
+		pair("11470", "목동", "목1동", "목2동", "목3동", "목4동", "목5동");
+		pair("11470", "신월동", "신월1동", "신월2동", "신월3동", "신월4동", "신월5동", "신월6동", "신월7동");
+		pair("11470", "신정동", "신정1동", "신정2동", "신정3동", "신정4동", "신정6동", "신정7동");
+		// 구로구
+		pair("11530", "가리봉동", "가리봉동");
+		pair("11530", "개봉동", "개봉1동", "개봉2동", "개봉3동");
+		pair("11530", "고척동", "고척1동", "고척2동");
+		pair("11530", "구로동", "구로1동", "구로2동", "구로3동", "구로4동", "구로5동");
+		pair("11530", "궁동", "수궁동");
+		pair("11530", "신도림동", "신도림동");
+		pair("11530", "오류동", "오류1동", "오류2동");
+		pair("11530", "온수동", "수궁동");
+		pair("11530", "천왕동", "오류2동");
+		pair("11530", "항동", "항동");
+		// 영등포구
+		pair("11560", "당산동", "당산2동");
+		for (String g : new String[] { "1", "2", "3" }) pair("11560", "당산동" + g + "가", "당산1동");
+		for (String g : new String[] { "4", "5", "6" }) pair("11560", "당산동" + g + "가", "당산2동");
+		pair("11560", "대림동", "대림1동", "대림2동", "대림3동");
+		pair("11560", "도림동", "도림동");
+		for (int g = 1; g <= 6; g++) pair("11560", "문래동" + g + "가", "문래동");
+		pair("11560", "신길동", "신길1동", "신길3동", "신길4동", "신길5동", "신길6동", "신길7동", "영등포본동");
+		pair("11560", "양평동", "양평1동", "양평2동");
+		pair("11560", "양평동1가", "양평1동");
+		pair("11560", "양평동2가", "양평1동");
+		pair("11560", "양평동3가", "양평1동", "양평2동");
+		for (String g : new String[] { "4", "5", "6" }) pair("11560", "양평동" + g + "가", "양평2동");
+		pair("11560", "양화동", "양평2동");
+		pair("11560", "여의도동", "여의동");
+		pair("11560", "영등포동", "영등포본동", "도림동");   // 영등포동 건물 12% 가 도림동 (건물 좌표로 확인 2026-11-22)
+		for (int g = 1; g <= 8; g++) pair("11560", "영등포동" + g + "가", "영등포동");
+	}
+
+	private static void pair(String sggCd, String emdNm, String... admNms) {
+		ADM_PAIRS.computeIfAbsent(sggCd + "|" + emdNm, k -> new HashSet<>()).addAll(Arrays.asList(admNms));
+	}
+
+	static boolean isAdmPair(String sggCd, String emdNm, String admNm) {
+		Set<String> ok = ADM_PAIRS.get(sggCd + "|" + emdNm);
+		return ok == null || ok.contains(admNm);
 	}
 
 	/** 구 단위 (zoom 14 이하) : 경계 + "위험 N곳". 경계는 building 좌표의 볼록 껍질 */
@@ -132,15 +185,15 @@ public class MapService {
 	}
 
 	/** 가중치 4묶음은 각각 0~100, 합 100 이어야 계산한다 (15단계 B-6). 화면은 늘 100 을 맞추므로 주소를 직접 고친 경우 대비. 아니면 400 */
-	public static final String MSG_WEIGHT = "가중치 합계가 100이 되어야 분석을 실행할 수 있어요";
+	public static final String MSG_WEIGHT = "가중치는 묶음마다 0~100 사이로 정해 주세요";
+	public static final String MSG_WEIGHT_ZERO = "켜진 요인의 가중치를 하나 이상 0보다 크게 해 주세요";
+	/** 묶음 가중치는 각각 0~100, 켜진 묶음 합은 0 보다 커야 한다 (점수에는 비율로 환산 : AnalysisCriteriaTO.getSpacePt …) */
 	public static void assertWeights(AnalysisCriteriaTO c) {
 		int[] w = { c.getSpaceW(), c.getBldW(), c.getFloodW(), c.getEconW() };
-		int sum = 0;
 		for (int v : w) {
 			if (v < 0 || v > 100) throw new BadRequestException(MSG_WEIGHT);
-			sum += v;
 		}
-		if (sum != 100) throw new BadRequestException(MSG_WEIGHT);
+		if (c.getWeightSum() <= 0) throw new BadRequestException(MSG_WEIGHT_ZERO);
 	}
 
 	// 건물의 구 코드 (없는 건물이면 null). 구청 계정 관할 확인용 (15단계 A)
@@ -166,20 +219,20 @@ public class MapService {
 	private List<ScoreItemTO> buildScoreItems(BuildingTO b, AnalysisCriteriaTO c) {
 		List<ScoreItemTO> items = new ArrayList<>();
 		String none = "없음";
-		items.add(anyGroup("space", "주거 공간", c.getSpaceW(), new Object[][] {
+		items.add(anyGroup("space", "주거 공간", c.getSpacePt(), new Object[][] {
 				{ "반지하", b.getPtUgrnd(), c.isUgrndOn(), "반지하", b.getUgrndRes() > 0 ? "지하 거주 있음" : none, "지하 거주 등록" },
 				// 옥탑 여부는 건물 자료가 아니라 거주자 요약(옥탑층 거주 가구)이라 점수로만 알 수 있다 → 꺼져 있으면 "-"
 				{ "옥탑", b.getPtRooftop(), c.isRooftopOn(), "옥탑", b.getPtRooftop() > 0 ? "옥탑층 거주 있음" : c.isRooftopOn() ? none : "-", "옥탑층 거주" },
 				{ "고시원", b.getPtGosiwon(), c.isGosiwonOn(), "고시원", "고시원".equals(b.getSpType()) ? "고시원" : none, "대장 유형 고시원" } }));
-		items.add(ratioGroup("bld", "건물 상태", c.getBldW(), new Object[][] {
+		items.add(ratioGroup("bld", "건물 상태", c.getBldPt(), new Object[][] {
 				{ "노후 " + c.getOldYears() + "년+" + (b.getBldAge() != null ? " (" + b.getBldAge() + "년 경과)" : ""), b.getPtOld(), c.isOldOn(),
 					"노후", b.getBldAge() != null ? b.getBldAge() + "년 경과" : "자료 없음", "준공 " + c.getOldYears() + "년 이상" },
 				{ "위반건축물", b.getPtViol(), c.isViolOn(),
 					"위반건축물", "1".equals(b.getViolYn()) ? "대장 등재" : "0".equals(b.getViolYn()) ? none : "대장 미연계", "위반건축물 대장 등재" } }));
-		items.add(ratioGroup("flood", "침수 위험", c.getFloodW(), new Object[][] {
+		items.add(ratioGroup("flood", "침수 위험", c.getFloodPt(), new Object[][] {
 				{ "침수 " + b.getFloodCnt() + "회", b.getPtFlood(), c.isFloodOn(), "침수흔적", b.getFloodCnt() + "회", "침수 흔적 " + c.getFloodCnt() + "회 이상" },
 				{ "저지대 해발 " + b.getElevM() + "m", b.getPtLow(), c.isLowOn(), "저지대", String.format("%.1fm", b.getElevM()), "해발 " + fmt(c.getLowElev()) + "m 이하" } }));
-		items.add(anyGroup("econ", "경제 여건", c.getEconW(), new Object[][] {
+		items.add(anyGroup("econ", "경제 여건", c.getEconPt(), new Object[][] {
 				{ "저가 주택" + (b.getPricePct() != null ? " (백분위 " + b.getPricePct() + "%)" : ""), b.getPtCheap(), c.isCheapOn(),
 					"저가 주택", b.getPricePct() != null ? "백분위 " + fmt(b.getPricePct()) + "%" : "자료 없음", "공시가 백분위 " + fmt(c.getCheapPct()) + "% 이하" } }));
 		return items;
@@ -195,22 +248,23 @@ public class MapService {
 		return rows;
 	}
 
-	/** 하나라도 맞으면 묶음 가중치 전부. 요약 = 맞은 요인 이름 */
-	private static ScoreItemTO anyGroup(String key, String label, int weight, Object[][] members) {
+	/** 하나라도 맞으면 묶음 점수 전부 (weight = 합 100 으로 환산한 묶음 점수). 요약 = 맞은 요인 이름 */
+	private static ScoreItemTO anyGroup(String key, String label, double weight, Object[][] members) {
 		List<String> hits = new ArrayList<>(), names = new ArrayList<>();
 		boolean anyOn = false;
 		for (Object[] m : members) {
 			anyOn |= (Boolean) m[2];
 			if ((Boolean) m[2] && (Integer) m[1] > 0) { hits.add((String) m[0]); names.add((String) m[3]); }
 		}
-		int points = hits.isEmpty() ? 0 : weight;
+		int max = (int) Math.round(weight);
+		int points = hits.isEmpty() ? 0 : max;
 		String desc = !anyOn ? "분석 조건에서 제외" : hits.isEmpty() ? "해당 없음" : String.join(" · ", hits);
 		String summary = !anyOn ? "분석 조건에서 제외" : names.isEmpty() ? "해당 없음" : String.join(" · ", names);
-		return new ScoreItemTO(key, label, points, anyOn ? weight : 0, points > 0, desc, summary, factorRows(members));
+		return new ScoreItemTO(key, label, points, anyOn ? max : 0, points > 0, desc, summary, factorRows(members));
 	}
 
 	/** 묶음 가중치 × (맞은 요인 수 ÷ 켜진 요인 수). desc "노후 · 2개 중 1개", 요약 "2개 중 1개" */
-	private static ScoreItemTO ratioGroup(String key, String label, int weight, Object[][] members) {
+	private static ScoreItemTO ratioGroup(String key, String label, double weight, Object[][] members) {
 		List<String> hits = new ArrayList<>();
 		int on = 0;
 		for (Object[] m : members) {
@@ -222,7 +276,7 @@ public class MapService {
 		String desc = on == 0 ? "분석 조건에서 제외"
 				: (hits.isEmpty() ? "해당 없음" : String.join(" · ", hits)) + " · " + on + "개 중 " + hits.size() + "개";
 		String summary = on == 0 ? "분석 조건에서 제외" : hits.isEmpty() ? "해당 없음" : on + "개 중 " + hits.size() + "개";
-		return new ScoreItemTO(key, label, points, on == 0 ? 0 : weight, points > 0, desc, summary, factorRows(members));
+		return new ScoreItemTO(key, label, points, on == 0 ? 0 : (int) Math.round(weight), points > 0, desc, summary, factorRows(members));
 	}
 
 	private static String fmt(double v) {

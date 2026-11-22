@@ -41,11 +41,11 @@ $(function () {
 
   $btn.on('click', function () {
     if (this.disabled) return;
-    var from = $page.attr('data-from'), to = $page.attr('data-to'), n = $page.attr('data-rec-cnt'), appN = Number($page.attr('data-app-cnt') || 0);
+    var from = $page.attr('data-from'), to = $page.attr('data-to'), n = $page.attr('data-rec-cnt');
     picked = 'PDF';
     var html = '<div class="dlg-info"><span class="t">' + esc(dot(from) + '~' + dot(to) + ' AI 보고서') + '</span>'
-      + '<span class="s">' + esc($page.attr('data-place') || '') + ' · 현장조사이력 ' + esc(n) + '건' + (appN ? ' + 모바일 앱 확인 전 기록 ' + appN + '건' : '')
-      + ' (' + esc(dot(from)) + ' ~ ' + esc(dot(to)) + ')</span><span class="s">웹에 기재된 이력과 모바일 앱에서 받은 기록(취약점수 · 메모 · 녹취록)을 함께 정리합니다.</span></div>'
+      + '<span class="s">' + esc($page.attr('data-place') || '') + ' · 현장조사이력 ' + esc(n) + '건'
+      + ' (' + esc(dot(from)) + ' ~ ' + esc(dot(to)) + ')</span><span class="s">웹 · 모바일 앱에서 남긴 현장조사이력(관찰 메모 · 항목 점수 · 녹취록)을 함께 정리합니다.</span></div>'
       + '<div class="fmt-list">' + FORMATS.map(function (f, i) {
           return '<label class="fmt-opt' + (f.on ? '' : ' off') + '"><input type="radio" name="adRepFmt" value="' + f.v + '"' + (i === 0 ? ' checked' : '') + (f.on ? '' : ' disabled') + '>'
             + '<b>' + f.label + '</b><small>' + f.sub + '</small></label>';

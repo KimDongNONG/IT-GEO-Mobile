@@ -3,17 +3,17 @@
 <mapper namespace="mapper-mobile">
 
 	<!-- ================================================================
-	     모바일 앱 현장 기록 상세 · 사진 (reference/db/06_mobile_record.sql)
+	     모바일 앱 현장 기록 상세 · 사진 (reference/db/06_app_tables.sql 의 survey_record_detail · survey_photo)
 	     survey_record 1건에 detail 0~1건, photo 0~N건
 	     ================================================================ -->
 
 	<insert id="addRecordDetail" parameterType="itgeo.to.RecordDetailTO">
-		INSERT INTO survey_record_detail (record_id, resident_status, scores, supports, source)
-		VALUES (#{recordId}, #{residentStatus}, #{scores}, #{supports}, #{source})
+		INSERT INTO survey_record_detail (record_id, resident_status, scores, supports, source, transcript)
+		VALUES (#{recordId}, #{residentStatus}, #{scores}, #{supports}, #{source}, #{transcript})
 	</insert>
 
 	<select id="getRecordDetails" resultType="itgeo.to.RecordDetailTO">
-		SELECT record_id, resident_status, scores, supports, source
+		SELECT record_id, resident_status, scores, supports, source, transcript
 		  FROM survey_record_detail
 		 WHERE record_id IN <foreach collection="list" item="id" open="(" separator="," close=")">#{id}</foreach>
 	</select>

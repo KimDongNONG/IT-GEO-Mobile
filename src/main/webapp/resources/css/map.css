@@ -144,6 +144,9 @@
 .wp-row > b { height: 22px; line-height: 20px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--radius); font-size: 12px; font-weight: 700; min-width: 48px; text-align: center; }
 .wp-row input { grid-column: 1 / -1; width: 100%; }
 .wp-row.locked .wp-name, .wp-row.locked > b { color: var(--text-3); }
+.wp-row > b i { font-style: normal; font-weight: 400; color: var(--text-2); }   /* "100 → 25점" 의 반영 점수 */
+.wp-sum { margin: 8px 0 0; font-size: 11.5px; color: var(--text-2); }
+.wp-sum.warn { color: var(--danger); }
 .wp-note { margin: 10px 0 0; font-size: 11px; line-height: 1.55; color: var(--text-3); }   /* 점수 규칙 안내 (15단계 B-7) */
 
 /* 패널 여닫기 버튼 (2차 11-17) : 좌 · 우 하나씩, 늘 세로 정가운데. 패널 폭이 바뀌면 패널 끝을 따라가고, 닫히면 화면 가장자리에 남는다 */
@@ -202,13 +205,64 @@
 .pano-wrap { position: absolute; inset: 0; z-index: 18; display: none; background: #000; }
 .map-layout:has(.right-panel.open) .pano-wrap { right: var(--rp-w); }
 .pano-wrap.open { display: block; }
-#pano { width: 100%; height: 100%; }
+#pano { width: 100% !important; height: 100% !important; }   /* 네이버가 처음 크기를 px 로 박아 넣어도 창 크기를 따라가게 */
 .pano-close { position: absolute; left: 16px; top: 16px; z-index: 2; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-panel); color: var(--text); font-size: 13px; cursor: pointer; }
 .pano-close:hover { background: var(--bg-hover); }
 /* 건물 마커로 들어온 로드뷰 : 닫기 버튼 옆에 대상 건물 이름 (사진 속 핀과 같은 건물) */
 .pano-target { position: absolute; left: 150px; top: 16px; z-index: 2; display: none; align-items: center; height: 36px; padding: 0 14px; border: 1px solid var(--primary); border-radius: var(--radius); background: var(--bg-panel); color: var(--text); font-size: 13px; }
 .pano-target.show { display: inline-flex; }
 .map-wrap.street-on #map { cursor: crosshair; }
+/* 로드뷰 버튼 줄 : [× 로드뷰 닫기] [건물 이름] [크게 보기 / 지도와 같이 보기]. 크게 보기 · 같이 보기 둘 다 로드뷰 아래 왼쪽 같은 자리 */
+.pano-bar { position: absolute; left: 16px; bottom: 16px; right: 16px; z-index: 100; display: flex; align-items: center; gap: 8px; pointer-events: none; }
+.pano-bar > * { pointer-events: auto; }
+.pano-bar .pano-close, .pano-bar .pano-target { position: static; flex: none; }
+.pano-bar .pano-target.show { display: block; flex: 0 1 auto; min-width: 0; line-height: 34px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pano-size { flex: none; display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-panel); color: var(--text); font-size: 13px; cursor: pointer; }
+.pano-size:hover { background: var(--bg-hover); }
+
+/* 로드뷰 비율 보기 (기본, .split) : 왼쪽 = 로드뷰, 오른쪽 = 지도. 둘을 합친 폭을 100 으로 보고 손잡이로 50:50 → 30:70 → 80:20 처럼 자유롭게 (20~80).
+   지도(#map)도 실제로 줄어들어 남은 폭에 딱 맞는다 (덮는 게 아니라 같이 조정). 오른쪽 패널은 지금처럼 지도 위에 뜬다.
+   --pano-w(px) 는 map-main.js 가 비율로 계산해 넣는다. z-index 9 = 지도 위 버튼들(10) · 왼쪽 패널(12)보다 아래 */
+.pano-wrap.split { top: 0; right: auto; bottom: 0; left: 0; width: var(--pano-w, 50%); z-index: 9; }
+.map-layout:has(.right-panel.open) .pano-wrap.split { right: auto; }
+.map-layout.pano-split #map { margin-left: var(--pano-w); width: calc(100% - var(--pano-w)); }
+.map-layout:not(.left-closed) .pano-wrap.split .pano-bar { left: calc(var(--lp-right) + 4px); }
+.map-layout.pano-split.left-closed .map-bottom { left: calc(var(--pano-w) + 12px); max-width: calc(100% - var(--pano-w) - 12px - 110px); }
+.map-layout.pano-split:not(.left-closed) .map-bottom { left: max(var(--lp-right), calc(var(--pano-w) + 12px)); max-width: calc(100% - max(var(--lp-right), calc(var(--pano-w) + 12px)) - 110px); }
+/* 비율 손잡이 : 경계선 전체 높이. 가운데에 그림판 캔버스 손잡이 같은 작은 잡이, 올리거나 끄는 동안 경계선이 메인 컬러 */
+.pano-grip { display: none; position: absolute; top: 0; bottom: 0; right: -7px; width: 14px; cursor: col-resize; z-index: 101; }
+body.dragging #pano { pointer-events: none; }   /* 손잡이를 끄는 동안 로드뷰가 마우스를 가져가지 않게 */
+.pano-wrap.split .pano-grip { display: block; }
+.pano-grip::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--line); transition: background .12s; }
+.pano-grip:hover::before, .pano-grip.drag::before { background: var(--primary); }
+.pano-grip::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 12px; height: 44px; margin: -22px 0 0 -6px; box-sizing: border-box;
+  border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,.25);
+  background: linear-gradient(var(--text-2), var(--text-2)) 3px 50% / 1px 20px no-repeat, linear-gradient(var(--text-2), var(--text-2)) 6px 50% / 1px 20px no-repeat, var(--bg-panel);
+}
+.pano-grip:hover::after, .pano-grip.drag::after { border-color: var(--primary); }
+/* 끄는 동안 손잡이 옆에 지금 비율 (로드뷰 30 : 70 지도) */
+.pano-ratio { display: none; position: absolute; left: 50%; top: calc(50% - 56px); transform: translateX(-50%); padding: 4px 10px; border-radius: 12px; background: var(--primary); color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: none; }
+.pano-grip.drag .pano-ratio, .pano-grip:hover .pano-ratio { display: block; }
+/* 자석으로 3:7 · 5:5 · 7:3 에 붙어 있는 동안 : 경계선이 메인 컬러 점선, 비율 표시에 ✓ */
+.pano-grip.snap::before { width: 0; margin-left: 0; background: none; border-left: 2px dashed var(--primary); }
+.pano-grip.snap .pano-ratio::before { content: "✓ "; }
+/* 붙는 순간 : 손잡이 · 비율 표시가 한 번 톡 커졌다 돌아온다 */
+.pano-grip.pop::after { animation: pano-pop .22s ease-out; }
+.pano-grip.pop .pano-ratio { animation: pano-pop-r .22s ease-out; }
+@keyframes pano-pop { 0% { transform: scale(1); } 40% { transform: scale(1.5, 1.25); background-color: var(--primary); } 100% { transform: scale(1); } }
+@keyframes pano-pop-r { 0% { transform: translateX(-50%) scale(1); } 40% { transform: translateX(-50%) scale(1.18); } 100% { transform: translateX(-50%) scale(1); } }
+.pano-grip.snap::after { border-color: var(--primary); background-color: color-mix(in srgb, var(--primary) 18%, var(--bg-panel)); }
+/* 끄는 동안 3:7 · 5:5 · 7:3 자리 안내선 (흐린 점선, 붙은 자리는 진한 실선) */
+.pano-guides { display: none; position: absolute; top: 0; bottom: 0; left: 0; z-index: 11; pointer-events: none; }
+.pano-guides.show { display: block; }
+.pano-guides i { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed color-mix(in srgb, var(--primary) 45%, transparent); }
+.pano-guides i.on { border-left: 2px solid var(--primary); }
+/* 지도 위 "지금 로드뷰로 보는 곳" : 메인 컬러 점 + 보는 방향 부채꼴 (방향은 map-main.js 가 #panoMeDir 를 돌린다) */
+.pano-me { position: relative; width: 60px; height: 60px; pointer-events: none; }
+.pano-me svg { position: absolute; inset: 0; transform-origin: 50% 50%; }
+.pano-me svg path { fill: var(--primary); fill-opacity: .35; stroke: var(--primary); stroke-width: 1; }
+.pano-me b { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--primary); border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); box-sizing: border-box; }
 
 /* 줌 단계 : + / 세로 눈금 슬라이더 / − (모양의 바탕은 common.css .map-ctrl) */
 .map-ctrl.zoom-ctrl { width: 52px; overflow: visible; }

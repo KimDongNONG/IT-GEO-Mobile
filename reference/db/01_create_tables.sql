@@ -22,8 +22,8 @@ USE itgeo;
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS monthly_report;         -- 07_ai_report.sql 에서 만드는 테이블 2개
 DROP TABLE IF EXISTS recent_view;
-DROP TABLE IF EXISTS ai_report;              -- 07_ai_report.sql 에서 만드는 테이블 3개
-DROP TABLE IF EXISTS mobile_link_photo;
+DROP TABLE IF EXISTS ai_report;              -- 07_ai_report.sql 에서 만드는 테이블
+DROP TABLE IF EXISTS mobile_link_photo;      -- 예전 07 의 모바일 연동 수신함 (지금은 안 씀, 남아 있으면 지움)
 DROP TABLE IF EXISTS mobile_link_record;
 DROP TABLE IF EXISTS survey_schedule;        -- 06_app_tables.sql 에서 만드는 테이블 4개
 DROP TABLE IF EXISTS survey_photo;

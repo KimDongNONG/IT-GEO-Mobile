@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * LLM 호출 (OpenAI 호환 chat/completions). 모바일 현장조사기록 [AI 정리] · AI 현장 확인보고서가 쓴다.
+ * LLM 호출 (OpenAI 호환 chat/completions). AI 현장 확인보고서 · 대시보드 월간 보고서가 쓴다.
  * 설정 (app.properties, 값은 각자 환경에 맞게)
  *   app.llm.base-url    예) https://api.openai.com/v1  (끝의 /chat/completions 는 붙이지 않는다)
  *   app.llm.api-key     Bearer 키 (로컬 서버처럼 키가 필요 없으면 비워 둔다)

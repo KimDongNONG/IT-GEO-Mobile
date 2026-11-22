@@ -183,7 +183,7 @@ public class MobileRESTController {
 
 	/**
 	 * 웹 archivecheck.do 와 같은 저장 (visit_history + survey_record) + 앱 상세 (survey_record_detail) → recordId.
-	 * 사전 탐지 요인은 chk_<요인키>=Y|N|?, 항목 점수는 score_<항목키>=1~5, 거주자 상태 resident, 필요한 지원 supports[].
+	 * 사전 탐지 요인은 chk_<요인키>=Y|N|?, 항목 점수는 score_<항목키>=1~5, 거주자 상태 resident, 필요한 지원 supports[], 녹취록 transcript(선택).
 	 * 사진은 저장 뒤 받은 recordId 로 photo/upload.do 에 한 장씩 보낸다.
 	 */
 	@PostMapping(value = "api/mobile/record.do", produces = JSON)
@@ -194,6 +194,7 @@ public class MobileRESTController {
 			@RequestParam(value = "added", required = false) List<String> added,
 			@RequestParam(value = "resident", required = false) String resident,
 			@RequestParam(value = "supports", required = false) List<String> supports,
+			@RequestParam(value = "transcript", required = false) String transcript,
 			@RequestParam Map<String, String> all, HttpSession session) {
 		MemberTO m = member(session);
 		archiveService.assertMyGu(m, bldId);
@@ -205,7 +206,7 @@ public class MobileRESTController {
 				try { scores.put(e.getKey().substring(6), Integer.parseInt(e.getValue())); } catch (NumberFormatException ignore) { /* 건너뜀 */ }
 			}
 		}
-		long recordId = mobileService.saveRecord(m.getUserId(), bldId, result, checks, added, content, scoreAdj, resident, scores, supports);   // 리스트에 없음 · 값 이상 → 400
+		long recordId = mobileService.saveRecord(m.getUserId(), bldId, result, checks, added, content, scoreAdj, resident, scores, supports, transcript);   // 리스트에 없음 · 값 이상 → 400
 		Map<String, Object> out = msg(true, "현장 확인 결과를 저장했습니다.");
 		out.put("recordId", recordId);
 		return out;

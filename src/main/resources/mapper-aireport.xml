@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mapper-aireport">
+	<!-- ================================================================
+	     AI 현장 확인보고서 (05 건물 확인 이력 → 보고서 생성 · 저장 · 내려받기). 테이블 = reference/db/07_ai_report.sql 의 ai_report
+	     ================================================================ -->
+	<insert id="addReport" parameterType="map" useGeneratedKeys="true" keyProperty="reportId">
+		INSERT INTO ai_report (bld_id, user_id, title, format, period_from, period_to, record_cnt, file_name, content)
+		VALUES (#{bldId}, #{userId}, #{title}, #{format}, #{periodFrom}, #{periodTo}, #{recordCnt}, #{fileName}, #{content})
+	</insert>
+
+	<select id="getReport" parameterType="long" resultType="map">
+		SELECT report_id, bld_id, user_id, title, format, file_name FROM ai_report WHERE report_id = #{reportId}
+	</select>
+</mapper>

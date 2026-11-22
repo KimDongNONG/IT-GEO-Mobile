@@ -52,7 +52,15 @@
         </c:if>
       </c:forEach>
     </select>
-    <select class="field" disabled><option>시나리오: 평시</option></select>
+    <%-- 구분 = 저장할 때 쓴 가중치 시나리오 (지도 왼쪽 위 기본 · 폭우 · 폭염 · 한파, 값을 고쳤으면 사용자 설정) --%>
+    <select class="field" name="scen" id="selScen">
+      <option value="">전체 구분</option>
+      <option value="base" ${criteria.scen == 'base' ? 'selected' : ''}>기본</option>
+      <option value="rain" ${criteria.scen == 'rain' ? 'selected' : ''}>폭우</option>
+      <option value="heat" ${criteria.scen == 'heat' ? 'selected' : ''}>폭염</option>
+      <option value="cold" ${criteria.scen == 'cold' ? 'selected' : ''}>한파</option>
+      <option value="custom" ${criteria.scen == 'custom' ? 'selected' : ''}>사용자 설정</option>
+    </select>
     <button type="button" class="btn btn-line btn-sm ${criteria.fopen ? 'on' : ''}" id="btnFilter">상세 필터<c:if test="${criteria.filterCount > 0}"> <b class="fcnt">${criteria.filterCount}</b></c:if> ▾</button>
     <input type="hidden" name="fopen" id="fopen" value="${criteria.fopen}">
     <span class="spacer"></span>
@@ -138,7 +146,7 @@
   <table class="tbl" id="archiveTbl">
     <thead><tr>
       <th class="chk-cell"><label title="전체 선택"><input type="checkbox" id="chkAll"></label></th>
-      <th>건물명 / 주소</th><th>취약 요인</th><th style="width:130px">취약도</th><th style="width:110px">우선순위(추정)</th>
+      <th>건물명 / 주소</th><th style="width:96px">구분</th><th>취약 요인</th><th style="width:130px">취약도</th><th style="width:110px">우선순위(추정)</th>
       <th style="width:105px">상태</th><th style="width:90px">저장일</th><th style="width:140px"></th>
     </tr></thead>
     <tbody>
@@ -148,6 +156,7 @@
       <tr data-id="${r.bldId}" data-factor="${r.factorId}" title="클릭하면 건물 확인 이력으로">
         <td class="chk-cell"><label><input type="checkbox" class="rowChk" value="${r.factorId}"></label></td>
         <td><div class="name"><c:out value="${fn:substringAfter(shortAddr, '구 ')}"/> <c:out value="${empty r.bldNm ? r.useNm : r.bldNm}"/></div><div class="addr"><c:out value="${r.addr}"/></div></td>
+        <td><span class="badge scen scen-${r.scenKey}" title="<c:out value='${r.scenTitle}'/>"><c:out value="${r.scenLabel}"/></span></td>
         <td><c:out value="${empty r.factorText ? '-' : r.factorText}"/><c:if test="${r.vulnHhCnt > 0}"> <small class="muted">· 취약 가구 ${r.vulnHhCnt}</small></c:if></td>
         <%-- 점수 색 = 지도 핀 구간 색 (map-config.js LEVELS : 80 / 60 / 40) --%>
         <td><span class="score-bar ${r.score >= 80 ? 'lv-red' : r.score >= 60 ? 'lv-orange' : r.score >= 40 ? 'lv-yellow' : 'lv-green'}"><i><b style="width:${r.score}%"></b></i><span>${r.score}</span></span></td>
@@ -172,7 +181,7 @@
         </td>
       </tr>
     </c:forEach>
-    <c:if test="${empty page.list}"><tr><td colspan="8" class="empty">보관한 건물이 없습니다. 지도에서 건물을 골라 "보관함에 저장" 하세요.</td></tr></c:if>
+    <c:if test="${empty page.list}"><tr><td colspan="9" class="empty">보관한 건물이 없습니다. 지도에서 건물을 골라 "보관함에 저장" 하세요.</td></tr></c:if>
     </tbody>
   </table>
 

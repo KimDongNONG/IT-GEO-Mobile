@@ -10,8 +10,8 @@
 <%@ include file="/WEB-INF/views/include/head.jspf" %>
 <body>
 <%@ include file="/WEB-INF/views/include/header.jspf" %>
-<%-- 이 화면 전용 스타일. ?v= 는 브라우저에 남은 옛 파일을 쓰지 않게 하려는 것 (파일을 고치면 값도 바꾼다) --%>
-<link rel="stylesheet" href="${ctx}/resources/css/fieldlist.css?v=20261120b">
+<%-- 이 화면 전용 스타일 --%>
+<link rel="stylesheet" href="${ctx}/resources/css/fieldlist.css">
 
 <%--
   현장 확인 리스트 + 현장 확인 상세(예전 fielddetail.jsp)를 한 화면에.
@@ -289,124 +289,6 @@
       $c.toggleClass('open', open);
       if (open) show($c);
     });
-
-    /* [약도 4] 펼친 카드의 약도 : 번호 핀 + 방문 순서대로 점선. 카드마다 처음 펼칠 때 한 번만 만든다
-       (접혀 있는 동안은 크기가 0 이라 그때 만들면 지도가 깨진다) */
-    function drawMiniMap($card) {
-      if (!(window.naver && naver.maps && naver.maps.Map)) return;
-      var $box = $card.find('.fl-map');
-      if (!$box.length) return;
-      if ($box.data('map')) { naver.maps.Event.trigger($box.data('map'), 'resize'); return; }
-      var pts = [];
-      $card.find('.fl-item').each(function () {
-        var lat = parseFloat($(this).data('lat')), lng = parseFloat($(this).data('lng'));
-        if (!isNaN(lat) && !isNaN(lng)) pts.push({ lat: lat, lng: lng, order: $(this).data('order'), checked: String($(this).data('checked')) === 'true', title: $(this).data('title') });
-      });
-      if (!pts.length) { $box.hide(); return; }
-      var map = new naver.maps.Map($box.find('.nmap')[0], {
-        center: new naver.maps.LatLng(pts[0].lat, pts[0].lng), zoom: 16,
-        zoomControl: false, mapDataControl: false, scaleControl: false, logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT }
-      });
-      $box.data('map', map);
-      var path = pts.map(function (p, i) {
-        var ll = new naver.maps.LatLng(p.lat, p.lng);
-        new naver.maps.Marker({ position: ll, map: map, zIndex: 100 + i, title: p.title,
-          icon: { content: '<div class="mk-inv num-pin' + (p.checked ? ' done' : '') + '">' + (p.checked ? '✓' : p.order) + '</div>', anchor: new naver.maps.Point(14, 14) } });
-        return ll;
-      });
-      if (path.length > 1) {
-        new naver.maps.Polyline({ map: map, path: path, strokeColor: '#4a8fe0', strokeWeight: 3, strokeStyle: 'shortdash', strokeOpacity: 0.95, zIndex: 50 });
-        var b = new naver.maps.LatLngBounds(path[0], path[0]);
-        path.forEach(function (p) { b.extend(p); });
-        map.fitBounds(b, { top: 30, right: 30, bottom: 30, left: 30 });
-      }
-      $box.find('.zin').on('click', function (e) { e.stopPropagation(); map.setZoom(map.getZoom() + 1, true); });
-      $box.find('.zout').on('click', function (e) { e.stopPropagation(); map.setZoom(map.getZoom() - 1, true); });
-    }
-    drawMiniMap($('.fl-card.open').first());
-    $('.fl-row').on('click', function () {
-      var $card = $(this).closest('.fl-card');
-      setTimeout(function () { if ($card.hasClass('open')) drawMiniMap($card); }, 0);
-    });
-    /* [추가 3] 이번 주 달력
-       - 보이는 주의 일정 : GET  api/field/schedule.do?start&end  → [{id, title, start, surveyId}]
-       - 리스트를 끌어다 놓기 : POST api/field/schedule/add.do    (surveyId, date)
-       - 일정 끌어서 옮기기   : POST api/field/schedule/move.do   (scheduleId, date)
-       - × 로 빼기           : POST api/field/schedule/delete.do (scheduleId) */
-    var calEl = document.getElementById('flCalendar');
-    if (calEl && window.FullCalendar) {
-      function ymd(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }   /* 2026-11-17 */
-      function failMsg(xhr, def) { return (xhr && xhr.responseJSON && xhr.responseJSON.msg) || def; }
-
-      var calendar = new FullCalendar.Calendar(calEl, {
-        initialView: 'dayGridWeek',
-        locale: 'ko',
-        height: 'auto',
-        headerToolbar: { left: 'title', center: '', right: 'today prev,next' },
-        dayMaxEvents: 3,                       /* 하루에 3개 넘으면 "+n" 으로 접기 */
-        droppable: true,                       /* 밖(리스트)에서 끌어온 것을 받는다 */
-        editable: true,                        /* 일정을 끌어서 다른 날로 */
-        eventDurationEditable: false,          /* 여러 날로 늘리기는 안 함 */
-        events: {
-          url: '${ctx}/api/field/schedule.do',
-          method: 'GET',
-          failure: function () { Common.toast('달력 일정을 불러오지 못했습니다.'); }
-        },
-
-        /* 일정 막대 오른쪽에 × (빼기) */
-        eventDidMount: function (info) {
-          var x = document.createElement('span');
-          x.className = 'fc-x'; x.title = '이 날짜에서 빼기'; x.textContent = '×';
-          info.el.appendChild(x);
-        },
-
-        /* × 를 누르면 빼기, 나머지를 누르면 그 리스트 상세보기로 */
-        eventClick: function (info) {
-          info.jsEvent.preventDefault();
-          if ($(info.jsEvent.target).hasClass('fc-x')) {
-            if (!confirm('"' + info.event.title + '" 을(를) ' + ymd(info.event.start) + ' 에서 뺄까요?')) return;
-            Common.api('POST', 'api/field/schedule/delete.do', { scheduleId: info.event.id }).done(function (res) {
-              if (res && res.ok) info.event.remove(); else Common.toast((res && res.msg) || '일정을 빼지 못했습니다.');
-            }).fail(function (xhr) { Common.toast(failMsg(xhr, '일정을 빼지 못했습니다.')); });
-            return;
-          }
-          var sid = info.event.extendedProps.surveyId;
-          if (sid) location.href = '${ctx}/fielddetail.do?listId=' + sid;
-        },
-
-        /* 리스트를 끌어다 놓음 → 저장. 저장되면 서버 기준으로 다시 그림 (id 를 받으려고) */
-        eventReceive: function (info) {
-          var ev = info.event;
-          Common.api('POST', 'api/field/schedule/add.do', { surveyId: ev.extendedProps.surveyId, date: ymd(ev.start) }).done(function (res) {
-            ev.remove();
-            if (res && res.ok) { calendar.refetchEvents(); Common.toast('"' + ev.title + '" 을(를) ' + ymd(ev.start) + ' 에 넣었습니다.'); }
-            else Common.toast((res && res.msg) || '일정을 넣지 못했습니다.');
-          }).fail(function (xhr) { ev.remove(); Common.toast(failMsg(xhr, '일정을 넣지 못했습니다.')); });
-        },
-
-        /* 일정을 다른 날로 옮김 → 저장. 실패하면 제자리로 */
-        eventDrop: function (info) {
-          Common.api('POST', 'api/field/schedule/move.do', { scheduleId: info.event.id, date: ymd(info.event.start) }).done(function (res) {
-            if (!res || !res.ok) { info.revert(); Common.toast((res && res.msg) || '일정을 옮기지 못했습니다.'); }
-          }).fail(function (xhr) { info.revert(); Common.toast(failMsg(xhr, '일정을 옮기지 못했습니다.')); });
-        }
-      });
-      calendar.render();
-
-      /* 리스트 카드의 제목 줄(.fl-row)을 달력으로 끌 수 있게. 살짝 움직여야 끌기로 보므로 클릭(펼치기)은 그대로 */
-      new FullCalendar.Draggable(document.querySelector('.page'), {
-        itemSelector: '.fl-card .fl-row',
-        minDistance: 8,
-        eventData: function (el) {
-          var $card = $(el).closest('.fl-card');
-          return {
-            title: $.trim($card.find('.t').first().text()),
-            extendedProps: { surveyId: $card.data('id') },
-            create: true
-          };
-        }
-      });
-    }
 
     /* 리스트 삭제 */
     $('.fx-del[data-id]').on('click', function () {

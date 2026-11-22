@@ -148,6 +148,8 @@
 		     , IFNULL(rs.vuln_hh_cnt, 0) vuln_hh_cnt, IFNULL(rs.priority_sum, 0) priority_sum
 		     , CONCAT_WS(' · ', IF(b.ugrnd_res = 1, '지하층', NULL), IF(b.sp_type = '고시원', '고시원', NULL), IF(b.viol_yn = '1', '위반건축물', NULL)) factor_text
 		     , DATE_FORMAT(f.evaluated_at, '%Y-%m-%d') saved_at
+		     , <include refid="mapper-archive.scenExpr"/> scen_key
+		     , CASE WHEN JSON_VALID(l.criteria) THEN JSON_UNQUOTE(JSON_EXTRACT(l.criteria, '$.scenario')) END scen_base
 		     , <include refid="mapper-archive.statusExpr"/> status
 		     , (SELECT sp.survey_id FROM survey_plan sp WHERE sp.factor_id = f.factor_id ORDER BY sp.plan_id LIMIT 1) survey_id
 		     , (SELECT sl.title FROM survey_plan sp JOIN survey_list sl ON sl.survey_id = sp.survey_id WHERE sp.factor_id = f.factor_id ORDER BY sp.plan_id LIMIT 1) survey_title

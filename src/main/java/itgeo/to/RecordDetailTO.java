@@ -10,4 +10,5 @@ public class RecordDetailTO {
 	private String scores;           // JSON {"around":3,"flood":4,…}
 	private String supports;         // 쉼표 구분
 	private String source = "APP";
+	private String transcript;       // 녹취록 (앱 녹음 → 글자, 없으면 null)
 }

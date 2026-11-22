@@ -32,6 +32,8 @@
             <label class="pick-row" data-factor="${p.factorId}">
               <input type="checkbox" class="pick-chk" value="${p.factorId}">
               <span class="pk-ti"><c:out value="${fn:substringAfter(fn:replace(p.addr, '서울특별시 ', ''), '구 ')}"/> <c:out value="${empty p.bldNm ? p.useNm : p.bldNm}"/></span>
+              <%-- 구분 = 보관함에 저장할 때 쓴 가중치 (기본 · 폭우 · 폭염 · 한파 · 사용자 설정). 보관함 화면 구분 칸과 같은 값 --%>
+              <span class="badge scen scen-${p.scenKey}" title="<c:out value='${p.scenTitle}'/>"><c:out value="${p.scenLabel}"/></span>
               <span class="tag"><c:out value="${empty p.factorText ? '요인 없음' : fn:split(p.factorText, '·')[0]}"/><c:if test="${p.vulnHhCnt > 0}"> · 가구 ${p.vulnHhCnt}</c:if></span>
               <span class="sc">${p.score}</span>
               <span>

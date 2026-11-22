@@ -88,6 +88,10 @@ body:has(> .page-scroll) { overflow: hidden; }
 .badge.doing { color: var(--primary); border-color: var(--primary); }
 .badge.done { color: var(--ok); border-color: var(--ok); }
 .badge.blue { background: var(--primary); border-color: var(--primary); color: #fff; }
+/* 보관함 구분 (저장할 때 쓴 가중치 시나리오). 기본 · 폭우 · 폭염 · 한파는 회색 칸, 사용자 설정은 점선으로 구분 */
+.tbl .badge.scen { padding: 2px 10px; white-space: nowrap; color: var(--text); }
+.badge.scen-custom { border-style: dashed; }
+.pick-row .badge.scen { padding: 1px 7px; white-space: nowrap; color: var(--text); }
 .tag { display: inline-block; padding: 2px 8px; border-radius: var(--radius); background: var(--bg-card); border: 1px solid var(--line); font-size: 11px; color: var(--text-2); margin-right: 4px; }
 .muted { color: var(--text-3); }
 .empty { padding: 40px; text-align: center; color: var(--text-3); }
@@ -119,50 +123,11 @@ body:has(> .page-scroll) { overflow: hidden; }
 .card .card-head small { font-size: 12px; color: var(--text-2); }
 
 /* 현장확인 리스트 (03) */
-.fl-head { display: grid; grid-template-columns: 1fr 104px 230px 180px; padding: 8px 20px; font-size: 12px; color: var(--text-2); }
-.fl-card { background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 11px; }
-.fl-card { transition: border-color .12s, background-color .12s; }
-.fl-row { cursor: pointer; }
-.fl-card:not(.open):hover { background: var(--bg-hover); border-color: var(--text-3); }
-.fl-card.open { border-color: var(--primary); background: var(--bg-card); }
-.fl-body-foot { display: flex; justify-content: flex-end; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
-.fl-del { background: none; border: 0; padding: 4px 2px; font-size: 12px; color: var(--text-2); cursor: pointer; }
-.fl-del:hover:not(:disabled) { color: var(--danger); text-decoration: underline; }
-.fl-del:disabled { color: var(--text-3); cursor: not-allowed; }
-.fl-actions .btn-sm { height: 30px; padding: 0 13px; }
-.fl-row { display: grid; grid-template-columns: 1fr 104px 230px 180px; align-items: center; padding: 13px 20px 16px; }
-.fl-row .t { font-size: 16px; font-weight: 700; }
-.fl-row .s { margin-top: 4px; font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 8px; }
-.fl-row .n { font-size: 16px; font-weight: 700; }
 .prog { display: flex; align-items: center; gap: 10px; font-size: 13px; }
 .prog i { display: block; width: 110px; height: 4px; background: var(--line-soft); border-radius: 2px; overflow: hidden; }
 .prog i b { display: block; height: 100%; background: var(--primary); }
-.fl-actions { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
-/* 펼침/접힘 화살표 : 글자(⌄)는 글꼴 기준선 때문에 뒤집으면 위아래로 움직여서 CSS 로 그린다.
-   ∨ 모양의 실제 선 중심이 상자 가운데에 오도록 translateY 로 보정 → 펼쳐도 접어도 같은 자리 */
-.fl-actions .caret { position: relative; display: block; flex: none; background: none; border: 0; color: var(--text-2); cursor: pointer; width: 20px; height: 20px; margin-left: 6px; padding: 0; }
-.fl-actions .caret::before {
-  content: ''; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -5px 0 0 -5px;
-  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
-  transform: translateY(-2px) rotate(45deg);
-}
-.fl-actions .caret:focus { outline: none; }   /* ^ 를 누른 뒤 네모 포커스 테두리 없음 (14단계) */
-.fl-card.open .caret { color: var(--primary); }
-.fl-card.open .caret::before { transform: translateY(2px) rotate(-135deg); }
-.fl-body { display: none; border-top: 1px solid var(--line-soft); padding: 12px 20px 16px; }
-.fl-card.open .fl-body { display: block; }
-.fl-body .cap { font-size: 12px; color: var(--text-2); margin-bottom: 6px; }
-.fl-item { display: flex; align-items: center; gap: 12px; padding: 9px 8px 10px; }
-.fl-item + .fl-item { border-top: 1px solid var(--line-soft); }
-.fl-item:hover { background: var(--bg-hover); }
 .num { width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: #fff; font-size: 12px; font-weight: 700; display: inline-grid; place-items: center; flex: 0 0 24px; }
 .num.done { background: var(--bg-card); border: 1px solid var(--line); color: var(--text-2); }
-.fl-item .ti { flex: 1; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-.fl-item .ti b { font-size: 16px; font-weight: 600; }
-.fl-item .ti span { font-size: 12px; line-height: 17px; color: var(--text-2); }
-.fl-item .sc { font-size: 15px; font-weight: 700; }
-.fl-new { display: grid; place-items: center; height: 80px; border: 1px dashed var(--line); border-radius: var(--radius); color: var(--text-2); font-size: 22px; }
-.fl-new:hover { color: var(--primary); border-color: var(--primary); }
 
 /* 리스트 수정 (03-1) */
 /* 보관함(왼쪽) 을 좁히고 가운데 화살표 칸 → 리스트(오른쪽) */
@@ -171,7 +136,7 @@ body:has(> .page-scroll) { overflow: hidden; }
 .fe-arrow span { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--primary); border-radius: 50%; background: var(--bg-panel); font-size: 18px; font-weight: 700; line-height: 1; }
 .fe-arrow small { font-size: 11px; color: var(--text-2); }
 .pick-list { max-height: 330px; overflow-y: auto; }
-.pick-row { display: grid; grid-template-columns: 24px 1fr auto 44px 90px; align-items: center; gap: 10px; padding: 9px 6px; border-bottom: 1px solid var(--line-soft); font-size: 13px; }
+.pick-row { display: grid; grid-template-columns: 24px 1fr auto auto 44px 90px; align-items: center; gap: 10px; padding: 9px 6px; border-bottom: 1px solid var(--line-soft); font-size: 13px; }
 .pick-row .sc { text-align: right; font-weight: 700; }
 .fe-title { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg-card); border-radius: var(--radius); margin-bottom: 10px; }
 .fe-title .field { background: var(--bg-panel); }
@@ -353,7 +318,7 @@ body:has(> .page-scroll) { overflow: hidden; }
 .fe-grid > .card { padding: 0; overflow: hidden; }
 .fe-grid .card-head { height: 44px; margin: 0; padding: 0 16px; background: var(--bg-card); border-bottom: 1px solid var(--line-soft); }
 .fe-grid .card-head h3 { font-size: 13px; }
-.fe-grid .pick-row { grid-template-columns: 14px minmax(0, 1fr) auto 28px 72px; height: 35px; padding: 0 14px; font-size: 12px; gap: 8px; }
+.fe-grid .pick-row { grid-template-columns: 14px minmax(0, 1fr) auto auto 28px 72px; height: 35px; padding: 0 14px; font-size: 12px; gap: 8px; }
 .fe-grid .pick-row .pk-ti { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fe-grid .pick-row .tag { max-width: 130px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fe-grid .pick-row:last-child { border-bottom: 0; }
@@ -391,10 +356,6 @@ body:has(> .page-scroll) { overflow: hidden; }
 .route-modes b { grid-column: 1 / -1; }
 
 /* ===== 2026-11-09 화면 다듬기 ===== */
-/* 새 현장확인 리스트 박스 : 가운데 동그라미 + (시인성) */
-.fl-new { height: 64px; }
-.fl-new span { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 50%; background: var(--bg-card); color: var(--primary); font-size: 18px; line-height: 1; transition: border-color .12s, background-color .12s, color .12s; }
-.fl-new:hover span { border-color: var(--primary); background: var(--primary); color: #fff; }
 
 /* 리스트 수정 : 제목 박스(card-head) 와 이름 입력 박스 사이 간격 */
 .fe-grid .fe-title { margin: 12px 12px 0; border: 1px solid var(--line-soft); }
@@ -423,32 +384,14 @@ body:has(> .page-scroll) { overflow: hidden; }
 .walk-info small { font-weight: 400; color: var(--text-2); }
 .walk-info .walk-sub { display: block; margin-top: 2px; font-size: 11.5px; white-space: normal; max-width: 520px; }
 
-/*리스트리스트 약도*/
-.fl-body-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; align-items: stretch; }
-.fl-map { position: relative; height: 240px; align-self: start; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--bg-card); }
-.fl-map .nmap { width: 100%; height: 100%; }
-.fl-map-zoom { position: absolute; right: 8px; top: 8px; z-index: 10; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-.fl-map-zoom button { width: 28px; height: 28px; border: 0; background: var(--bg-panel); color: var(--text); font-size: 15px; cursor: pointer; }
-.fl-map-zoom button + button { border-top: 1px solid var(--line); }
-.fl-map-zoom button:hover { background: var(--bg-hover); }
-/* 화면이 좁으면 약도를 목록 아래로 */
-@media (max-width: 900px) { .fl-body-grid { grid-template-columns: 1fr; } .fl-map { height: 220px; } }
 
 /* ---------- 05 건물 확인 이력 : 타임라인만 스크롤 (archive-detail.js 가 max-height 를 화면에 맞춤, 아래는 스크립트 전 기본값) ---------- */
 .tl-scroll { max-height: calc(100vh - 360px); min-height: 320px; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; scrollbar-gutter: stable; }
-.tl-photos.has-img a { display: block; width: 124px; height: 72px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); background: var(--bg-card); }
-.tl-photos.has-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.tl-head .tl-app { margin-left: auto; align-self: center; }
+.tl-tr summary { cursor: pointer; color: var(--primary); font-size: 12px; }
+.tl-tr-body { margin-top: 6px; max-height: 220px; overflow-y: auto; white-space: pre-wrap; font-size: 12px; line-height: 1.6; color: var(--text-2); }
 
-/* ---------- 05 모바일 미확인 현장조사기록 : 타임라인 위 안내 (가운데) ---------- */
-.ml-banner-wrap { display: flex; justify-content: center; margin: 4px 0 14px; }
-.ml-banner { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 18px; border: 1px dashed var(--line); border-radius: 999px; background: var(--bg-card); color: var(--text-2); font: inherit; font-size: 13px; }
-button.ml-banner.on { border: 1px solid var(--primary); background: var(--primary-tint, var(--bg-card)); color: var(--text); cursor: pointer; }
-button.ml-banner.on:hover { background: var(--bg-hover); }
-.ml-banner.on b { color: var(--primary); font-weight: 700; }
-.ml-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 3px rgba(80, 130, 255, .2); }
 
-/* ---------- 05 모달 공통 (미확인 현장조사기록 · AI 보고서) : Common.dialog 와 같은 톤, 확인 창(--z-dialog)보다 아래 ---------- */
+/* ---------- 05 모달 공통 (AI 보고서 · 대시보드 보고서) : Common.dialog 와 같은 톤, 확인 창(--z-dialog)보다 아래 ---------- */
 body.ml-lock, body.ml-lock .page-scroll { overflow: hidden; }   /* 모달이 떠 있는 동안 뒤 본문(내부 스크롤 포함)이 움직이지 않게 */
 .ml-bg { position: fixed; inset: 0; z-index: var(--z-modal); display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, .6); opacity: 0; transition: opacity .15s; }
 .ml-bg[hidden] { display: none; }
@@ -473,36 +416,11 @@ body.ml-lock, body.ml-lock .page-scroll { overflow: hidden; }   /* 모달이 떠
 .ml-empty { padding: 40px 0; text-align: center; font-size: 13px; }
 .ml-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; font-size: 13px; color: var(--text-2); }
 .ml-meta b { font-size: 15px; color: var(--text); }
-.ml-rs { font-style: normal; padding: 0 6px; border-radius: var(--radius); border: 1px solid var(--line); color: var(--text); }
-.ml-rs.warn { border-color: var(--warn); color: var(--warn); }
-.ml-rs.danger { border-color: var(--danger); color: var(--danger); }
-.ml-meta2 { margin-top: 6px; font-size: 12px; color: var(--text-2); line-height: 1.6; }
 .ml-sec { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
 .ml-sec h4 { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 14px; font-weight: 700; }
 .ml-sec h4 small { font-size: 11px; font-weight: 400; color: var(--text-3); }
 .ml-num { width: 20px; height: 20px; display: inline-grid; place-items: center; border-radius: 50%; background: var(--primary); color: #fff; font-size: 11px; }
-.ml-scores { display: grid; gap: 6px; }
-.ml-score { display: grid; grid-template-columns: 130px auto auto 1fr; align-items: center; gap: 10px; font-size: 13px; }
-.ml-pick { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-.ml-pick button { width: 34px; height: 30px; border: 0; background: none; color: var(--text-2); font: inherit; font-size: 12px; cursor: pointer; }
-.ml-pick button + button { border-left: 1px solid var(--line); }
-.ml-pick button:hover { background: var(--bg-hover); }
-.ml-pick button.on { color: #fff; font-weight: 700; }
-.ml-pick button.on.s1, .ml-pick button.on.s2 { background: var(--ok); }
-.ml-pick button.on.s3 { background: var(--primary); }
-.ml-pick button.on.s4 { background: var(--warn); }
-.ml-pick button.on.s5 { background: var(--danger); }
-.ml-warn { font-style: normal; font-size: 11px; color: var(--warn); }
 .ml-memo { width: 100%; height: auto; padding: 8px 12px; line-height: 1.6; resize: vertical; }
-.ml-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
-.ml-photos figure { position: relative; margin: 0; }
-.ml-photos a { display: block; height: 96px; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--bg-card); }
-.ml-photos img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.ml-photos figcaption { margin-top: 4px; font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ml-x { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .65); color: #fff; font-size: 16px; line-height: 1; cursor: pointer; }
-.ml-x:hover { background: var(--danger); }
-.ml-transcript { max-height: 220px; overflow-y: auto; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-card); font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
-.ml-sec-tools { display: flex; justify-content: flex-end; margin-top: 8px; }
 .ml-none-txt { font-size: 13px; }
 .ml-foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 12px 22px 16px; border-top: 1px solid var(--line); }
 .ml-foot > .muted { margin-right: auto; font-size: 12px; }
@@ -539,7 +457,6 @@ body.ml-lock, body.ml-lock .page-scroll { overflow: hidden; }   /* 모달이 떠
 @media (max-width: 760px) {
   .ml-body { grid-template-columns: 1fr; grid-template-rows: 160px 1fr; }
   .ml-list { border-right: 0; border-bottom: 1px solid var(--line); }
-  .ml-score { grid-template-columns: 1fr auto; }
   .rp-doc { padding: 24px 18px; }
 }
 

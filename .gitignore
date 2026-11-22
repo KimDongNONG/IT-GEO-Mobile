@@ -19,3 +19,6 @@ reference/*
 !reference/db/
 reference/db/*
 !reference/db/*.sql
+
+# 팀원 안내 문서 (로컬 전용)
+ITGEO_이름변경_안내.md

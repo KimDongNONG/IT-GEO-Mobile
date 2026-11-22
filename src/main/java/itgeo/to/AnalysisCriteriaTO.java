@@ -7,7 +7,8 @@ import lombok.Data;
 /**
  * 취약 점수 기준값 + 지도 조회 조건 (쿼리 파라미터 → 그대로 바인딩).
  * 점수 SQL 은 mapper-building.xml 의 scoreExpr 한 곳. 여기 값이 #{...} 로 들어간다.
- * 가중치는 위험 유형 4묶음(주거 공간 45 · 건물 상태 20 · 침수 위험 25 · 경제 여건 10, 합 100). 점수 = 해당하는 묶음 가중치의 합
+ * 가중치는 위험 유형 4묶음(기본 주거 공간 45 · 건물 상태 20 · 침수 위험 25 · 경제 여건 10). 묶음마다 0~100 을 따로 정하고,
+ * 점수에는 비율로 환산해 넣는다 (getSpacePt … : 내 값 ÷ 켜진 묶음 값의 합 × 100). 100·100·100·100 → 25씩, 100·50·100·50 → 2:1:2:1
  */
 @Data
 public class AnalysisCriteriaTO {
@@ -22,11 +23,31 @@ public class AnalysisCriteriaTO {
 	private boolean lowOn = true;     private double lowElev = 15; // 저지대 (elev_m N m 이하)          → 침수 위험
 	private boolean cheapOn = true;   private double cheapPct = 20; // 저가 (price_pct N% 이하)         → 경제 여건
 
-	// ---- 가중치 = 위험 유형 4묶음, 합계 100 (5-1 "가중치·분석 실행·도넛"). 묶음 안 요인이 하나라도 맞으면 그 묶음 점수를 한 번 ----
+	// ---- 가중치 = 위험 유형 4묶음, 묶음마다 0~100 (2026-11-23). 점수 SQL 은 아래 get*Pt (합 100 으로 환산한 값) 를 쓴다 ----
 	private int spaceW = 45;          // 주거 공간 (지하층 · 옥탑 · 고시원)
 	private int bldW = 20;            // 건물 상태 (노후 · 위반건축물)
 	private int floodW = 25;          // 침수 위험 (침수 이력 · 저지대)
 	private int econW = 10;           // 경제 여건 (저가 주택)
+
+	/** 묶음 요인이 하나라도 켜져 있나 (전부 꺼진 묶음은 가중치를 0 으로 보고 비율 계산에서 뺀다) */
+	public boolean isSpaceActive() { return ugrndOn || gosiwonOn || rooftopOn; }
+	public boolean isBldActive() { return oldOn || violOn; }
+	public boolean isFloodActive() { return floodOn || lowOn; }
+	public boolean isEconActive() { return cheapOn; }
+
+	/** 켜진 묶음 가중치의 합 (0 이면 분석할 수 없음 → MapService.assertWeights 가 막는다) */
+	public int getWeightSum() {
+		return (isSpaceActive() ? spaceW : 0) + (isBldActive() ? bldW : 0) + (isFloodActive() ? floodW : 0) + (isEconActive() ? econW : 0);
+	}
+	private double pt(boolean active, int w) {
+		int sum = getWeightSum();
+		return !active || sum <= 0 ? 0 : w * 100.0 / sum;
+	}
+	/** 점수에 실제로 반영하는 묶음 점수 (합 100). mapper-building.xml 의 pt* 가 #{spacePt} … 로 쓴다 */
+	public double getSpacePt() { return pt(isSpaceActive(), spaceW); }
+	public double getBldPt() { return pt(isBldActive(), bldW); }
+	public double getFloodPt() { return pt(isFloodActive(), floodW); }
+	public double getEconPt() { return pt(isEconActive(), econW); }
 
 	private int checkedMonths = 3;    // 현장 확인됨 기간 (9단계) : 3 | 12 | 0 = 전체 | -1 = 끄기. 범례의 "현장 확인됨" 에서 고른다
 	private int scoreMin = 80;        // 이 점수 이상만 "위험" (결과 리스트 · 도넛 가운데 숫자 · 80점 이상만 보기)
@@ -38,6 +59,7 @@ public class AnalysisCriteriaTO {
 	private List<String> adms;        // 행정동 여러 개 "법정동|행정동" (지도 동 선택 복수 선택). 있으면 dong · adm 대신 이 목록
 	private String q;                 // 건물명·주소 검색어
 	private String status;            // 보관함 탭 : TODO | DOING | DONE (없으면 전체)
+	private String scen;              // 보관함 구분 선택칸 : base | rain | heat | cold | custom (저장할 때 쓴 가중치 시나리오, 없으면 전체)
 
 	// ---- 보관함 [상세 필터] (archive.do, 5-1) : 비어 있으면 조건 없음 ----
 	private List<String> factors;     // 취약 요인 키 (ugrnd rooftop gosiwon viol old flood low) → t.pt_<키> > 0

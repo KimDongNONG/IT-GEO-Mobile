@@ -63,13 +63,29 @@
 .wc-row { display: flex; align-items: center; gap: 10px; padding: 11px 16px 11px 12px; cursor: pointer; }
 .wc-row:hover, .wc-card.open .wc-row { background: var(--bg-card); }
 .wc-side .wc-row { cursor: grab; }                      /* 위 · 아래 리스트 모두 달력으로 끌 수 있다 */
-.wc-row.fc-event-dragging { cursor: grabbing; }
 .wc-row .dot { flex: none; width: 7px; height: 7px; border-radius: 50%; }
-/* ||| 손잡이 : 세로 줄 3개. 이 줄을 잡고(또는 줄 어디든) 끌어서 달력에 놓는다 */
-.wc-grip { flex: none; width: 12px; height: 18px; cursor: grab; opacity: .55;
-  background: linear-gradient(90deg, currentColor 0 2px, transparent 2px 5px, currentColor 5px 7px, transparent 7px 10px, currentColor 10px 12px) center / 12px 16px no-repeat;
-  color: var(--text-2); }
-.wc-row:hover .wc-grip { opacity: 1; color: var(--primary); }
+/* ⠿ 손잡이 : 점 6개(2줄 × 3칸). 끌기 손잡이로 가장 흔히 쓰는 모양.
+   평소에도 회색 칸으로 보이고, 줄에 마우스를 올리면 파란 칸 + 점으로 "여기를 잡는다" 를 보여 준다 */
+.wc-grip { flex: none; box-sizing: border-box; width: 22px; height: 30px; padding: 6px 5px; margin-left: -4px;
+  border-radius: 6px; border: 1px solid var(--line); background-color: var(--bg-panel); color: var(--text-2);
+  background-image: radial-gradient(circle, currentColor 1.6px, transparent 1.9px);
+  background-size: 6px 6px; background-origin: content-box; background-clip: content-box; background-repeat: repeat;
+  cursor: grab; transition: background-color .15s, border-color .15s, color .15s, transform .15s; }
+.wc-row:hover .wc-grip { color: var(--primary); border-color: var(--primary);
+  background-color: color-mix(in srgb, var(--primary) 10%, var(--bg-panel)); }
+.wc-grip:hover { transform: scale(1.08); }
+.wc-grip:active, body.wc-dragging .wc-grip { cursor: grabbing; }
+/* 줄에 마우스를 올리면 왼쪽에 파란 띠 → 줄 전체를 잡을 수 있다는 표시 */
+.wc-side .wc-row { box-shadow: inset 3px 0 0 transparent; transition: box-shadow .15s, background .15s; }
+.wc-side .wc-row:hover { box-shadow: inset 3px 0 0 var(--primary); }
+
+/* 끄는 중 : 잡은 카드는 흐리게, 달력 날짜 칸은 점선으로 "여기에 놓으세요" 표시, 마우스 아래 칸은 진하게 */
+body.wc-dragging, body.wc-dragging * { cursor: grabbing !important; }
+body.wc-dragging .wc-card.wc-src { opacity: .45; }
+body.wc-dragging .wc-calendar .fc-daygrid-day { outline: 1px dashed color-mix(in srgb, var(--primary) 45%, transparent); outline-offset: -3px; }
+body.wc-dragging .wc-calendar .fc-daygrid-day:hover { background: color-mix(in srgb, var(--primary) 14%, transparent) !important; outline: 2px solid var(--primary); }
+/* 달력 위를 따라다니는 막대 (FullCalendar 가 만드는 mirror) */
+.fc-event-mirror, .fc-event-dragging { box-shadow: 0 6px 16px rgba(0, 0, 0, .18); }
 .wc-row .tx { flex: 1 1 auto; min-width: 0; }
 .wc-row .tx b { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wc-row .tx small { font-size: 12px; color: var(--text-2); }
@@ -97,4 +113,3 @@
 .wc-b .sc b { display: block; font-size: 16px; font-weight: 700; color: #f05252; }
 .wc-b .sc small { font-size: 11px; color: var(--text-3, #777); }
 .wc-empty { padding: 16px; font-size: 13px; color: var(--text-2); line-height: 1.5; }
- 

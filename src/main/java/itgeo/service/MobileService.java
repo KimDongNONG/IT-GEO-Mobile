@@ -34,7 +34,7 @@ import itgeo.to.RecordDetailTO;
 import itgeo.to.ScheduleItemTO;
 
 /**
- * 모바일 앱 현장 기록 저장 (reference/db/06_mobile_record.sql).
+ * 모바일 앱 현장 기록 저장 (reference/db/06_app_tables.sql).
  * 기록 본문은 웹과 같은 ArchiveService.addCheck (visit_history + survey_record), 앱에만 있는 값은 survey_record_detail,
  * 사진은 app.upload.dir 폴더 + survey_photo. 웹 05 타임라인은 ArchiveService.getArchiveDetail 이 같이 읽어 보여 준다.
  */
@@ -57,6 +57,8 @@ public class MobileService {
 	public static final int PHOTO_MAX_BYTES = 5 * 1024 * 1024;
 	/** 한 기록에 붙일 수 있는 사진 수 */
 	public static final int PHOTO_MAX_COUNT = 10;
+	/** 녹취록 최대 글자 수 */
+	public static final int TRANSCRIPT_MAX = 100_000;
 
 	private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -78,7 +80,7 @@ public class MobileService {
 	/** 앱 현장 기록 저장 → recordId. 본문(웹과 같은 저장) + 상세 한 트랜잭션 */
 	@Transactional
 	public long saveRecord(long userId, String bldId, String result, Map<String, String> checks, List<String> added,
-			String content, int scoreAdj, String residentStatus, Map<String, Integer> scores, List<String> supports) {
+			String content, int scoreAdj, String residentStatus, Map<String, Integer> scores, List<String> supports, String transcript) {
 		if (residentStatus != null && residentStatus.isBlank()) residentStatus = null;
 		if (residentStatus != null && !RESIDENT_STATUS.contains(residentStatus)) throw new IllegalArgumentException("거주자 상태를 확인해 주세요.");
 		if ("부재".equals(residentStatus) && (result == null || "MET".equals(result))) result = "ABSENT";
@@ -98,6 +100,8 @@ public class MobileService {
 		d.setResidentStatus(residentStatus);
 		try { d.setScores(sc.isEmpty() ? null : JSON.writeValueAsString(sc)); } catch (Exception e) { d.setScores(null); }
 		d.setSupports(sp.length() == 0 ? null : sp.toString());
+		if (transcript != null && transcript.length() > TRANSCRIPT_MAX) throw new IllegalArgumentException("녹취록이 너무 깁니다. (최대 " + TRANSCRIPT_MAX + "자)");
+		d.setTranscript(transcript == null || transcript.isBlank() ? null : transcript.trim());
 		dao.addRecordDetail(d);
 		return recordId;
 	}

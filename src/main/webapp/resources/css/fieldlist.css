@@ -1,7 +1,6 @@
 /* ===== fieldlist.css : 현장 확인 리스트 (fieldlist.do) 전용. 위치 : resources/css/fieldlist.css
    예전 현장 확인 상세(fielddetail)를 합친 화면 : 왼쪽 리스트 카드 | 오른쪽 큰 지도 + 경로 · 소요시간 카드.
-   지도 · 경로 카드 모양(.fd-map .route-card .route-modes .route-stats .num-pin .start-pin)은 pages.css 것을 그대로 쓴다.
-   fieldlist.jsp 가 ?v= 를 붙여 불러오므로 이 파일을 고치면 jsp 의 v 값도 바꾼다 ===== */
+   지도 · 경로 카드 모양(.fd-map .route-card .route-modes .route-stats .num-pin .start-pin)은 pages.css 것을 그대로 쓴다. ===== */
 
 /* 상태 색 : 조사 전 초록 · 조사 중 주황 · 확인 완료 파랑 (업무 캘린더와 같은 색) */
 .fx-split .st-todo  { --st: #3fb950; }

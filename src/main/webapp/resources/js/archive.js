@@ -9,6 +9,7 @@ $(function () {
   $('#selGu').on('change', function () { $('#selDong').val(''); $('#selAdm').val(''); $('#filterForm').trigger('submit'); });
   $('#selDong').on('change', function () { $('#selAdm').val(''); $('#filterForm').trigger('submit'); });
   $('#selAdm').on('change', function () { $('#filterForm').trigger('submit'); });
+  $('#selScen').on('change', function () { $('#filterForm').trigger('submit'); });
 
   /* 검색창 [×] : 글자가 있을 때만 보이고, 누르면 지운다. 이미 검색한 상태였으면 전체 목록으로 다시 조회 */
   var searched = $.trim($('#archiveQ').val()) !== '';

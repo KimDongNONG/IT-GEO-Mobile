@@ -95,7 +95,7 @@
       <button type="button" class="btn btn-primary" id="btnRun">▶ 분석 실행</button>
     </div>
 
-    <%-- 가중치 조정 팝업 (피그마 02 가중치 조정 열림) : 위험 유형 4묶음, 합계 항상 100 (map-layer.js 가 비율대로 맞춘다) --%>
+    <%-- 가중치 조정 팝업 (피그마 02 가중치 조정 열림) : 위험 유형 4묶음, 묶음마다 0~100. 점수에는 비율로 환산 (map-layer.js) --%>
     <div class="weight-pop" id="weightPop">
       <div class="wp-head"><b>가중치 조정</b><button type="button" class="link-muted" id="weightReset">초기화</button><button type="button" class="wp-close" id="weightClose" title="닫기">×</button></div>
       <div class="wp-row" data-gw="space"><div class="wp-name">주거 공간 <small>지하층 · 옥탑 · 고시원</small></div><b id="wv-space"></b><input type="range" id="w-space"></div>
@@ -103,7 +103,8 @@
       <div class="wp-row" data-gw="flood"><div class="wp-name">침수 위험 <small>침수 이력 · 저지대</small></div><b id="wv-flood"></b><input type="range" id="w-flood"></div>
       <div class="wp-row" data-gw="econ"><div class="wp-name">경제 여건 <small>저가 주택</small></div><b id="wv-econ"></b><input type="range" id="w-econ"></div>
       <%-- 점수 규칙 안내 (10단계 규칙, 15단계 B-7 문구) --%>
-      <p class="wp-note">주거 공간은 지하·고시원·옥탑 중 하나라도 맞으면 가중치 전부, 건물 상태·침수 위험은 켠 요인 중 맞은 비율만큼, 경제 여건은 맞으면 가중치 전부. 합계 100점 만점.</p>
+      <p class="wp-sum" id="wpSum"></p>
+      <p class="wp-note">묶음마다 0~100으로 정하면 비율대로 100점 만점에 나눠 반영합니다 (100·100·100·100이면 25점씩, 100·50·100·50이면 2:1:2:1). 주거 공간은 지하·고시원·옥탑 중 하나라도 맞으면 묶음 점수 전부, 건물 상태·침수 위험은 켠 요인 중 맞은 비율만큼, 경제 여건은 맞으면 전부.</p>
     </div>
   </aside>
 
@@ -183,12 +184,18 @@
       <button type="button" id="zoomOut" title="축소">−</button>
     </div>
 
-    <%-- 로드뷰(파노라마) : 로드뷰를 켜고 지도를 누르면 지도 영역 위에 뜬다. 닫으면 지도로 --%>
-    <div class="pano-wrap" id="panoWrap">
-      <button type="button" class="pano-close" id="panoClose">× 로드뷰 닫기</button>
-      <span class="pano-target" id="panoTarget"></span>
+    <%-- 로드뷰(파노라마) : 로드뷰를 켜고 지도를 누르면 뜬다. 기본은 비율 보기(.split = 왼쪽 로드뷰 + 오른쪽 지도, 손잡이로 비율 조정), [크게 보기] 를 누르면 지도 영역 전체.
+         경계선 손잡이(#panoGrip)를 끌면 로드뷰 : 지도 비율이 같이 바뀌고, 두 번 누르면 기본 폭. 지도에는 지금 보는 위치 · 방향 표시가 따라 움직인다 (map-main.js) --%>
+    <div class="pano-wrap split" id="panoWrap">
+      <div class="pano-bar">
+        <button type="button" class="pano-close" id="panoClose">× 로드뷰 닫기</button>
+        <span class="pano-target" id="panoTarget"></span>
+        <button type="button" class="pano-size" id="panoSize" title="로드뷰 크게 보기 · 지도와 같이 보기">크게 보기</button>
+      </div>
       <div id="pano"></div>
+      <div class="pano-grip" id="panoGrip" title="끌어서 비율 조절 · 3:7 · 5:5 · 7:3 에 자석처럼 붙음 (두 번 누르면 50 : 50)"><span class="pano-ratio" id="panoRatio"></span></div>
     </div>
+    <div class="pano-guides" id="panoGuides"></div><%-- 비율 손잡이를 끄는 동안 3:7 · 5:5 · 7:3 자리 안내선 (map-main.js) --%>
   </main>
 
   <%-- ================= 건물 3D 입체보기 : 건물 상세 패널 바로 왼쪽 (map-3d.js · 브이월드 WebGL 3D, iframe 은 처음 열 때 불러옴) ================= --%>
