@@ -1,13 +1,15 @@
-// 홈 : 이번 주 주간 일정 + 고른 날의 현장확인 리스트 (수정 모드 : 순서 바꾸기 · 빼기 · 보관함에서 넣기)
+// 홈 : 이번 주 주간 달력 + 고른 날(처음엔 오늘)의 현장확인 리스트를 진행중 / 완료됨 으로 나눠 진행 상황을 보여 준다
 //   주간 칸 = 확인 탭 달력과 같은 survey_schedule (api/mobile/schedule.do)
 //   리스트 항목 = api/mobile/schedule/day.do (건물 취약점 · 가구 취약점 포함)
+//   리스트 카드를 펼치면 동선 순서 + 수정 모드 (순서 바꾸기 · 빼기 · 보관함에서 넣기)
+//   완료 기준 : 그날 확인 기록이 있는 건물 (recordId). 리스트 안 건물을 다 기록하면 완료됨 탭으로 간다
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/AppStore';
-import { DragHandle, IconSearch } from './icons';
-import { Btn, Modal } from './ui';
-import { WEEKDAYS, fromYmd, listsOfDay, weekOf, ymd, type DayList } from '../lib/schedule';
-import type { ScheduleItem } from '../data/types';
+import { DragHandle, IconCheck16, IconDown, IconSearch, IconUp } from './icons';
+import { Btn, Modal, StatusBadge } from './ui';
+import { STATUS_CLASS, WEEKDAYS, dayRows, fromYmd, listsOfDay, weekOf, ymd, type DayList } from '../lib/schedule';
+import type { ScheduleItem, VisitStatus, WorkStatus } from '../data/types';
 import './WeekPlan.css';
 
 /** 취약점 줄 : 최대 3개, 나머지는 (+n) */
@@ -29,12 +31,14 @@ export default function WeekPlan() {
   const today = ymd(new Date());
   const week = useMemo(() => weekOf(fromYmd(today)), [today]);
   const [selected, setSelected] = useState(today);
+  const [tab, setTab] = useState<'doing' | 'done'>('doing');
+  const [openId, setOpenId] = useState<string | null>(null);        // 펼친 리스트 (groupId, null = 아직 안 정함)
   const [editing, setEditing] = useState<string | null>(null);      // 수정 중인 리스트 (groupId)
   const [adding, setAdding] = useState<DayList | null>(null);       // + 로 연 건물 추가 창
   const [deleting, setDeleting] = useState<{ list: DayList; item: ScheduleItem } | null>(null);
 
   useEffect(() => { act.loadSchedule(week.key, week.start, week.end); }, [act, week, state.mode]);
-  useEffect(() => { act.loadDay(selected); setEditing(null); }, [act, selected, state.mode]);
+  useEffect(() => { act.loadDay(selected); setEditing(null); setOpenId(null); setTab('doing'); }, [act, selected, state.mode]);
 
   const dayItems = state.days[selected];
 
@@ -45,13 +49,36 @@ export default function WeekPlan() {
     if (dayItems) m[selected] = dayItems.length;
     return m;
   }, [state.schedule, week.key, dayItems, selected]);
-  const lists = useMemo(() => listsOfDay(dayItems ?? []), [dayItems]);
+
+  // 건물별 그날 상태 (완료 · 다음 · 예정 · 재방문 · 부재 · 종료 · 자원 연결) : 확인 탭 달력과 같은 규칙
+  const visit = useMemo(() => {
+    const m: Record<string, VisitStatus> = {};
+    for (const r of dayRows(dayItems ?? [], selected, today)) m[r.item.key] = r.status;
+    return m;
+  }, [dayItems, selected, today]);
+
+  const lists = useMemo(() => listsOfDay(dayItems ?? []).map((l) => {
+    const visited = l.items.filter((it) => it.recordId != null).length;
+    return { list: l, visited, total: l.items.length, done: l.items.length > 0 && visited === l.items.length };
+  }), [dayItems]);
+  const doingLists = lists.filter((x) => !x.done);
+  const doneLists = lists.filter((x) => x.done);
+  const shown = tab === 'doing' ? doingLists : doneLists;
+  const dayTotal = dayItems?.length ?? 0;
+  const dayVisited = lists.reduce((n, x) => n + x.visited, 0);
+
+  // 처음에는 보이는 탭의 첫 리스트를 펼쳐 둔다
+  const firstId = shown[0]?.list.groupId;
+  useEffect(() => { if (openId === null && firstId) setOpenId(firstId); }, [openId, firstId]);
 
   // 줄을 누르면 (수정 모드가 아닐 때) : 기록이 있으면 결과, 없으면 현장 기록 — 확인 탭 달력과 같음
   const openRow = (it: ScheduleItem) => {
     if (!state.buildings[it.bldId]) return;
     navigate(it.recordId != null ? `/result/${it.bldId}` : `/record/${it.bldId}?group=${it.groupId}`);
   };
+
+  const sel = fromYmd(selected);
+  const selLabel = `${sel.getMonth() + 1}월 ${sel.getDate()}일${selected === today ? ' (오늘)' : ''}`;
 
   return (
     <section className="wk">
@@ -72,19 +99,42 @@ export default function WeekPlan() {
         })}
       </div>
 
+      {/* 고른 날의 진행 상황 : 방문한 곳 / 전체 + 진행중 · 완료됨 탭 */}
+      <div className="wk__sum">
+        <span className="wk__sum-day">{selLabel}</span>
+        {dayItems && dayTotal > 0 && <span className="wk__sum-cnt"><b>{dayVisited}</b> / {dayTotal}곳 확인</span>}
+      </div>
+      <div className="wk__tabs" role="tablist" aria-label="리스트 진행 상황">
+        <button role="tab" aria-selected={tab === 'doing'} className={tab === 'doing' ? 'is-on' : ''} onClick={() => setTab('doing')}>
+          진행중 {doingLists.length}
+        </button>
+        <button role="tab" aria-selected={tab === 'done'} className={tab === 'done' ? 'is-on' : ''} onClick={() => setTab('done')}>
+          완료됨 {doneLists.length}
+        </button>
+      </div>
+
       <div className="wk__lists">
         {dayItems === undefined && <p className="wk__empty">불러오는 중…</p>}
         {dayItems && lists.length === 0 && <p className="wk__empty">이 날 나가기로 한 현장확인 리스트가 없어요.</p>}
-        {lists.map((l) => (
+        {dayItems && lists.length > 0 && shown.length === 0 && (
+          <p className="wk__empty">{tab === 'doing' ? '이 날 리스트는 모두 확인했어요.' : '이 날 다 확인한 리스트가 아직 없어요.'}</p>
+        )}
+        {shown.map((x) => (
           <ListBlock
-            key={l.groupId}
-            list={l}
-            editing={editing === l.groupId}
-            onToggleEdit={() => setEditing(editing === l.groupId ? null : l.groupId)}
-            onReorder={(from, to) => act.dayReorder(selected, l.groupId, from, to)}
-            onDelete={(item) => setDeleting({ list: l, item })}
-            onAdd={() => setAdding(l)}
+            key={x.list.groupId}
+            list={x.list}
+            visited={x.visited}
+            dateLabel={`${sel.getMonth() + 1}월 ${sel.getDate()}일`}
+            visit={visit}
+            open={openId === x.list.groupId}
+            onToggleOpen={() => { setOpenId(openId === x.list.groupId ? '' : x.list.groupId); setEditing(null); }}
+            editing={editing === x.list.groupId}
+            onToggleEdit={() => setEditing(editing === x.list.groupId ? null : x.list.groupId)}
+            onReorder={(from, to) => act.dayReorder(selected, x.list.groupId, from, to)}
+            onDelete={(item) => setDeleting({ list: x.list, item })}
+            onAdd={() => setAdding(x.list)}
             onOpen={openRow}
+            onMap={state.groups.some((g) => g.id === x.list.groupId) ? () => navigate(`/route/${x.list.groupId}`) : undefined}
           />
         ))}
       </div>
@@ -112,13 +162,19 @@ export default function WeekPlan() {
   );
 }
 
-/** 리스트 하나 : 제목 줄(오른쪽 끝 수정) + bar 로 나눈 건물 줄 */
-function ListBlock({ list, editing, onToggleEdit, onReorder, onDelete, onAdd, onOpen }: {
-  list: DayList; editing: boolean; onToggleEdit: () => void;
+/** 리스트 카드 하나 : 머리(이름 · 상태 · 건물 수 · 진행 막대)를 누르면 펼쳐지고, 펼치면 동선 순서 + 수정 */
+function ListBlock({ list, visited, dateLabel, visit, open, onToggleOpen, editing, onToggleEdit, onReorder, onDelete, onAdd, onOpen, onMap }: {
+  list: DayList; visited: number; dateLabel: string; visit: Record<string, VisitStatus>;
+  open: boolean; onToggleOpen: () => void; editing: boolean; onToggleEdit: () => void;
   onReorder: (from: number, to: number) => void; onDelete: (it: ScheduleItem) => void; onAdd: () => void; onOpen: (it: ScheduleItem) => void;
+  onMap?: () => void;
 }) {
+  const total = list.items.length;
+  const status: WorkStatus = total && visited === total ? 'done' : visited > 0 ? 'doing' : 'before';
+  const pct = total ? Math.round((visited / total) * 100) : 0;
+
   // ---- 끌어서 순서 바꾸기 (RoutePlan.tsx 와 같은 방식) ----
-  const listRef = useRef<HTMLUListElement>(null);
+  const listRef = useRef<HTMLOListElement>(null);
   const [drag, setDrag] = useState<{ from: number; to: number; dy: number; startY: number } | null>(null);
   const targetIndex = (clientY: number, from: number) => {
     const rows = Array.from(listRef.current?.children ?? []) as HTMLElement[];
@@ -145,39 +201,70 @@ function ListBlock({ list, editing, onToggleEdit, onReorder, onDelete, onAdd, on
   };
 
   return (
-    <div className={`wl ${editing ? 'is-editing' : ''}`}>
-      <div className="wl__head">
-        <h3 className="wl__title">{list.title}</h3>
-        <button className="wl__edit" onClick={onToggleEdit}>{editing ? '완료' : '수정'}</button>
+    <div className={`wl ${open ? 'is-open' : ''} ${editing ? 'is-editing' : ''}`}>
+      <button className="wl__head" onClick={onToggleOpen} aria-expanded={open}>
+        <span className="wl__text">
+          <span className="wl__meta">현장확인 리스트 · {dateLabel}</span>
+          <span className="wl__title">{list.title}</span>
+        </span>
+        <StatusBadge status={status} />
+        {open ? <IconUp /> : <IconDown />}
+      </button>
+      <div className="wl__chips"><span className="wl__chip">건물 {total}동</span></div>
+      <div className="wl__prog">
+        <span className="wl__bar"><i style={{ width: `${pct}%` }} /></span>
+        <span className="wl__cnt">{visited}/{total}</span>
       </div>
 
-      <ul className="wl__rows" ref={listRef}>
-        {list.items.map((it, i) => {
-          const cls = ['wl__row',
-            drag?.from === i && 'is-dragging',
-            drag && drag.to === i && drag.from !== i && (drag.to > drag.from ? 'drop-after' : 'drop-before'),
-          ].filter(Boolean).join(' ');
-          return (
-            <li key={it.key} className={cls} style={drag?.from === i ? { transform: `translateY(${drag.dy}px)` } : undefined}>
-              {editing && (
-                <span className="wl__handle" aria-label="순서 바꾸기"
-                  onPointerDown={(e) => onDown(e, i)} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
-                  <DragHandle />
-                </span>
-              )}
-              <button className="wl__main" onClick={() => !editing && onOpen(it)} tabIndex={editing ? -1 : 0}>
-                <span className="wl__addr">{it.place}</span>
-                <Vulns label="건물" list={it.bldFactors} />
-                <Vulns label="가구" list={it.hhVulns} />
-              </button>
-              {editing && <button className="wl__del" onClick={() => onDelete(it)}>삭제</button>}
-            </li>
-          );
-        })}
-      </ul>
+      {open && (
+        <div className="wl__body">
+          <div className="wl__sub">
+            <span>동선 순서</span>
+            <span className="wl__sub-acts">
+              {onMap && !editing && <button className="wl__map" onClick={onMap}>지도에서 보기 ›</button>}
+              <button className="wl__edit" onClick={onToggleEdit}>{editing ? '완료' : '수정'}</button>
+            </span>
+          </div>
 
-      {editing && (
-        <button className="wl__add" onClick={onAdd} aria-label="건물 추가">+</button>
+          <ol className="wl__rows" ref={listRef}>
+            {list.items.map((it, i) => {
+              const st = visit[it.key];
+              const cls = ['wl__row', it.recordId != null && 'is-visited',
+                drag?.from === i && 'is-dragging',
+                drag && drag.to === i && drag.from !== i && (drag.to > drag.from ? 'drop-after' : 'drop-before'),
+              ].filter(Boolean).join(' ');
+              return (
+                <li key={it.key} className={cls} style={drag?.from === i ? { transform: `translateY(${drag.dy}px)` } : undefined}>
+                  {editing ? (
+                    <span className="wl__handle" aria-label="순서 바꾸기"
+                      onPointerDown={(e) => onDown(e, i)} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+                      <DragHandle />
+                    </span>
+                  ) : (
+                    <span className="wl__no">{it.recordId != null ? <IconCheck16 color="#FFFFFF" /> : i + 1}</span>
+                  )}
+                  <button className="wl__main" onClick={() => !editing && onOpen(it)} tabIndex={editing ? -1 : 0}>
+                    <span className="wl__addr">{it.place}</span>
+                    <Vulns label="건물" list={it.bldFactors} />
+                    <Vulns label="가구" list={it.hhVulns} />
+                  </button>
+                  {editing
+                    ? <button className="wl__del" onClick={() => onDelete(it)}>삭제</button>
+                    : (
+                      <span className="wl__right">
+                        <b className="wl__score">{it.score}</b>
+                        {st && <span className={`vst vst--${STATUS_CLASS[st]}`}>{st}</span>}
+                      </span>
+                    )}
+                </li>
+              );
+            })}
+          </ol>
+
+          {editing && (
+            <button className="wl__add" onClick={onAdd} aria-label="건물 추가">+</button>
+          )}
+        </div>
       )}
     </div>
   );

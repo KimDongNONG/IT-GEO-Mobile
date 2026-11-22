@@ -1,64 +1,39 @@
 .home { padding-top: var(--top); }
-.home__top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 31px; }
-.home__logo { font-size: 24px; font-weight: 500; color: var(--text); }
-.home__me { font-size: 12px; color: var(--sub); display: inline-flex; gap: 10px; align-items: baseline; }
-.home__me button { font-size: 12px; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
-.home__logo b { font-weight: 500; color: var(--primary); }
 
-.home__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
-.home__stat {
-  height: 104px; padding: 12px 14px;
-  background: var(--el); border: 1px solid var(--soft); border-radius: 6px;
-}
-.home__stat-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--sub); }
-.home__stat-value { margin-top: 13px; font-size: 32px; font-weight: 700; color: var(--text); }
-
-.home__heading { font-size: 17px; font-weight: 700; margin: 22px 0 14px; }
-.home__groups { display: flex; flex-direction: column; gap: 12px; }
-
-.group { overflow: hidden; }
-.group.is-open { border: 2px solid var(--primary); }
-.group__head {
-  width: 100%; min-height: 74px;
-  display: flex; align-items: center; gap: 9px;
-  padding: 15px 13px 15px 15px; text-align: left;
-}
-.group.is-open .group__head { padding: 14px 12px 14px 14px; }
-.group__text { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.group__title { font-size: 17px; font-weight: 700; color: var(--text); }
-.group__meta { font-size: 13px; color: var(--sub); }
-
-.group__body { padding: 0 14px 14px; }
-.group__body > ul { border-top: 1px solid var(--soft); }
-.group__empty { padding: 20px 0; font-size: 13px; color: var(--sub); border-top: 1px solid var(--soft); }
-.group__go {
-  width: 100%; height: 48px; margin-top: 12px; border-radius: 6px;
-  background: var(--primary); color: var(--bg);
-  font-size: 15px; font-weight: 500;
-}
-
-.brow {
-  position: relative; height: 60px;
-  display: flex; align-items: center;
-  border-bottom: 1px solid var(--soft);
-}
-.brow:last-child { border-bottom: 0; }
-.brow.is-selected::before {
-  content: ''; position: absolute; inset: 0 -8px; z-index: 0;
-  background: rgba(68, 142, 222, 0.12); border-radius: 6px;
-}
-.brow__main {
-  position: relative; flex: 1; height: 100%;
-  display: flex; align-items: center; gap: 10px; padding-left: 2px;
-  font-size: 16px; color: var(--text); text-align: left;
-}
-.brow__actions { position: relative; display: flex; gap: 6px; }
-.brow__btn {
-  width: 52px; height: 36px; border-radius: 6px;
+/* 인사 줄 : 날짜 · "안녕하세요, 이름 님" · 로그아웃 */
+.home__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.home__date { font-size: 13px; color: var(--sub); }
+.home__hello { margin-top: 4px; font-size: 22px; font-weight: 700; color: var(--text); }
+.home__hello small { font-size: 13px; font-weight: 500; color: var(--sub); }
+.home__out {
+  flex: none; height: 32px; padding: 0 12px; border-radius: 16px;
   background: var(--el); border: 1px solid var(--line);
-  font-size: 14px; font-weight: 500; color: var(--text);
+  font-size: 12px; color: var(--sub);
 }
-.brow__btn--danger { color: var(--red); }
+
+/* ---------- 전체 현장 확인 카드 (접고 펼치기) : 다크 바탕에 메인 색을 살짝 섞은 카드 ---------- */
+.hstat {
+  border-radius: 12px; overflow: hidden;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 30%, var(--panel)), color-mix(in srgb, var(--primary) 12%, var(--panel)));
+  border: 1px solid color-mix(in srgb, var(--primary) 40%, var(--line));
+}
+.hstat__head { width: 100%; display: flex; align-items: center; gap: 8px; padding: 16px 14px 16px 18px; text-align: left; }
+.hstat__title { font-size: 14px; font-weight: 500; color: var(--text); }
+.hstat__mini { font-size: 13px; color: var(--sub); }
+.hstat__mini b { font-size: 15px; color: var(--text); }
+.hstat__badge {
+  margin-left: auto; height: 24px; padding: 0 10px; border-radius: 12px;
+  display: inline-flex; align-items: center;
+  background: rgba(255, 255, 255, 0.1); font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap;
+}
+.hstat__body { padding: 0 18px 18px; }
+.hstat__big { font-size: 17px; font-weight: 700; color: var(--text); }
+.hstat__big b { font-size: 40px; line-height: 48px; margin-right: 4px; }
+.hstat__bar { height: 8px; margin: 14px 0 16px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.hstat__bar i { display: block; height: 100%; border-radius: 4px; background: var(--white); transition: width .3s; }
+.hstat__nums { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0; }
+.hstat__nums dt { font-size: 12px; color: var(--sub); }
+.hstat__nums dd { margin: 4px 0 0; font-size: 18px; font-weight: 700; color: var(--text); }
 
 /* 삭제 확인 창 */
 .dlg__title { font-size: 18px; font-weight: 700; color: var(--text); }
