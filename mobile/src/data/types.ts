@@ -74,6 +74,8 @@ export interface FieldRecord {
   author?: string;
   recordId?: number;
   photoIds?: number[];   // 서버에 저장된 사진 (api/mobile/photo.do)
+  transcript?: string;   // 녹취록 : 가구 기록에서 녹음한 말을 글자로 (녹음 파일은 남기지 않음, 저장하면 웹 기록에 같이 감)
+  keepPhotoIds?: number[]; // 수정할 때 그대로 둘 서버 사진 (저장하면 새 기록에 다시 붙인다. X 로 뺀 사진은 안 붙임)
   fromWeb?: boolean;     // 웹 05 화면에서 저장한 기록
 }
 

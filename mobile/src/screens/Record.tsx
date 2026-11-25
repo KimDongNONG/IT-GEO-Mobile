@@ -2,7 +2,7 @@
 //   위 = 건물 카드(방문 순번 · 점검 진행 n / 5 항목), 건물 | 가구 탭
 //   건물 탭 : 섹션 카드(안전 · 위생)마다 1~5 점 네모 버튼 (1 양호 ~ 5 위험, 고른 칸은 체크 + 점수 색). 다 고른 섹션은 체크 표시
 //   메모 · 사진 섹션은 두 탭 모두 맨 아래. 오른쪽 위 '임시 저장' = 폰에 잠깐 보관 (사진 제외), 다시 들어오면 이어서 쓴다
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import type { FieldRecord, ResidentStatus } from '../data/types';
@@ -10,6 +10,8 @@ import { useStore } from '../store/AppStore';
 import { IconBuilding, IconCamera, IconCheck16, IconDown, IconUp, IconUpload, IconUsers } from '../components/icons';
 import { ActionBar, Btn, Modal, Screen, SummaryRows } from '../components/ui';
 import { SECTIONS, SUPPORTS } from '../lib/fieldcheck';
+import ServerPhoto from '../components/ServerPhoto';
+import { canDictate, startDictation, type Dictation } from '../lib/speech';
 import './Record.css';
 
 const RESIDENT: ResidentStatus[] = ['양호', '주의', '긴급', '부재'];
@@ -32,6 +34,7 @@ export default function Record() {
   const { buildingId = '' } = useParams();
   const [params, setParams] = useSearchParams();
   const groupId = params.get('group') ?? '';
+  const from = params.get('from');   // home = 홈 리스트에서 바로 들어옴 → '이전'은 홈으로
   const editing = params.get('edit') === '1';   // 확인 결과 → '확인 내용 수정' : 마지막 기록 내용을 채운 채로 연다
   const tab = params.get('tab') === 'household' ? 'household' : 'building';
   const { state, act } = useStore();
@@ -39,10 +42,10 @@ export default function Record() {
   const b = state.buildings[buildingId];
   // 서버 모드는 방문할 때마다 새 기록 (웹 05 타임라인에 한 줄씩 쌓임). 시연 모드는 저장한 기록을 이어서 고침
   //   임시 저장이 있으면 그것부터
-  //   수정으로 들어오면 마지막 기록 내용부터 (서버에 이미 올린 사진은 다시 올리지 않으므로 빼고 시작)
+  //   수정으로 들어오면 마지막 기록 내용부터. 이미 올린 사진은 그대로 보여 주고 X 로 뺄 수 있다 (서버 모드는 keepPhotoIds)
   const [rec, setRec] = useState<FieldRecord>(() => {
     const last = state.records[buildingId];
-    if (editing && last) return state.mode === 'demo' ? last : { ...last, photos: [], photoIds: undefined, recordId: undefined };
+    if (editing && last) return state.mode === 'demo' ? last : { ...last, photos: [], keepPhotoIds: last.photoIds ?? [], photoIds: undefined, recordId: undefined };
     return loadDraft(buildingId) ?? ((state.mode === 'demo' && last) || emptyRecord(buildingId));
   });
   const [closed, setClosed] = useState<Record<string, boolean>>({});
@@ -74,7 +77,14 @@ export default function Record() {
     }
   };
 
-  const back = () => (groupId ? navigate(`/route/${groupId}`) : navigate(-1));
+  // '이전' : 홈에서 들어왔으면 홈, 동선(경로) 화면 · 길 안내에서 들어왔으면 동선 화면 (길 안내 화면이 아님), 그 밖에는 뒤로
+  const back = () => (from === 'home' ? navigate('/') : groupId ? navigate(`/route/${groupId}`) : navigate(-1));
+  // 건물 | 가구 탭을 바꿔도 group · from · edit 값은 그대로
+  const setTab = (t: 'building' | 'household') => {
+    const p = new URLSearchParams(params);
+    if (t === 'household') p.set('tab', 'household'); else p.delete('tab');
+    setParams(p, { replace: true });
+  };
   const saveDraft = () => {
     try {
       localStorage.setItem(draftKey(b.id), JSON.stringify({ ...rec, photos: [] }));
@@ -97,14 +107,27 @@ export default function Record() {
     }
   };
 
-  const memoSection = (num: number) => (
-    <Section num={num} title="메모 · 사진" closed={closed.memo} onToggle={() => toggle('memo')}>
+  const memoSection = (num: number, withRecorder = false) => (
+    <Section num={num} title={withRecorder ? '녹음 · 메모 · 사진' : '메모 · 사진'} closed={closed.memo} onToggle={() => toggle('memo')}>
+      {withRecorder && (
+        <Recorder
+          value={rec.transcript ?? ''}
+          onChange={(t) => setRec((r) => ({ ...r, transcript: t }))}
+          onError={(m) => act.toast(m)}
+        />
+      )}
       <div className="rec__photo-btns">
         <button className="rec__photo-btn" onClick={() => addPhoto(CameraSource.Camera)}><IconCamera />사진 촬영</button>
         <button className="rec__photo-btn" onClick={() => addPhoto(CameraSource.Photos)}><IconUpload />사진 업로드</button>
       </div>
-      {rec.photos.length > 0 && (
+      {(rec.photos.length > 0 || (rec.keepPhotoIds?.length ?? 0) > 0) && (
         <ul className="rec__photos">
+          {rec.keepPhotoIds?.map((id, i) => (
+            <li key={`s${id}`}>
+              <ServerPhoto id={id} alt={`기존 사진 ${i + 1}`} />
+              <button aria-label="사진 지우기" onClick={() => setRec((r) => ({ ...r, keepPhotoIds: r.keepPhotoIds?.filter((x) => x !== id) }))}>×</button>
+            </li>
+          ))}
           {rec.photos.map((src, i) => (
             <li key={i}>
               <img src={src} alt={`현장 사진 ${i + 1}`} />
@@ -140,10 +163,10 @@ export default function Record() {
       </div>
 
       <div className="rec__tabs card" role="tablist">
-        <button role="tab" aria-selected={tab === 'building'} className={tab === 'building' ? 'is-on' : ''} onClick={() => setParams({ group: groupId }, { replace: true })}>
+        <button role="tab" aria-selected={tab === 'building'} className={tab === 'building' ? 'is-on' : ''} onClick={() => setTab('building')}>
           <IconBuilding color={tab === 'building' ? '#fff' : 'var(--sub)'} /> 건물
         </button>
-        <button role="tab" aria-selected={tab === 'household'} className={tab === 'household' ? 'is-on' : ''} onClick={() => setParams({ group: groupId, tab: 'household' }, { replace: true })}>
+        <button role="tab" aria-selected={tab === 'household'} className={tab === 'household' ? 'is-on' : ''} onClick={() => setTab('household')}>
           <IconUsers color={tab === 'household' ? '#fff' : 'var(--sub)'} /> 가구
         </button>
       </div>
@@ -204,7 +227,7 @@ export default function Record() {
               })}
             </div>
           </Section>
-          {memoSection(2)}
+          {memoSection(2, true)}
         </>
       )}
 
@@ -287,7 +310,7 @@ function SubmitDialog({
             ['건물 점검', `${itemCount}개 항목 · 주의 ${warn}`],
             ['거주자 상태', rec.resident ?? '-'],
             ['필요한 지원', rec.supports.length ? rec.supports.map((x) => x.replace(/ /g, '')).join(' · ') : '-'],
-            ['사진 · 메모', `사진 ${rec.photos.length}장 · 메모 ${rec.memo.trim() ? 1 : 0}건`],
+            ['사진 · 메모', `사진 ${rec.photos.length + (rec.keepPhotoIds?.length ?? 0)}장 · 메모 ${rec.memo.trim() ? 1 : 0}건`],
           ]}
         />
       </div>
@@ -322,5 +345,61 @@ function SubmitDialog({
         </Btn>
       </div>
     </Modal>
+  );
+}
+
+/** 가구 기록 녹음 : 누르면 말을 글자로 받아 적는다 (녹음 파일은 남기지 않음). 녹취록은 고칠 수 있고, 저장하면 웹 기록으로 같이 간다 */
+const TRANSCRIPT_MAX = 100000;   // 서버 MobileService.TRANSCRIPT_MAX
+function Recorder({ value, onChange, onError }: { value: string; onChange: (t: string) => void; onError: (m: string) => void }) {
+  const [on, setOn] = useState(false);
+  const [partial, setPartial] = useState('');
+  const [sec, setSec] = useState(0);
+  const dict = useRef<Dictation | null>(null);
+  const val = useRef(value);
+  val.current = value;
+  useEffect(() => () => { dict.current?.stop(); }, []);
+  useEffect(() => {
+    if (!on) return;
+    const t = setInterval(() => setSec((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [on]);
+
+  const toggleRec = async () => {
+    if (on) { await dict.current?.stop(); dict.current = null; setOn(false); return; }
+    if (!canDictate()) { onError('이 기기에서는 음성 인식을 쓸 수 없어요. 아래 칸에 직접 적어 주세요.'); return; }
+    try {
+      setSec(0);
+      dict.current = await startDictation('ko-KR', {
+        onFinal: (t) => onChange(`${val.current}${val.current && !/\s$/.test(val.current) ? ' ' : ''}${t}`.slice(0, TRANSCRIPT_MAX)),
+        onPartial: setPartial,
+        onEnd: () => { setOn(false); setPartial(''); },
+        onError,
+      });
+      setOn(true);
+    } catch (e) {
+      onError(e instanceof Error ? e.message : '녹음을 시작하지 못했어요.');
+    }
+  };
+  const mm = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+
+  return (
+    <div className={`rec__voice ${on ? 'is-on' : ''}`}>
+      <div className="rec__voice-top">
+        <button type="button" className="rec__voice-btn" onClick={toggleRec} aria-pressed={on}>
+          <span className="rec__voice-dot" aria-hidden />
+          {on ? `녹음 멈추기 · ${mm}` : value ? '이어서 녹음' : '녹음 시작'}
+        </button>
+        {value && !on && <button type="button" className="rec__voice-clear" onClick={() => onChange('')}>녹취록 지우기</button>}
+      </div>
+      <p className="rec__voice-help">말한 내용이 글자로 적혀요. 녹음 파일은 남기지 않고, 녹취록은 저장할 때 웹 기록으로 같이 보내요.</p>
+      <textarea
+        className="rec__memo rec__transcript"
+        value={on && partial ? `${value}${value ? ' ' : ''}${partial}` : value}
+        readOnly={on}
+        onChange={(e) => onChange(e.target.value.slice(0, TRANSCRIPT_MAX))}
+        placeholder="녹취록 (녹음하면 여기에 적혀요. 직접 고칠 수도 있어요)"
+        aria-label="녹취록"
+      />
+    </div>
   );
 }

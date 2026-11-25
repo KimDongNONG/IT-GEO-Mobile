@@ -71,6 +71,17 @@ export function postJson<T>(path: string, data: unknown) {
   return api<T>(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
 }
 
+/** 로그인이 필요한 이미지를 data URL 로 (수정할 때 기존 사진을 새 기록에 다시 붙이는 데 씀) */
+export async function blobDataUrl(path: string): Promise<string> {
+  const blob = await (await request(path)).blob();
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+
 /** 로그인이 필요한 이미지(현장 사진)를 blob URL 로 */
 export async function blobUrl(path: string): Promise<string> {
   const res = await request(path);

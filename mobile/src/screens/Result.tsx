@@ -165,6 +165,13 @@ export default function Result() {
         <p className="result__memo">{rec.memo || '메모 없음'}</p>
       </section>
 
+      {rec.transcript && (
+        <section className="card result__card">
+          <div className="result__card-head"><h3>녹취록</h3><b>{rec.transcript.length.toLocaleString()}자</b></div>
+          <p className="result__memo result__transcript">{rec.transcript}</p>
+        </section>
+      )}
+
       <Btn className="result__edit" onClick={edit}>확인 내용 수정</Btn>
       <TabBar />
     </Screen>

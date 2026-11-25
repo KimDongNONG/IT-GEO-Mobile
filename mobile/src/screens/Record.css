@@ -76,7 +76,7 @@
 }
 .rec__photos { display: flex; gap: 8px; margin-top: 12px; overflow-x: auto; }
 .rec__photos li { position: relative; flex: none; }
-.rec__photos img { width: 72px; height: 72px; border-radius: 6px; object-fit: cover; display: block; }
+.rec__photos img, .rec__photos .photo-loading { width: 72px; height: 72px; border-radius: 6px; object-fit: cover; display: block; }
 .rec__photos button {
   position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; border-radius: 50%;
   background: rgba(0, 0, 0, 0.7); color: var(--white); font-size: 14px; line-height: 1;
@@ -131,3 +131,18 @@
 .submit .dlg__actions { margin-top: 22px; }
 .submit__cancel { background: var(--panel); font-weight: 500; }
 .submit__go.btn--primary { color: var(--bg); font-weight: 500; }
+
+/* 가구 기록 녹음 · 녹취록 (메모 칸 위) */
+.rec__voice { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--line-2); }
+.rec__voice-top { display: flex; align-items: center; gap: 10px; }
+.rec__voice-btn {
+  flex: 1; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: var(--el); border: 1px solid var(--line); color: var(--text); font-size: 15px; font-weight: 700;
+}
+.rec__voice-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--red); }
+.rec__voice.is-on .rec__voice-btn { background: rgba(217, 58, 58, 0.16); border-color: var(--red); color: #ef7b7b; }
+.rec__voice.is-on .rec__voice-dot { animation: rec-blink 1s steps(2, start) infinite; }
+@keyframes rec-blink { to { visibility: hidden; } }
+.rec__voice-clear { flex: none; height: 48px; padding: 0 12px; border-radius: 10px; font-size: 13px; color: var(--sub); text-decoration: underline; text-underline-offset: 2px; }
+.rec__voice-help { margin-top: 8px; font-size: 12px; line-height: 1.5; color: var(--sub); }
+.rec__transcript { height: 120px; }

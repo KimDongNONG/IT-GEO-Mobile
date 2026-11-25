@@ -313,7 +313,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         }
         const b = ref.current.buildings[rec.buildingId];
         const { recordId, failedPhotos } = await W.saveRecord(b, rec, onPhoto);
-        dispatch({ type: 'saveRecord', record: { ...rec, recordId, savedAt, author, fromWeb: false } });
+        dispatch({ type: 'saveRecord', record: { ...rec, recordId, savedAt, author, fromWeb: false, photoIds: rec.keepPhotoIds, keepPhotoIds: undefined } });
         await load().catch(() => undefined);
         // 서버에 저장된 사진 번호까지 다시 읽기
         await a.loadBuilding(rec.buildingId).catch(() => undefined);

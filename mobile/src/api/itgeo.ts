@@ -1,6 +1,6 @@
 // 서버 응답(스프링 TO) 타입과, 앱 화면 모델(data/types.ts)로 바꾸는 함수
 import type { ArchiveItem, Building, FieldRecord, Group, HistoryRow, ResidentStatus, ScheduleItem } from '../data/types';
-import { api, postForm, postJson } from './client';
+import { api, blobDataUrl, postForm, postJson } from './client';
 
 // ---------- 서버 타입 (필요한 칸만) ----------
 export interface MemberTO { userId: number; loginId: string; sggCd: string | null; userNm: string | null; deptNm: string | null; rankNm: string | null; guName: string }
@@ -26,6 +26,7 @@ export interface RecordTO {
   recordId: number; visitedAt: string; result: string; userNm: string | null; content: string; scoreAdj: number | null;
   checks: Record<string, 'Y' | 'N' | '?'>; added: string[]; source: string | null; residentStatus: string | null;
   scores: Record<string, number>; supports: string[]; photos: PhotoTO[];
+  transcript?: string | null;   // 녹취록 (survey_record_detail.transcript)
 }
 export interface ArchiveDetailTO {
   building: BuildingTO; residents: { hhCnt: number; mbrCnt: number; summary: string } | null; planId: number | null; records: RecordTO[];
@@ -93,17 +94,22 @@ export async function saveRecord(b: Building, rec: FieldRecord, onPhoto?: (done:
     scoreAdj: warn,
     resident: rec.resident,
     supports: rec.supports,
+    transcript: rec.transcript?.trim() || undefined,   // 녹취록 (가구 기록에서 녹음 → 글자)
     ...chk,
     ...score,
   });
+  // 사진 : 수정할 때 남겨 둔 기존 사진(서버) → 새로 찍거나 고른 사진 순서로 새 기록에 붙인다
+  const keep = rec.keepPhotoIds ?? [];
+  const total = keep.length + rec.photos.length;
   let failed = 0;
-  for (let i = 0; i < rec.photos.length; i++) {
+  for (let i = 0; i < total; i++) {
     try {
-      await postJson('api/mobile/photo/upload.do', { recordId: res.recordId, label: `현장 사진 ${i + 1}`, data: rec.photos[i] });
+      const data = i < keep.length ? await blobDataUrl(photoPath(keep[i])) : rec.photos[i - keep.length];
+      await postJson('api/mobile/photo/upload.do', { recordId: res.recordId, label: `현장 사진 ${i + 1}`, data });
     } catch {
       failed++;
     }
-    onPhoto?.(i + 1, rec.photos.length);
+    onPhoto?.(i + 1, total);
   }
   return { recordId: res.recordId, failedPhotos: failed };
 }
@@ -226,6 +232,7 @@ export function recordFromServer(bldId: string, r: RecordTO, b?: Building): Fiel
     factorChecks,
     savedAt: isNaN(d.getTime()) ? r.visitedAt : `${d.getMonth() + 1}월 ${d.getDate()}일 ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`,
     author: r.userNm ?? '',
+    transcript: r.transcript ?? undefined,
     fromWeb: r.source !== 'APP',
   };
 }

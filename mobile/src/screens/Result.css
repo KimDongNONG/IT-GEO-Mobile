@@ -85,3 +85,4 @@
 .result__memo { font-size: 14px; line-height: 21px; color: var(--text); white-space: pre-wrap; }
 .result__edit { width: 100%; margin-top: 20px; }
 .result__empty { margin-top: 40px; text-align: center; color: var(--sub); }
+.result__transcript { max-height: 240px; overflow-y: auto; }

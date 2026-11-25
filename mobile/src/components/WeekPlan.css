@@ -1,30 +1,7 @@
 .wk { margin-top: 22px; }
 .wk__heading { font-size: 17px; font-weight: 700; margin-bottom: 12px; }
 
-/* 이번 주 : 7칸이 줄 전체를 채움 */
-.wk__strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; width: 100%; }
-.wk__day {
-  height: 76px; border-radius: 8px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  background: var(--el); border: 1px solid var(--soft);
-}
-.wk__wd { font-size: 11px; color: var(--sub); }
-.wk__num {
-  min-width: 26px; height: 26px; padding: 0 4px; border-radius: 13px;
-  display: grid; place-items: center;
-  font-size: 15px; font-weight: 700; color: var(--text);
-}
-.wk__cnt { height: 13px; font-size: 10.5px; line-height: 13px; color: var(--primary); }
-.wk__day.is-sun .wk__wd, .wk__day.is-sun .wk__num { color: #e5736f; }
-.wk__day.is-sat .wk__wd, .wk__day.is-sat .wk__num { color: #6fa3e5; }
-.wk__day.is-today .wk__num { background: var(--primary); color: var(--white); }
-.wk__day.is-sel { border-color: var(--primary); background: rgba(68, 142, 222, 0.14); }
-
-/* 고른 날 진행 상황 : 날짜 · n / m곳 확인 + 진행중 / 완료됨 탭 */
-.wk__sum { display: flex; align-items: baseline; justify-content: space-between; margin: 18px 0 8px; }
-.wk__sum-day { font-size: 14px; font-weight: 700; color: var(--text); }
-.wk__sum-cnt { font-size: 13px; color: var(--sub); }
-.wk__sum-cnt b { font-size: 15px; color: var(--primary); }
+/* 진행중 / 완료됨 탭 */
 .wk__tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 10px; background: var(--el); border: 1px solid var(--soft); }
 .wk__tabs button { height: 40px; border-radius: 7px; font-size: 14px; font-weight: 500; color: var(--sub); }
 .wk__tabs button.is-on { background: var(--panel); color: var(--text); font-weight: 700; box-shadow: 0 1px 0 var(--line); }
@@ -54,7 +31,15 @@
 .wl__body { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--soft); }
 .wl__sub { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; font-size: 13px; color: var(--sub); }
 .wl__sub-acts { display: inline-flex; align-items: center; gap: 10px; }
-.wl__map { font-size: 13px; font-weight: 700; color: var(--primary); }
+/* 지도로 경로 확인하기 : 리스트 폭 가득, 크게 */
+.wl__map {
+  width: 100%; height: 48px; margin: 10px 0 6px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: rgba(68, 142, 222, 0.14); border: 1px solid rgba(68, 142, 222, 0.45);
+  font-size: 15px; font-weight: 700; color: var(--primary);
+}
+.wl__map:active { background: rgba(68, 142, 222, 0.24); }
+.wl__map span { font-size: 18px; line-height: 1; }
 .wl__edit {
   flex: none; height: 30px; padding: 0 12px; border-radius: 6px;
   background: var(--el); border: 1px solid var(--line);

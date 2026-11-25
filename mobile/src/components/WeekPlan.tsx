@@ -1,14 +1,13 @@
-// 홈 : 이번 주 주간 달력 + 고른 날(처음엔 오늘)의 현장확인 리스트를 진행중 / 완료됨 으로 나눠 진행 상황을 보여 준다
-//   주간 칸 = 확인 탭 달력과 같은 survey_schedule (api/mobile/schedule.do)
+// 홈 : 오늘의 현장확인 리스트를 진행중 / 완료됨 으로 나눠 진행 상황을 보여 준다 (오늘 진행 상태 숫자는 홈 상단 카드)
 //   리스트 항목 = api/mobile/schedule/day.do (건물 취약점 · 가구 취약점 포함)
 //   리스트 카드를 펼치면 동선 순서 + 수정 모드 (순서 바꾸기 · 빼기 · 보관함에서 넣기)
 //   완료 기준 : 그날 확인 기록이 있는 건물 (recordId). 리스트 안 건물을 다 기록하면 완료됨 탭으로 간다
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/AppStore';
-import { DragHandle, IconCheck16, IconDown, IconSearch, IconUp } from './icons';
+import { DragHandle, IconCheck16, IconDown, IconRoute16, IconSearch, IconUp } from './icons';
 import { Btn, Modal, StatusBadge } from './ui';
-import { STATUS_CLASS, WEEKDAYS, dayRows, fromYmd, listsOfDay, weekOf, ymd, type DayList } from '../lib/schedule';
+import { STATUS_CLASS, dayRows, fromYmd, listsOfDay, ymd, type DayList } from '../lib/schedule';
 import type { ScheduleItem, VisitStatus, WorkStatus } from '../data/types';
 import './WeekPlan.css';
 
@@ -29,26 +28,16 @@ export default function WeekPlan() {
   const { state, act } = useStore();
   const navigate = useNavigate();
   const today = ymd(new Date());
-  const week = useMemo(() => weekOf(fromYmd(today)), [today]);
-  const [selected, setSelected] = useState(today);
+  const selected = today;                                          // 주간 달력 없이 오늘만
   const [tab, setTab] = useState<'doing' | 'done'>('doing');
   const [openId, setOpenId] = useState<string | null>(null);        // 펼친 리스트 (groupId, null = 아직 안 정함)
   const [editing, setEditing] = useState<string | null>(null);      // 수정 중인 리스트 (groupId)
   const [adding, setAdding] = useState<DayList | null>(null);       // + 로 연 건물 추가 창
   const [deleting, setDeleting] = useState<{ list: DayList; item: ScheduleItem } | null>(null);
 
-  useEffect(() => { act.loadSchedule(week.key, week.start, week.end); }, [act, week, state.mode]);
   useEffect(() => { act.loadDay(selected); setEditing(null); setOpenId(null); setTab('doing'); }, [act, selected, state.mode]);
 
   const dayItems = state.days[selected];
-
-  // 주간 칸 : 날짜별 건물 수 (고른 날은 수정한 결과가 바로 보이게 그날 목록 수로)
-  const counts = useMemo(() => {
-    const m: Record<string, number> = {};
-    for (const it of state.schedule[week.key] ?? []) m[it.date] = (m[it.date] ?? 0) + 1;
-    if (dayItems) m[selected] = dayItems.length;
-    return m;
-  }, [state.schedule, week.key, dayItems, selected]);
 
   // 건물별 그날 상태 (완료 · 다음 · 예정 · 재방문 · 부재 · 종료 · 자원 연결) : 확인 탭 달력과 같은 규칙
   const visit = useMemo(() => {
@@ -64,46 +53,23 @@ export default function WeekPlan() {
   const doingLists = lists.filter((x) => !x.done);
   const doneLists = lists.filter((x) => x.done);
   const shown = tab === 'doing' ? doingLists : doneLists;
-  const dayTotal = dayItems?.length ?? 0;
-  const dayVisited = lists.reduce((n, x) => n + x.visited, 0);
 
   // 처음에는 보이는 탭의 첫 리스트를 펼쳐 둔다
   const firstId = shown[0]?.list.groupId;
   useEffect(() => { if (openId === null && firstId) setOpenId(firstId); }, [openId, firstId]);
 
-  // 줄을 누르면 (수정 모드가 아닐 때) : 기록이 있으면 결과, 없으면 현장 기록 — 확인 탭 달력과 같음
+  // 줄을 누르면 (수정 모드가 아닐 때) : 바로 현장 기록 화면으로. 기록 화면의 '이전'은 홈으로 돌아온다 (from=home)
+  //   이미 기록한 결과는 확인 탭 → 확인 결과에서 본다
   const openRow = (it: ScheduleItem) => {
     if (!state.buildings[it.bldId]) return;
-    navigate(it.recordId != null ? `/result/${it.bldId}` : `/record/${it.bldId}?group=${it.groupId}`);
+    navigate(`/record/${it.bldId}?group=${it.groupId}&from=home`);
   };
 
   const sel = fromYmd(selected);
-  const selLabel = `${sel.getMonth() + 1}월 ${sel.getDate()}일${selected === today ? ' (오늘)' : ''}`;
 
   return (
     <section className="wk">
-      <h2 className="wk__heading">이번 주 일정</h2>
-      <div className="wk__strip" role="tablist" aria-label="이번 주">
-        {week.days.map((d, i) => {
-          const key = ymd(d);
-          const n = counts[key] ?? 0;
-          const cls = ['wk__day', i === 0 && 'is-sun', i === 6 && 'is-sat', key === today && 'is-today', key === selected && 'is-sel'].filter(Boolean).join(' ');
-          return (
-            <button key={key} role="tab" aria-selected={key === selected} className={cls} onClick={() => setSelected(key)}
-              aria-label={`${d.getMonth() + 1}월 ${d.getDate()}일${n ? `, 현장방문 ${n}곳` : ''}`}>
-              <span className="wk__wd">{WEEKDAYS[i]}</span>
-              <span className="wk__num">{d.getDate()}</span>
-              <span className="wk__cnt">{n ? `${n}곳` : ''}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 고른 날의 진행 상황 : 방문한 곳 / 전체 + 진행중 · 완료됨 탭 */}
-      <div className="wk__sum">
-        <span className="wk__sum-day">{selLabel}</span>
-        {dayItems && dayTotal > 0 && <span className="wk__sum-cnt"><b>{dayVisited}</b> / {dayTotal}곳 확인</span>}
-      </div>
+      <h2 className="wk__heading">오늘의 현장확인 리스트</h2>
       <div className="wk__tabs" role="tablist" aria-label="리스트 진행 상황">
         <button role="tab" aria-selected={tab === 'doing'} className={tab === 'doing' ? 'is-on' : ''} onClick={() => setTab('doing')}>
           진행중 {doingLists.length}
@@ -115,9 +81,9 @@ export default function WeekPlan() {
 
       <div className="wk__lists">
         {dayItems === undefined && <p className="wk__empty">불러오는 중…</p>}
-        {dayItems && lists.length === 0 && <p className="wk__empty">이 날 나가기로 한 현장확인 리스트가 없어요.</p>}
+        {dayItems && lists.length === 0 && <p className="wk__empty">오늘 나가기로 한 현장확인 리스트가 없어요.</p>}
         {dayItems && lists.length > 0 && shown.length === 0 && (
-          <p className="wk__empty">{tab === 'doing' ? '이 날 리스트는 모두 확인했어요.' : '이 날 다 확인한 리스트가 아직 없어요.'}</p>
+          <p className="wk__empty">{tab === 'doing' ? '오늘 리스트는 모두 확인했어요.' : '오늘 다 확인한 리스트가 아직 없어요.'}</p>
         )}
         {shown.map((x) => (
           <ListBlock
@@ -221,10 +187,14 @@ function ListBlock({ list, visited, dateLabel, visit, open, onToggleOpen, editin
           <div className="wl__sub">
             <span>동선 순서</span>
             <span className="wl__sub-acts">
-              {onMap && !editing && <button className="wl__map" onClick={onMap}>지도에서 보기 ›</button>}
               <button className="wl__edit" onClick={onToggleEdit}>{editing ? '완료' : '수정'}</button>
             </span>
           </div>
+          {onMap && !editing && (
+            <button className="wl__map" onClick={onMap}>
+              <IconRoute16 color="currentColor" /> 지도로 경로 확인하기 <span aria-hidden>›</span>
+            </button>
+          )}
 
           <ol className="wl__rows" ref={listRef}>
             {list.items.map((it, i) => {

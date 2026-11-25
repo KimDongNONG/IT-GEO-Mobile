@@ -1,20 +1,13 @@
-// M1 홈 : 인사 · 전체 현장 확인(접고 펼치는 카드) · 이번 주 일정 + 고른 날의 진행중 / 완료됨 리스트(components/WeekPlan.tsx)
+// M1 홈 : 인사 · 오늘 현장업무 진행 상태(접고 펼치는 카드) · 오늘의 진행중 / 완료됨 리스트(components/WeekPlan.tsx)
 import { useEffect, useMemo, useState } from 'react';
-import type { Building, WorkStatus } from '../data/types';
 import { useStore } from '../store/AppStore';
 import { IconDown, IconUp } from '../components/icons';
 import { TabBar } from '../components/ui';
 import WeekPlan from '../components/WeekPlan';
-import { WEEKDAYS, fromYmd, weekOf, ymd } from '../lib/schedule';
+import { WEEKDAYS, listsOfDay, ymd } from '../lib/schedule';
 import './Home.css';
 
-const STATUS_OPEN_KEY = 'itgeo.mobile.home.statusOpen';   // 전체 현장 확인 카드를 펼쳐 두었는지 (폰에만 저장)
-
-function groupStatus(bs: Building[]): WorkStatus {
-  if (bs.length && bs.every((b) => b.status === 'done')) return 'done';
-  if (bs.some((b) => b.status !== 'before')) return 'doing';
-  return 'before';
-}
+const STATUS_OPEN_KEY = 'itgeo.mobile.home.statusOpen';   // 오늘 현장업무 카드를 펼쳐 두었는지 (폰에만 저장)
 
 export default function Home() {
   const { state, act } = useStore();
@@ -22,21 +15,18 @@ export default function Home() {
 
   const now = new Date();
   const today = ymd(now);
-  const week = useMemo(() => weekOf(fromYmd(today)), [today]);
 
-  // 리스트별 건물 · 상태 (전체 현장 확인 카드의 통계)
-  const groups = useMemo(() => state.groups.map((g) => {
-    const bs = g.buildingIds.map((id) => state.buildings[id]).filter(Boolean);
-    const size = bs.length || g.size || 0;
-    const done = bs.filter((b) => b.status === 'done').length;
-    return { g, bs, size, done, status: groupStatus(bs) };
-  }), [state.groups, state.buildings]);
-
-  const total = groups.reduce((n, x) => n + x.size, 0);
-  const done = groups.reduce((n, x) => n + x.done, 0);
-  const doingLists = groups.filter((x) => x.status !== 'done');
-  // 오늘 방문 = 이번 주 일정(WeekPlan 이 불러옴) 중 오늘 날짜에 넣은 건물 수
-  const todayVisit = (state.schedule[week.key] ?? []).filter((it) => it.date === today).length;
+  // 오늘 현장업무 = 오늘 날짜에 나가기로 한 현장확인 리스트 (WeekPlan 이 api/mobile/schedule/day.do 로 불러옴)
+  //   확인 = 오늘 확인 기록이 있는 건물 (recordId). 리스트 안 건물을 다 기록하면 완료 리스트
+  const dayItems = state.days[today];
+  const todayStat = useMemo(() => {
+    const items = dayItems ?? [];
+    const lists = listsOfDay(items);
+    const doneLists = lists.filter((l) => l.items.length > 0 && l.items.every((it) => it.recordId != null)).length;
+    return { total: items.length, done: items.filter((it) => it.recordId != null).length, lists: lists.length, doneLists };
+  }, [dayItems]);
+  const { total, done } = todayStat;
+  const doingLists = todayStat.lists - todayStat.doneLists;
 
   const [statusOpen, setStatusOpen] = useState(() => {
     try { return localStorage.getItem(STATUS_OPEN_KEY) !== '0'; } catch { return true; }
@@ -59,30 +49,32 @@ export default function Home() {
         <h1 className="home__hello">안녕하세요, {state.member?.name ?? ''} 님</h1>
       </div>
 
-      {/* 전체 현장 확인 : 머리 줄을 누르면 접고 펼친다 */}
+      {/* 오늘 현장업무 진행 상태 : 머리 줄을 누르면 접고 펼친다 */}
       <section className={`hstat ${statusOpen ? 'is-open' : ''}`}>
         <button className="hstat__head" onClick={toggleStatus} aria-expanded={statusOpen}>
-          <span className="hstat__title">전체 현장 확인</span>
-          {!statusOpen && <span className="hstat__mini"><b>{done}</b> / {total}동</span>}
-          <span className="hstat__badge">진행중 리스트 {doingLists.length}개</span>
+          <span className="hstat__title">오늘 현장업무</span>
+          {!statusOpen && <span className="hstat__mini"><b>{done}</b> / {total}곳</span>}
+          <span className="hstat__badge">진행중 리스트 {doingLists}개</span>
           {statusOpen ? <IconUp /> : <IconDown />}
         </button>
         {statusOpen && (
           <div className="hstat__body">
-            <p className="hstat__big"><b>{done}</b> / {total}동 완료</p>
+            {dayItems === undefined ? <p className="hstat__big">불러오는 중…</p>
+              : total === 0 ? <p className="hstat__big">오늘 나가기로 한 현장이 없어요</p>
+              : <p className="hstat__big"><b>{done}</b> / {total}곳 확인 완료</p>}
             <div className="hstat__bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
               <i style={{ width: `${pct}%` }} />
             </div>
             <dl className="hstat__nums">
-              <div><dt>남은 건물</dt><dd>{total - done}동</dd></div>
-              <div><dt>확인 완료</dt><dd>{done}동</dd></div>
-              <div><dt>오늘 방문</dt><dd>{todayVisit}동</dd></div>
+              <div><dt>남은 곳</dt><dd>{total - done}곳</dd></div>
+              <div><dt>확인 완료</dt><dd>{done}곳</dd></div>
+              <div><dt>완료 리스트</dt><dd>{todayStat.doneLists} / {todayStat.lists}개</dd></div>
             </dl>
           </div>
         )}
       </section>
 
-      {/* 이번 주 일정 + 바로 아래 고른 날(처음엔 오늘)의 진행중 / 완료됨 리스트 (펼치면 순서 · 빼기 · 넣기 수정) */}
+      {/* 오늘의 진행중 / 완료됨 리스트 (펼치면 순서 · 빼기 · 넣기 수정) */}
       <WeekPlan />
 
       <TabBar />

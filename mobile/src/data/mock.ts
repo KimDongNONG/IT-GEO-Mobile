@@ -88,6 +88,10 @@ export const ARCHIVE: ArchiveItem[] = [
 ];
 export const ARCHIVE_COUNTS = { all: 25, new: 16, doing: 6, done: 3 };
 
+/** 시연용 현장 사진 (그림 대신 색 칸 + 이름) */
+const demoPhoto = (label: string, c1: string, c2: string) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs><rect width="640" height="480" fill="url(#g)"/><text x="320" y="255" font-size="44" font-family="sans-serif" fill="#fff" text-anchor="middle">시연 사진 · ${label}</text></svg>`);
+
 export const RECORDS: FieldRecord[] = [
   {
     buildingId: 'b-12-34',
@@ -95,7 +99,7 @@ export const RECORDS: FieldRecord[] = [
     resident: '주의',
     supports: ['집 수리', '돌봄 연계'],
     memo: '반지하 창문 있음 · 옥탑 증축 없음 · 고시원 간판 없음 · 침수 흔적 있음 · 우편함 8개',
-    photos: [],
+    photos: [demoPhoto('외관', '#3a4a5e', '#1f2a36'), demoPhoto('반지하 창문', '#4a3f5e', '#241f36'), demoPhoto('우편함', '#3f5e4f', '#1f362b')],
     factorChecks: { '지하층': true, '침수 흔적 구역': true, '노후': true, '에너지 급감': null },
     savedAt: DONE_AT['b-12-34'].saved,
     author: '김구로',

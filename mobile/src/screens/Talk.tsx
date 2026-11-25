@@ -1,138 +1,202 @@
-// M7 현장 소통지원: 주민과 짧게 이야기할 때 쓰는 보조 도구 (대화 내용은 저장하지 않음)
-import { useState } from 'react';
+// M7 소통지원 : 주민과 짧게 이야기할 때 쓰는 도구 (대화 내용은 저장하지 않음)
+//   맨 위 고정 = 노란 안내 '대화 내용은 저장하지 않습니다.'
+//   번역 탭 : 다국어 안내 카드 → 문장 입력(언어 · 바꾸기 · 0 / 450 · 음성 입력 · 번역하기) → 번역 결과(스피커로 들려주기)
+//             → 자주 쓰는 현장 표현 (누르면 번역 결과로, 스피커로 바로 들려주기)
+//   큰 글씨 탭 : 작성 칸에 바로 큰 글씨로 쓴다. 칸 위 버튼으로 보통 · 크게 · 더 크게 · 매우 크게
+import { useEffect, useRef, useState } from 'react';
 import { Screen, TabBar } from '../components/ui';
+import { useStore } from '../store/AppStore';
+import { IconDown } from '../components/icons';
+import { canDictate, startDictation, type Dictation } from '../lib/speech';
+import { ALL, INTRO, LANGS, PHRASES, canTranslateOnDevice, langName, papagoCode, papagoUrl, speak, speechCode, translate, type Any, type Lang } from '../lib/talk';
 import './Talk.css';
 
-type Lang = 'zh' | 'vi' | 'en';
-const LANGS: { key: Lang; label: string; name: string; papago: string }[] = [
-  { key: 'zh', label: '中文', name: '중국어(간체)', papago: 'zh-CN' },
-  { key: 'vi', label: 'Tiếng Việt', name: '베트남어', papago: 'vi' },
-  { key: 'en', label: 'English', name: '영어', papago: 'en' },
-];
+const MAX = 450;
+const SIZES = [{ key: 'm', label: '보통', px: 22 }, { key: 'l', label: '크게', px: 30 }, { key: 'xl', label: '더 크게', px: 40 }, { key: 'xxl', label: '매우 크게', px: 54 }] as const;
+type SizeKey = (typeof SIZES)[number]['key'];
+const SIZE_KEY = 'itgeo.mobile.talk.size';
 
-const INTRO = {
-  ko: '구청에서 건물 상태를 확인하러 왔습니다. 이름이나 개인정보는 묻지 않습니다.',
-  zh: '我们是区政府职员，来确认建筑状况。不会询问个人信息。',
-  vi: 'Chúng tôi đến từ văn phòng quận để kiểm tra tình trạng tòa nhà. Chúng tôi sẽ không hỏi tên hay thông tin cá nhân.',
-  en: 'We are from the district office to check the building condition. We will not ask for your name or personal information.',
-};
-
-const PHRASES: Record<'ko' | Lang, string>[] = [
-  { ko: '집 안에 물이 샌 적이 있나요?', zh: '家里漏过水吗？', vi: 'Nhà bạn đã từng bị dột nước chưa?', en: 'Has water ever leaked inside your home?' },
-  { ko: '혼자 사시나요?', zh: '您一个人住吗？', vi: 'Bạn sống một mình phải không?', en: 'Do you live alone?' },
-  { ko: '도움이 필요하면 구청으로 연락 주세요.', zh: '如需帮助，请联系区政府。', vi: 'Nếu cần giúp đỡ, hãy liên hệ văn phòng quận.', en: 'Please contact the district office if you need help.' },
-  { ko: '사진을 찍어도 될까요? 얼굴은 찍지 않습니다.', zh: '可以拍照吗？不会拍脸。', vi: 'Tôi có thể chụp ảnh không? Tôi sẽ không chụp mặt.', en: 'May I take a photo? I will not photograph faces.' },
-];
+const IcoSpeaker = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M11 5 6 9H3v6h3l5 4V5Z" /><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" />
+  </svg>
+);
 
 export default function Talk() {
-  const [mode, setMode] = useState<'input' | 'phrase' | 'large'>('input');
+  const { state, act } = useStore();
+  const [mode, setMode] = useState<'tr' | 'large'>('tr');
   const [lang, setLang] = useState<Lang>('zh');
-  const [from, setFrom] = useState<'ko' | Lang>('ko');
-  const [to, setTo] = useState<'ko' | Lang>('zh');
+  const [more, setMore] = useState(false);
+  const [from, setFrom] = useState<Any>('ko');
+  const [to, setTo] = useState<Any>('zh');
   const [text, setText] = useState('');
-  const [large, setLarge] = useState<string | null>(null);
+  const [out, setOut] = useState<{ text: string; lang: Any } | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [noTr, setNoTr] = useState(false);          // 브라우저 : 사전에 없는 문장 → 파파고 안내
+  const [big, setBig] = useState('');
+  const [size, setSize] = useState<SizeKey>(() => { try { return (localStorage.getItem(SIZE_KEY) as SizeKey) || 'l'; } catch { return 'l'; } });
+  const [listening, setListening] = useState(false);
+  const dict = useRef<Dictation | null>(null);
+  useEffect(() => () => { dict.current?.stop(); }, []);
+  useEffect(() => { try { localStorage.setItem(SIZE_KEY, size); } catch { /* 무시 */ } }, [size]);
 
-  const langName = (l: 'ko' | Lang) => (l === 'ko' ? '한국어' : LANGS.find((x) => x.key === l)!.name);
-  const papagoCode = (l: 'ko' | Lang) => (l === 'ko' ? 'ko' : LANGS.find((x) => x.key === l)!.papago);
-  const translate = () => {
-    if (!text.trim()) return;
-    const url = `https://papago.naver.com/?sk=${papagoCode(from)}&tk=${papagoCode(to)}&st=${encodeURIComponent(text.trim())}`;
-    window.open(url, '_blank', 'noopener');
+  const say = (s: string, l: Any) => speak(s, l).catch((e) => act.toast(e instanceof Error ? e.message : '읽어주지 못했어요.'));
+  const doTranslate = async () => {
+    if (!text.trim()) { act.toast('번역할 내용을 입력해 주세요.'); return; }
+    setBusy('번역하는 중…'); setNoTr(false);
+    try {
+      const r = await translate(text, from, to, () => setBusy('번역 모델을 내려받는 중… (언어마다 처음 한 번)'));
+      if (r == null) { setOut(null); setNoTr(true); } else setOut({ text: r, lang: to });
+    } catch {
+      act.toast('번역하지 못했어요. 인터넷 연결을 확인해 주세요. (처음에는 번역 모델을 내려받아야 해요)');
+    } finally { setBusy(null); }
   };
-  const speak = (s: string, l: 'ko' | Lang) => {
-    if (!('speechSynthesis' in window)) return;
-    const u = new SpeechSynthesisUtterance(s);
-    u.lang = { ko: 'ko-KR', zh: 'zh-CN', vi: 'vi-VN', en: 'en-US' }[l];
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
+  const mic = async () => {
+    if (listening) { await dict.current?.stop(); dict.current = null; setListening(false); return; }
+    if (!canDictate()) { act.toast('이 기기에서는 음성 입력을 쓸 수 없어요. 키보드의 마이크를 써 주세요.'); return; }
+    try {
+      dict.current = await startDictation(speechCode(from), {
+        onFinal: (t) => setText((x) => `${x}${x && !x.endsWith(' ') ? ' ' : ''}${t}`.slice(0, MAX)),
+        onEnd: () => setListening(false),
+        onError: (m) => act.toast(m),
+      });
+      setListening(true);
+    } catch (e) { act.toast(e instanceof Error ? e.message : '음성 입력을 시작하지 못했어요.'); }
   };
+  const pickPhrase = (p: Record<Any, string>) => {
+    setFrom('ko'); setTo(lang); setText(p.ko); setNoTr(false); setOut({ text: p[lang], lang });
+    say(p[lang], lang);
+  };
+  const toLarge = (s: string) => { setBig(s); setMode('large'); window.scrollTo({ top: 0 }); };
+  const chips = LANGS.filter((l) => !l.more || more || l.key === lang);
+  const px = SIZES.find((s) => s.key === size)!.px;
 
   return (
-    <Screen title="현장 소통지원" back right={<span className="badge badge--plain talk__demo">시연</span>} className="talk">
-      <p className="talk__desc">주민과 짧게 이야기해야 할 때 쓰는 보조 도구입니다.</p>
-      <p className="talk__lock">🔒 대화 내용은 저장하지 않습니다</p>
+    <Screen title="소통지원" right={state.mode === 'server' ? undefined : <span className="talk__demo">시연</span>} className="talk">
+      <p className="talk__lock" role="note">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+        대화 내용은 저장하지 않습니다.
+      </p>
 
       <div className="talk__modes" role="tablist">
-        {([['input', '입력 번역'], ['phrase', '현장 표현'], ['large', '큰 글씨']] as const).map(([k, l]) => (
+        {([['tr', '번역 · 현장 표현'], ['large', '큰 글씨']] as const).map(([k, l]) => (
           <button key={k} role="tab" aria-selected={mode === k} className={mode === k ? 'is-on' : ''} onClick={() => setMode(k)}>{l}</button>
         ))}
       </div>
 
-      <section className="card talk__card">
-        <div className="talk__card-head">
-          <h2>다국어 안내 카드</h2>
-          <button className="talk__show" onClick={() => setLarge(INTRO[lang])}>보여주기</button>
-        </div>
-        <div className="talk__intro">
-          <p>{INTRO.ko}</p>
-          <p className="talk__intro-tr">{INTRO[lang]}</p>
-        </div>
-        <div className="talk__langs">
-          {LANGS.map((l) => (
-            <button key={l.key} className={lang === l.key ? 'is-on' : ''} onClick={() => setLang(l.key)}>{l.label}</button>
-          ))}
-        </div>
-      </section>
+      {mode === 'tr' && (
+        <>
+          <section className="card talk__card">
+            <div className="talk__card-head">
+              <h2>다국어 안내 카드</h2>
+              <button className="talk__icon" onClick={() => say(INTRO[lang], lang)} aria-label="안내 문장 들려주기"><IcoSpeaker /></button>
+            </div>
+            <p className="talk__intro-ko">{INTRO.ko}</p>
+            <p className="talk__intro-tr" lang={papagoCode(lang)}>{INTRO[lang]}</p>
+            <div className="talk__langs">
+              {chips.map((l) => (
+                <button key={l.key} className={lang === l.key ? 'is-on' : ''} onClick={() => { setLang(l.key); if (from === 'ko') setTo(l.key); }}>{l.label}</button>
+              ))}
+              <button className="talk__more" aria-expanded={more} onClick={() => setMore((v) => !v)}>{more ? '접기' : '더보기'}</button>
+            </div>
+            <button className="talk__link" onClick={() => toLarge(INTRO[lang])}>큰 글씨 탭에서 보여주기 ›</button>
+          </section>
 
-      {mode === 'input' && (
-        <section className="card talk__card">
-          <h2 className="talk__h">문장 직접 입력 · 번역</h2>
-          <div className="talk__pair">
-            <select value={from} onChange={(e) => setFrom(e.target.value as 'ko' | Lang)} aria-label="원문 언어">
-              {(['ko', 'zh', 'vi', 'en'] as const).map((l) => <option key={l} value={l}>{langName(l)}</option>)}
-            </select>
-            <button className="talk__swap" onClick={() => { setFrom(to); setTo(from); }} aria-label="언어 바꾸기">⇄</button>
-            <select value={to} onChange={(e) => setTo(e.target.value as 'ko' | Lang)} aria-label="번역 언어">
-              {(['ko', 'zh', 'vi', 'en'] as const).map((l) => <option key={l} value={l}>{langName(l)}</option>)}
-            </select>
-          </div>
-          <textarea className="talk__input" maxLength={450} value={text} onChange={(e) => setText(e.target.value)} placeholder="번역할 내용 (최대 450자)" />
-          <button className="talk__go" onClick={translate}>번역하기</button>
-          <p className="talk__tools">
-            결과:{' '}
-            <button onClick={() => navigator.clipboard?.writeText(text)}>복사</button> ·{' '}
-            <button onClick={() => speak(text, from)}>읽어주기</button> ·{' '}
-            <button onClick={() => text && setLarge(text)}>큰 글씨</button> ·{' '}
-            <button onClick={translate}>외부 번역 ↗</button>
-          </p>
-        </section>
-      )}
-
-      {mode === 'phrase' && (
-        <section className="card talk__card">
-          <h2 className="talk__h">자주 쓰는 현장 표현</h2>
-          <ul className="talk__phrases">
-            {PHRASES.map((p) => (
-              <li key={p.ko}>
-                <button onClick={() => setLarge(p[lang])}>
-                  <span>{p.ko}</span>
-                  <span className="talk__intro-tr">{p[lang]}</span>
+          <section className="card talk__card">
+            <h2 className="talk__h">문장 번역</h2>
+            <div className="talk__pair">
+              <label className="talk__select">
+                <select value={from} onChange={(e) => setFrom(e.target.value as Any)} aria-label="원문 언어">
+                  {ALL.map((l) => <option key={l} value={l}>{langName(l)}</option>)}
+                </select>
+                <IconDown />
+              </label>
+              <button className="talk__swap" onClick={() => { setFrom(to); setTo(from); if (out) { setText(out.text); setOut(null); } }} aria-label="언어 바꾸기">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 8h15l-4-4M20 16H5l4 4" /></svg>
+              </button>
+              <label className="talk__select">
+                <select value={to} onChange={(e) => setTo(e.target.value as Any)} aria-label="번역 언어">
+                  {ALL.map((l) => <option key={l} value={l}>{langName(l)}</option>)}
+                </select>
+                <IconDown />
+              </label>
+            </div>
+            <div className="talk__box">
+              <textarea className="talk__input" maxLength={MAX} value={text} onChange={(e) => { setText(e.target.value); setNoTr(false); }} placeholder="번역할 내용을 입력하세요" aria-label="번역할 내용" />
+              <div className="talk__box-foot">
+                <span>{text.length} / {MAX}</span>
+                <button className={`talk__mic ${listening ? 'is-on' : ''}`} onClick={mic} aria-label={listening ? '음성 입력 멈추기' : '음성으로 입력'} aria-pressed={listening}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 17v5" /></svg>
                 </button>
-                <button className="talk__speak" onClick={() => speak(p[lang], lang)} aria-label="읽어주기">🔊</button>
-              </li>
-            ))}
-          </ul>
-        </section>
+              </div>
+            </div>
+            <button className="talk__go" onClick={doTranslate} disabled={!!busy}>{busy ?? '번역하기'}</button>
+
+            {out && (
+              <div className="talk__out" aria-live="polite">
+                <div className="talk__out-head">
+                  <span>{langName(out.lang)}</span>
+                  <button className="talk__icon talk__icon--big" onClick={() => say(out.text, out.lang)} aria-label="번역한 내용 들려주기"><IcoSpeaker /></button>
+                </div>
+                <p lang={papagoCode(out.lang)}>{out.text}</p>
+                <div className="talk__tools">
+                  <button onClick={() => { navigator.clipboard?.writeText(out.text); act.toast('복사했어요.'); }}>복사</button>
+                  <button onClick={() => toLarge(out.text)}>큰 글씨로</button>
+                </div>
+              </div>
+            )}
+            {noTr && (
+              <div className="talk__out talk__out--none">
+                <p>이 화면(브라우저)에서는 현장 표현에 있는 문장만 바로 번역돼요. 앱에서는 기기 안에서 번역하고 스피커로 들려줘요.</p>
+                <button onClick={() => window.open(papagoUrl(from, to, text), '_blank', 'noopener')}>파파고에서 번역하기 ↗</button>
+              </div>
+            )}
+          </section>
+
+          <section className="card talk__card">
+            <h2 className="talk__h">자주 쓰는 현장 표현 <small>{LANGS.find((l) => l.key === lang)!.name}</small></h2>
+            <ul className="talk__phrases">
+              {PHRASES.map((p) => (
+                <li key={p.ko}>
+                  <button onClick={() => pickPhrase(p)}>
+                    <span>{p.ko}</span>
+                    <span className="talk__phrase-tr" lang={papagoCode(lang)}>{p[lang]}</span>
+                  </button>
+                  <button className="talk__icon" onClick={() => say(p[lang], lang)} aria-label="들려주기"><IcoSpeaker /></button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
       )}
 
       {mode === 'large' && (
         <section className="card talk__card">
-          <h2 className="talk__h">큰 글씨로 보여주기</h2>
-          <textarea className="talk__input" value={text} onChange={(e) => setText(e.target.value)} placeholder="주민에게 보여줄 문장" />
-          <button className="talk__go" onClick={() => text && setLarge(text)}>크게 보기</button>
+          <h2 className="talk__h">큰 글씨로 쓰기</h2>
+          <div className="talk__sizes" role="radiogroup" aria-label="글씨 크기">
+            {SIZES.map((s) => (
+              <button key={s.key} role="radio" aria-checked={size === s.key} className={size === s.key ? 'is-on' : ''} onClick={() => setSize(s.key)}>{s.label}</button>
+            ))}
+          </div>
+          <textarea
+            className="talk__big"
+            style={{ fontSize: px }}
+            maxLength={MAX}
+            value={big}
+            onChange={(e) => setBig(e.target.value)}
+            placeholder="주민에게 보여줄 문장을 쓰세요"
+            aria-label="큰 글씨로 쓰기"
+          />
+          <div className="talk__big-foot">
+            <span>{big.length} / {MAX}</span>
+            <button onClick={() => setBig('')} disabled={!big}>지우기</button>
+          </div>
         </section>
       )}
 
       <p className="talk__notice">
-        이름·주소·연락처 등 개인정보는 입력하지 마세요. 외부 번역 서버로 전송되며 저장하지 않습니다. 전문 통역·수어통역을 대체하지 않습니다.
+        이름·주소·연락처 등 개인정보는 입력하지 마세요. {canTranslateOnDevice() ? '번역은 기기 안에서 하고' : '번역은 외부 번역 화면에서 열리며'} 이 앱은 대화 내용을 저장하지 않습니다. 전문 통역·수어통역을 대체하지 않습니다.
       </p>
-
-      {large && (
-        <button className="talk__large" onClick={() => setLarge(null)} aria-label="닫기">
-          <span>{large}</span>
-          <small>화면을 누르면 닫혀요</small>
-        </button>
-      )}
       <TabBar />
     </Screen>
   );
