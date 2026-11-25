@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../store/AppStore';
+import { usePullRefresh } from '../lib/pullRefresh';
 import { Btn, Screen, TabBar } from '../components/ui';
 import ServerPhoto from '../components/ServerPhoto';
 import { IconCheck16, IconImage, IconMore, IconShare } from '../components/icons';
@@ -24,6 +25,7 @@ export default function Result() {
   const strip = useRef<HTMLDivElement>(null);
   // 웹에서 새로 남긴 기록까지 최신으로
   useEffect(() => { act.loadBuilding(buildingId).catch(() => undefined); }, [buildingId, act]);
+  usePullRefresh(() => act.loadBuilding(buildingId).catch(() => undefined));
 
   if (!b || !rec) {
     return (

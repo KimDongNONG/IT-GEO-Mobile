@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/AppStore';
+import { usePullRefresh } from '../lib/pullRefresh';
 import { DragHandle, IconCheck16, IconDown, IconSearch, IconUp } from './icons';
 import { Btn, Modal, StatusBadge } from './ui';
 import { STATUS_CLASS, WEEKDAYS, dayRows, fromYmd, listsOfDay, weekOf, ymd, type DayList } from '../lib/schedule';
@@ -39,6 +40,9 @@ export default function WeekPlan() {
 
   useEffect(() => { act.loadSchedule(week.key, week.start, week.end); }, [act, week, state.mode]);
   useEffect(() => { act.loadDay(selected); setEditing(null); setOpenId(null); setTab('doing'); }, [act, selected, state.mode]);
+
+  // 당겨서 새로고침 : 이번 주 일정 + 고른 날 목록 다시 읽기
+  usePullRefresh(() => Promise.all([act.loadSchedule(week.key, week.start, week.end), act.loadDay(selected)]));
 
   const dayItems = state.days[selected];
 
