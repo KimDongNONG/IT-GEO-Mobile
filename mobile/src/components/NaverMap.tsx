@@ -3,6 +3,7 @@
 // 키가 없거나 SDK 를 못 불러오면 fallback(도식 지도)을 그대로 보여 줘요.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { FIG } from './figma';
 import { walkPath, type WalkPathTO } from '../api/itgeo';
 import './NaverMap.css';
 
@@ -116,16 +117,16 @@ export default function NaverMap({
 
     if (path && path.length > 1) {
       const p = path.map(([lng, lat]) => LL(lat, lng));
-      overlays.current.push(new naver.maps.Polyline({ map: m, path: p, strokeColor: '#0B0B0C', strokeWeight: 9, strokeOpacity: 0.9, strokeLineCap: 'round', strokeLineJoin: 'round' }));
-      overlays.current.push(new naver.maps.Polyline({ map: m, path: p, strokeColor: '#448EDE', strokeWeight: 5, strokeLineCap: 'round', strokeLineJoin: 'round' }));
+      overlays.current.push(new naver.maps.Polyline({ map: m, path: p, strokeColor: '#FFFFFF', strokeWeight: 9, strokeOpacity: 0.9, strokeLineCap: 'round', strokeLineJoin: 'round' }));
+      overlays.current.push(new naver.maps.Polyline({ map: m, path: p, strokeColor: '#1F4F9A', strokeWeight: 5, strokeLineCap: 'round', strokeLineJoin: 'round' }));
     }
     for (const s of stops) {
       const kind = s.id === selectedId ? 'sel' : s.kind ?? 'plain';
-      const inner = kind === 'done' ? '✓' : kind === 'start' ? '출발' : String(s.num ?? '');
+      const inner = kind === 'done' ? `<img src="${FIG.checkWhite16}" width="16" height="16" alt="" />` : kind === 'start' ? '출발' : String(s.num ?? '');
       const label = kind === 'sel' && s.label ? `<span class="nvpin__label">${escapeHtml(s.label)}</span>` : '';
       overlays.current.push(new naver.maps.Marker({
         map: m, position: LL(s.lat, s.lng), zIndex: kind === 'sel' ? 100 : 10,
-        icon: { content: `<div class="nvpin nvpin--${kind}">${kind === 'sel' ? '<span class="nvpin__halo"></span>' : ''}<span class="nvpin__dot">${inner}</span>${label}</div>`, anchor: new naver.maps.Point(16, 16) },
+        icon: { content: `<div class="nvpin nvpin--${kind}">${kind === 'sel' ? '<span class="nvpin__halo"></span>' : ''}<span class="nvpin__dot">${inner}</span>${label}</div>`, anchor: new naver.maps.Point(18, 18) },
       }));
     }
     if (here) {

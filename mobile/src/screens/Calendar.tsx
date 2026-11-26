@@ -1,24 +1,18 @@
-// 확인 탭 : 월간 달력 + 오늘(고른 날) 일정 카드
+// M8 업무 캘린더 : 달력에는 점만 찍고, 고른 날짜의 현장확인 리스트는 아래 목록으로
 //   달력 데이터 = 웹 현장확인 리스트 달력과 같은 survey_schedule (api/mobile/schedule.do)
-//   날짜 칸 : 그날 넣은 현장확인 리스트 이름 · 건물 수
-//   떠 있는 카드 : 고른 날의 시간대별 현장조사 시설 (수정 버튼 없음), 우측 상단에 완료 · 예정 · 부재 · 종료
-import { useEffect, useMemo, useRef, useState } from 'react';
+//   점 = 그날 넣은 리스트 하나에 하나 (조사 전 초록 · 조사 중 주황 · 확인 완료 파랑, 최대 3개)
+//   리스트 카드를 누르면 그 리스트의 동선 화면
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/AppStore';
 import { usePullRefresh } from '../lib/pullRefresh';
-import { TabBar } from '../components/ui';
-import { WEEKDAYS, dayRows, dayStats, monthGrid, nowHm, shortDate, STATUS_CLASS, ymd, type DayRow } from '../lib/schedule';
-import type { ScheduleItem } from '../data/types';
-import { IconDown } from '../components/icons';
+import { Ico } from '../components/figma';
+import { StatusBadge, TabBar } from '../components/ui';
+import { WEEKDAYS, fromYmd, listsOfDay, monthGrid, ymd } from '../lib/schedule';
+import type { WorkStatus } from '../data/types';
 import './Calendar.css';
 
-const Chevron = ({ dir }: { dir: 'left' | 'right' }) => (
-  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
-    <path d={dir === 'left' ? 'M12.5 4.5 7 10l5.5 5.5' : 'M7.5 4.5 13 10l-5.5 5.5'} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-/** 1분마다 바뀌는 오늘 날짜 · 지금 시각 (자정이 지나면 오늘도 바뀜) */
+/** 1분마다 바뀌는 오늘 날짜 (자정이 지나면 오늘도 바뀜) */
 function useNow() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -28,6 +22,8 @@ function useNow() {
   return now;
 }
 
+interface DayList { groupId: string; title: string; total: number; visited: number; status: WorkStatus }
+
 export default function Calendar() {
   const { state, act } = useStore();
   const navigate = useNavigate();
@@ -35,17 +31,11 @@ export default function Calendar() {
   const today = ymd(now);
   const [view, setView] = useState(() => ({ y: now.getFullYear(), m: now.getMonth() }));
   const [selected, setSelected] = useState(today);
-  const [open, setOpen] = useState(false);
-  
-  const panelRef = useRef<HTMLElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const t = setTimeout(() => panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 260);
-    return () => clearTimeout(t);
-  }, [open, selected]);
 
   const grid = useMemo(() => monthGrid(view.y, view.m), [view]);
   const items = state.schedule[grid.key];
+  // 6주 칸 중 마지막 주가 모두 다음 달이면 뺀다
+  const days = useMemo(() => (grid.days[35].getMonth() !== view.m ? grid.days.slice(0, 35) : grid.days), [grid, view.m]);
 
   // 달을 열 때마다 다시 읽기 (웹 달력에서 옮기거나 뺀 일정까지 반영)
   useEffect(() => {
@@ -53,19 +43,20 @@ export default function Calendar() {
   }, [act, grid, state.mode]);
   usePullRefresh(() => act.loadSchedule(grid.key, grid.start, grid.end));
 
-  // 날짜별로 묶기 : 칸에는 리스트 이름(중복 제거)과 건물 수
+  // 날짜별 리스트 (리스트 안 건물 수 · 확인한 수 · 상태)
   const byDate = useMemo(() => {
-    const m: Record<string, { titles: string[]; count: number }> = {};
-    for (const it of items ?? []) {
-      const d = (m[it.date] ??= { titles: [], count: 0 });
-      d.count++;
-      if (!d.titles.includes(it.title)) d.titles.push(it.title);
+    const m: Record<string, DayList[]> = {};
+    const dates = [...new Set((items ?? []).map((it) => it.date))];
+    for (const d of dates) {
+      m[d] = listsOfDay((items ?? []).filter((it) => it.date === d)).map((l) => {
+        const visited = l.items.filter((it) => it.recordId != null).length;
+        const total = l.items.length;
+        return { groupId: l.groupId, title: l.title, total, visited, status: total && visited === total ? 'done' : visited ? 'doing' : 'before' };
+      });
     }
     return m;
   }, [items]);
-
-  const rows = useMemo(() => dayRows(items ?? [], selected, today), [items, selected, today]);
-  const stats = dayStats(rows);
+  const monthLists = Object.entries(byDate).filter(([d]) => fromYmd(d).getMonth() === view.m).reduce((n, [, ls]) => n + ls.length, 0);
 
   const moveMonth = (n: number) => {
     const d = new Date(view.y, view.m + n, 1);
@@ -73,124 +64,74 @@ export default function Calendar() {
     const isThisMonth = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
     setSelected(isThisMonth ? today : ymd(d));
   };
-  const goToday = () => {
-    setView({ y: now.getFullYear(), m: now.getMonth() });
-    setSelected(today);
-    setOpen(true);
-  };
-  const pick = (d: string) => { setSelected(d); setOpen(true); };
+  const goToday = () => { setView({ y: now.getFullYear(), m: now.getMonth() }); setSelected(today); };
 
-  
-  // 줄을 누르면 : 기록이 있으면 결과 상세, 없으면 현장 기록 (그 건물이 방문그룹에 있을 때만)
-  const openRow = (it: ScheduleItem) => {
-    if (!state.buildings[it.bldId]) return;
-    navigate(it.recordId != null ? `/result/${it.bldId}` : `/record/${it.bldId}?group=${it.groupId}`);
+  const sel = fromYmd(selected);
+  const lists = byDate[selected] ?? [];
+  const openList = (l: DayList) => {
+    if (state.groups.some((g) => g.id === l.groupId)) navigate(`/route/${l.groupId}`);
+    else act.toast('이 리스트는 앱에 받은 현장확인 리스트가 아니에요.');
   };
-  
-  const isToday = selected === today;
 
   return (
-    <div className={`screen screen--tabs cal`}>
-      <div className="screen__head screen__head--noback">
-        <h1 className="screen__title">확인</h1>
-        {!isToday || view.y !== now.getFullYear() || view.m !== now.getMonth() ? (
-          <button className="cal__today-btn" onClick={goToday}>오늘</button>
-        ) : null}
+    <div className="screen screen--tabs cal">
+      <header className="cal__head">
+        <h1>{view.y}년 {view.m + 1}월</h1>
+        <button className="cal__nav" aria-label="이전 달" onClick={() => moveMonth(-1)}><Ico name="chevLeftDark" size={20} /></button>
+        <button className="cal__nav" aria-label="다음 달" onClick={() => moveMonth(1)}><Ico name="chevRightDark" size={20} /></button>
+        <button className="cal__today" onClick={goToday}>오늘</button>
+      </header>
+
+      <div className="cal__legend">
+        <span><i className="is-before" />조사 전</span>
+        <span><i className="is-doing" />조사 중</span>
+        <span><i className="is-done" />확인 완료</span>
+        <small>이번 달 리스트 {monthLists}개</small>
       </div>
 
-      <div className="cal__month">
-        <button aria-label="이전 달" onClick={() => moveMonth(-1)}><Chevron dir="left" /></button>
-        <h2>{view.y}년 {view.m + 1}월</h2>
-        <button aria-label="다음 달" onClick={() => moveMonth(1)}><Chevron dir="right" /></button>
-      </div>
-
-      <div className="cal__grid" role="grid" aria-label={`${view.y}년 ${view.m + 1}월 달력`}>
+      <div className="cal__grid card" role="grid" aria-label={`${view.y}년 ${view.m + 1}월 달력`}>
         {WEEKDAYS.map((w, i) => (
           <div key={w} className={`cal__wd ${i === 0 ? 'is-sun' : i === 6 ? 'is-sat' : ''}`}>{w}</div>
         ))}
-        {grid.days.map((d) => {
+        {days.map((d) => {
           const key = ymd(d);
-          const info = byDate[key];
-          const out = d.getMonth() !== view.m;
+          const ls = byDate[key] ?? [];
           const cls = [
             'cal__day',
-            out && 'is-out',
+            d.getMonth() !== view.m && 'is-out',
             key === today && 'is-today',
             key === selected && 'is-sel',
             d.getDay() === 0 && 'is-sun',
             d.getDay() === 6 && 'is-sat',
           ].filter(Boolean).join(' ');
           return (
-            <button key={key} role="gridcell" className={cls} onClick={() => pick(key)} aria-pressed={key === selected}
-              aria-label={`${d.getMonth() + 1}월 ${d.getDate()}일${info ? `, 현장방문 ${info.count}곳` : ''}`}>
+            <button key={key} role="gridcell" className={cls} onClick={() => setSelected(key)} aria-pressed={key === selected}
+              aria-label={`${d.getMonth() + 1}월 ${d.getDate()}일${ls.length ? `, 현장확인 리스트 ${ls.length}개` : ''}`}>
               <span className="cal__num">{d.getDate()}</span>
-              {info && (
-                <span className="cal__lists">
-                  {info.titles.slice(0, 2).map((t) => <span key={t} className="cal__list">{t}</span>)}
-                  {info.titles.length > 2 && <span className="cal__more">+{info.titles.length - 2}</span>}
-                  <span className="cal__cnt">{info.count}곳</span>
-                </span>
-              )}
+              <span className="cal__dots">{ls.slice(0, 3).map((l) => <i key={l.groupId} className={`is-${l.status}`} />)}</span>
             </button>
           );
         })}
       </div>
       {items === undefined && <p className="cal__loading">일정을 불러오는 중…</p>}
 
-      {/* 떠 있는 일정 카드 */}
-	  <section ref={panelRef} className={`dpanel ${open ? 'is-open' : ''}`}>
-	  <button className="dpanel__head" onClick={() => setOpen(!open)} aria-expanded={open}>
-	    <span className="dpanel__title">
-	      <b>{isToday ? '오늘 일정' : '일정'}</b>
-	      <span>{shortDate(selected)} · {stats.remaining}건 남음</span>
-	    </span>
-	    <span className="dpanel__stats">
-	      완료 {stats.완료} · 예정 {stats.예정} · 부재 {stats.부재} · 종료 {stats.종료}
-	    </span>
-	    <span className="dpanel__chev" aria-hidden><IconDown /></span>
-	  </button>
-
-	    {/* 높이 0 ↔ 내용 높이로 슬라이드 */}
-	    <div className="dpanel__slide" aria-hidden={!open}>
-	      <div className="dpanel__inner">
-	        {rows.length === 0 ? (
-	          <p className="dpanel__empty">이 날 넣은 현장확인 리스트가 없어요.</p>
-	        ) : (
-	          <ol className="tl">
-	            {rows.map((r) => (
-	              <Row key={r.item.key} row={r} showNow={isToday && r.status === '다음'} nowText={nowHm(now)} onOpen={() => openRow(r.item)} />
-	            ))}
-	          </ol>
-	        )}
-	      </div>
-	    </div>
-	  </section>
+      <div className="cal__dayhead">
+        <p><b>{sel.getMonth() + 1}월 {sel.getDate()}일 {WEEKDAYS[sel.getDay()]}요일</b><span>리스트 {lists.length}개</span></p>
+      </div>
+      {lists.length === 0 && <p className="cal__empty">이 날 나가기로 한 현장확인 리스트가 없어요.</p>}
+      {lists.map((l) => (
+        <button key={l.groupId} className="cal__list card" onClick={() => openList(l)}>
+          <i className={`cal__stripe is-${l.status}`} />
+          <span className="cal__ltx">
+            <b>{l.title}</b>
+            <small>건물 {l.total}곳 · {l.visited}곳 완료</small>
+          </span>
+          <StatusBadge status={l.status} />
+          <Ico name="chevRightSub" size={20} />
+        </button>
+      ))}
 
       <TabBar />
     </div>
-  );
-}
-
-/** 한 줄 : 시각 | 세로 막대 | 시설 · 리스트 | 상태. 오늘의 '다음' 줄 위에는 지금 시각 선 */
-function Row({ row, showNow, nowText, onOpen }: { row: DayRow; showNow: boolean; nowText: string; onOpen: () => void }) {
-  const { item, status, seq } = row;
-  const past = item.recordId != null || status === '종료';
-  return (
-    <>
-      {showNow && (
-        <li className="tl__now" aria-label={`지금 ${nowText}`}><span>지금 {nowText}</span><i /></li>
-      )}
-      <li className={`tl__row vrow--${STATUS_CLASS[status]} ${past ? 'is-past' : ''}`}>
-        <button className="tl__btn" onClick={onOpen}>
-          <span className="tl__time">{item.time ?? <small>{seq}번째</small>}</span>
-          <span className="tl__bar" />
-          <span className="tl__text">
-            <span className="tl__place">{item.place}</span>
-            <span className="tl__sub">{item.title}{item.supports.length ? ` · ${item.supports.join(' · ')}` : ''}</span>
-          </span>
-          <span className={`vst vst--${STATUS_CLASS[status]}`}>{status}</span>
-        </button>
-      </li>
-    </>
   );
 }

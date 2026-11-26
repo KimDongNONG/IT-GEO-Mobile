@@ -1,0 +1,35 @@
+/* M5 확인 저장 완료 */
+.saved { display: flex; flex-direction: column; gap: 16px; padding-top: calc(var(--top) + 52px); }
+.saved__bar {
+  position: absolute; top: calc(var(--top) + 6px); right: calc(12px + var(--sos-space));   /* 오른쪽 위 SOS 바로 왼쪽 */
+}
+.saved__close { width: 40px; height: 40px; display: grid; place-items: center; }
+
+.saved__hero { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px 0 8px; text-align: center; }
+.saved__mark { width: 88px; height: 88px; border-radius: 44px; display: grid; place-items: center; background: var(--primary-soft); }
+.saved__mark > span { width: 64px; height: 64px; border-radius: 32px; display: grid; place-items: center; background: var(--primary); }
+.saved__title { font-size: 22px; font-weight: 700; letter-spacing: -0.33px; color: var(--text); }
+.saved__desc { font-size: 14px; line-height: 1.5; letter-spacing: -0.21px; color: var(--sub); }
+
+.saved__card { display: flex; flex-direction: column; gap: 14px; padding: 18px; }
+.saved__k { flex: 1; font-size: 14px; letter-spacing: -0.21px; color: var(--sub); }
+.saved__score { display: flex; align-items: center; gap: 8px; }
+.saved__score b { font-size: 15px; font-weight: 700; color: var(--text); }
+.saved__score b.is-old { color: var(--sub); }
+.saved__tag { padding: 5px 10px 5px 8px; border-radius: 8px; background: var(--primary-soft); font-size: 12px; font-weight: 500; letter-spacing: -0.18px; color: var(--primary); white-space: nowrap; }
+.saved__row { display: flex; align-items: flex-start; font-size: 14px; }
+.saved__row b { font-weight: 700; letter-spacing: -0.21px; color: var(--text); }
+.saved__row b.is-blue { color: var(--primary); }
+.saved__grp { display: flex; flex-direction: column; gap: 8px; }
+
+.saved__next { display: flex; flex-direction: column; gap: 12px; padding: 18px; }
+.saved__next-h { font-size: 13px; font-weight: 700; letter-spacing: -0.195px; color: var(--primary); }
+.saved__next-row { display: flex; align-items: center; gap: 12px; }
+.saved__no {
+  flex: none; width: 44px; height: 44px; border-radius: 13.2px;
+  display: grid; place-items: center; background: var(--primary-soft); color: var(--primary); font-size: 18px; font-weight: 700;
+}
+.saved__next-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.saved__next-tx p { font-size: 16px; font-weight: 700; letter-spacing: -0.24px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.saved__next-tx small { font-size: 13px; letter-spacing: -0.195px; color: var(--sub); }
+.saved__nav { flex: none; height: 40px; font-size: 14px; }

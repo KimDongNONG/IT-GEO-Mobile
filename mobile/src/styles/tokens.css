@@ -1,31 +1,44 @@
-/* WellFAIR 다크 토큰 (Figma 모바일 프레임 기준) */
+/* ItGEO 라이트 토큰 (Figma '새 디자인 시안 · 모바일 (라이트)' 스타일 기준)
+   바탕 #f3f5f8 · 카드 #fff · 구분선 #e8ebef · 글자 #17191c · 보조 #4b5260 · 흐린 #8a919c · 메인 #1f4f9a */
 :root {
-  --bg: #0b0b0c;
-  --panel: #141416;
-  --el: #1b1b1e;
-  --line: #3a3a40;
-  --line-2: #2c2d31;
-  --soft: #26272b;
-  --primary: #448ede;
-  --text: #e2e2e5;
-  --sub: #9b9ba2;
-  --muted: #65656c;
-  --red: #d93a3a;
+  --bg: #f3f5f8;          /* 바탕 */
+  --panel: #ffffff;       /* 카드 */
+  --el: #f2f4f7;          /* 칩 · 회색 버튼 · 입력칸 */
+  --soft: #e9ecf1;        /* 세그먼트 바탕 */
+  --line: #e8ebef;        /* 구분선 */
+  --line-2: #e8ebef;
+  --primary: #1f4f9a;     /* 메인 */
+  --primary-2: #3a6cb8;   /* 메인 그라데이션 끝 */
+  --primary-soft: #e9eef5;/* 메인 연한 */
+  --primary-tint: #f4f6fa;/* 고른 선택지 바탕 */
+  --text: #17191c;        /* 글자 */
+  --text-2: #4b5260;      /* 보조 글자 */
+  --sub: #8a919c;         /* 흐린 글자 */
+  --muted: #b4bac3;       /* 안내 문구 · 꺼진 숫자 */
+  --red: #e5484d;         /* 위험 */
   --white: #ffffff;
+  --dim: rgba(16, 19, 24, 0.45);
 
-  --st-before: #3fb950;   /* 조사 전 */
-  --st-doing: #f0a030;    /* 조사 중 */
-  --st-done: #448ede;     /* 확인 완료 */
+  --st-before: #22c55e;   /* 조사 전 */
+  --st-before-tx: #16a34a;
+  --st-before-bg: #e8f7ee;
+  --st-doing: #f59e0b;    /* 조사 중 */
+  --st-doing-tx: #d97706;
+  --st-doing-bg: #fff4e0;
+  --st-done: #1f4f9a;     /* 확인 완료 */
+  --st-done-bg: #e9eef5;
 
-  --score-1: #2fb3c6;
-  --score-2: #3aa0d6;
-  --score-3: #448ede;
-  --score-4: #5a7fe0;
-  --score-5: #7069dd;
+  /* 현장 기록 1~5 점 (1 양호 ~ 5 위험) */
+  --lv1: #22c55e;
+  --lv2: #22c55e;
+  --lv3: #f59e0b;
+  --lv4: #f97316;
+  --lv5: #e5484d;
 
+  --shadow: 0 2px 12px rgba(16, 24, 40, 0.06);
   --gutter: 20px;
-  --tabbar-h: 72px;
-  --actionbar-h: 84px;
+  --tabbar-h: 76px;
+  --actionbar-h: 92px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --font: 'Noto Sans KR', system-ui, -apple-system, sans-serif;

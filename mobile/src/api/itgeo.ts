@@ -227,6 +227,7 @@ export function recordFromServer(bldId: string, r: RecordTO, b?: Building): Fiel
     savedAt: isNaN(d.getTime()) ? r.visitedAt : `${d.getMonth() + 1}월 ${d.getDate()}일 ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`,
     author: r.userNm ?? '',
     fromWeb: r.source !== 'APP',
+    visitResult: RESULT_LABEL[r.result] ?? undefined,
   };
 }
 

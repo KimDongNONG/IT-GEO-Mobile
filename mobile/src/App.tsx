@@ -1,6 +1,7 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppStoreProvider, useStore } from './store/AppStore';
 import { Toast } from './components/ui';
+import Loading from './screens/Loading';
 import Login from './screens/Login';
 import Home from './screens/Home';
 import Archive from './screens/Archive';
@@ -31,10 +32,10 @@ export default function App() {
   );
 }
 
-/** 로그인(또는 시연 모드) 전에는 로그인 화면만 */
+/** 로그인 상태 확인 중 = M0 로딩, 로그인(또는 시연 모드) 전에는 로그인 화면만 */
 function Gate() {
   const { state } = useStore();
-  if (!state.ready) return <div className="screen screen--none" />;
+  if (!state.ready) return <Loading />;
   if (state.mode === 'none') return <Login />;
   return (
     <>

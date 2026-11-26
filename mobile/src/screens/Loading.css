@@ -1,0 +1,10 @@
+.loading {
+  position: fixed; inset: 0; z-index: 90;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(114.8deg, #2c62b4 14.29%, #1f4f9a 85.71%);
+}
+/* 워드마크 240 × 60.66 : i·t 기호(62.06 × 60.84) + GEO 글자(174.01 × 60.84) */
+.loading__logo { position: relative; width: 240px; height: 60.66px; }
+.loading__it { position: absolute; left: 0; top: 0; display: block; }
+.loading__geo { position: absolute; left: 65.93px; top: 0; width: 174.01px; height: 60.84px; overflow: hidden; }
+.loading__geo img { position: absolute; left: 0; top: 0; display: block; }   /* 글자 묶음(안쪽 여백 9% · 4.28% · 9% · 3.15%)을 획 두께만큼 넓힌 크기 = 원본 172.035 × 60.846 */

@@ -1,5 +1,5 @@
 // M2 동선 : 위 = 지도(뒤로 · 리스트 이름 · 완료 수 · 지금 갈 곳 보기), 아래 = 방문 순서 시트
-//   방문 순서 : 확인한 곳(체크) → 지금 갈 곳(처음부터 펼침 : 길찾기 · 현장 기록) → 남은 곳. 줄을 누르면 그 건물을 펼치고 지도도 그 건물로 확대
+//   방문 순서(세로 타임라인) : 확인한 곳(회색 체크) → 지금 갈 곳(처음부터 펼침 : 길찾기 · 현장 기록) → 남은 곳. 줄을 누르면 그 건물을 펼치고 지도도 그 건물로 확대
 //   순서 편집 : 오른쪽 손잡이를 끌어서 순서를 바꾼다 (서버 저장은 AppStore.reorder)
 //   거리 : 서버 모드는 TMAP 도보 경로(구간별 legs, 구청 출발), 시연 모드는 도식 지도 거리
 import { useMemo, useRef, useState } from 'react';
@@ -9,8 +9,9 @@ import { useGroup, useStore } from '../store/AppStore';
 import RouteMap, { routeSummary } from '../components/RouteMap';
 import { useWalk } from '../components/NaverMap';
 import { guOffice } from '../api/itgeo';
-import { DragHandle, IconBack, IconCheck16, IconDoc, IconLocate, IconNav, IconPencil, IconRoute16 } from '../components/icons';
-import { Notice, Screen, StatusBadge, TabBar } from '../components/ui';
+import { DragHandle } from '../components/icons';
+import { Ico } from '../components/figma';
+import { Chip, Notice, Screen, StatusBadge, TabBar } from '../components/ui';
 import './RoutePlan.css';
 
 const M_PER_PX = 7;         // 도식 지도 1px ≈ 7m (RouteMap.routeSummary 와 같은 값)
@@ -116,19 +117,19 @@ export default function RoutePlan() {
       <div className="rt__map">
         <RouteMap buildings={buildings} selectedId={focusId} group={group} />
         <div className="rt__top">
-          <button className="rt__fab" onClick={() => navigate('/')} aria-label="뒤로 가기"><IconBack /></button>
+          <button className="rt__fab" onClick={() => navigate('/')} aria-label="뒤로 가기"><Ico name="back" size={22} /></button>
           <div className="rt__title">
             <span className="rt__title-tx">{group.title}</span>
             <b className="rt__title-cnt">{doneCnt}/{buildings.length}</b>
           </div>
           <button className={`rt__fab ${focusing ? 'is-on' : ''}`} onClick={onLocate}
             aria-label={focusing ? '전체 동선 보기' : '지금 갈 곳 보기'}>
-            <IconLocate />
+            <Ico name="locate" size={22} />
           </button>
         </div>
         {buildings.length > 0 && (
           <button className="rt__fab rt__guide" onClick={() => navigate(`/route/${group.id}/guide`)} aria-label="경로 안내">
-            <IconRoute16 />
+            <Ico name="navDark" size={22} />
           </button>
         )}
       </div>
@@ -140,15 +141,15 @@ export default function RoutePlan() {
           <h2>방문 순서</h2>
           {drag && <span className="rt__hint">끌어서 놓으세요</span>}
           {buildings.length > 1 && (
-            <button className={`rt__edit ${editing ? 'is-on' : ''}`} onClick={() => setEditing(!editing)}>
+            <button className="rt__edit" onClick={() => setEditing(!editing)}>
               {editing ? '완료' : '순서 편집'}
             </button>
           )}
         </div>
-        <div className="rt__chips">
-          <span className="rt__chip">건물 {buildings.length}곳</span>
-          <span className="rt__chip">{sum.km.toFixed(1)}km</span>
-          <span className="rt__chip">도보 {sum.minutes}분</span>
+        <div className="chips">
+          <Chip icon="building">건물 {buildings.length}곳</Chip>
+          <Chip icon="routeSm">{sum.km.toFixed(1)}km</Chip>
+          <Chip icon="clockSm">도보 {sum.minutes}분</Chip>
         </div>
 
         {buildings.length === 0 && <p className="rt__empty">아직 불러온 건물이 없어요.</p>}
@@ -159,33 +160,38 @@ export default function RoutePlan() {
             const isCur = b.id === current?.id;
             const open = !editing && openId === b.id;
             const leg = legs[b.id];
+            const at = done && b.checkedAt ? b.checkedAt.slice(11, 16) : '';
             const sub = done
-              ? `${b.type} · 확인 완료`
+              ? `${b.type} · ${at ? `${at} 확인` : '확인 완료'}`
               : isCur
                 ? `${b.type}${leg ? ` · ${fmtM(leg.meters)} · 도보 ${leg.minutes}분` : ''}`
                 : `${b.type}${leg ? ` · 앞 건물에서 ${fmtM(leg.meters)}` : ''}`;
-            const cls = ['rt__item', done && 'is-done', isCur && 'is-cur', open && 'is-open',
+            const prevDone = i > 0 && buildings[i - 1].status === 'done';
+            const cls = ['rt__item', done && 'is-done', isCur && 'is-cur', open && 'is-open', prevDone && 'after-done',
               drag?.from === i && 'is-dragging',
               drag && drag.to === i && drag.from !== i && (drag.to > drag.from ? 'drop-after' : 'drop-before'),
             ].filter(Boolean).join(' ');
             return (
               <li key={b.id} className={cls} style={drag?.from === i ? { transform: `translateY(${drag.dy}px)` } : undefined}>
-                <span className="rt__no">{done ? <IconCheck16 color="#FFFFFF" /> : i + 1}</span>
+                <span className="rt__rail">
+                  <span className="rt__no">{done ? <Ico name="checkWhite" size={15} /> : i + 1}</span>
+                  <i className="rt__line" />
+                </span>
                 <div className="rt__body">
                   <button className="rt__row" onClick={() => { if (editing) return; setOpen(open ? null : b.id); setFocusId(open ? null : b.id); }} tabIndex={editing ? -1 : 0} aria-expanded={open}>
-                    <span className="rt__text">
+                    <span className="rt__line1">
                       <span className="rt__name">{b.gu} {b.dong}</span>
-                      <span className="rt__sub">{sub}</span>
+                      {!editing && <StatusBadge status={b.status} />}
                     </span>
-                    {!editing && <StatusBadge status={b.status} />}
+                    <span className="rt__sub">{sub}</span>
                   </button>
                   {open && (
                     <div className="rt__acts">
-                      <button className="rbtn" onClick={() => navigate(`/route/${group.id}/nav/${b.id}`)}><IconNav /> 길찾기</button>
+                      <button className="btn btn--ghost" onClick={() => navigate(`/route/${group.id}/nav/${b.id}`)}><Ico name="navBtn" size={18} />길찾기</button>
                       {done ? (
-                        <button className="rbtn" onClick={() => navigate(`/result/${b.id}`)}><IconDoc /> 기록 확인</button>
+                        <button className="btn btn--soft" onClick={() => navigate(`/result/${b.id}`)}>기록 확인</button>
                       ) : (
-                        <button className="rbtn rbtn--primary" onClick={() => navigate(`/record/${b.id}?group=${group.id}`)}><IconPencil /> 현장 기록</button>
+                        <button className="btn btn--primary" onClick={() => navigate(`/record/${b.id}?group=${group.id}`)}><Ico name="editWhite" size={18} />현장 기록</button>
                       )}
                     </div>
                   )}

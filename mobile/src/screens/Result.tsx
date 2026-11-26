@@ -1,14 +1,14 @@
-// M6 확인 결과 : 확인 완료 리스트에서 들어오는 현장 확인 기록 보기
-//   위 = 사진(넘겨 보기 + 아래 썸네일), 확인 완료 배지 · 주소 · 유형 · 일시 · 담당자
+// M6-1 확인 결과 상세 : 확인 완료 리스트에서 들어오는 현장 확인 기록 보기
+//   위 = 사진(넘겨 보기 + 아래 썸네일 64), 확인 완료 배지 · 주소 · 유형 · 일시 · 담당자
 //   카드 = 사전 탐지 요인(맞음 n / m) · 건물 상태(1~5 점) · 필요한 지원과 넘길 부서 · 메모
 //   '확인 내용 수정' → 현장 기록 화면을 마지막 기록 내용으로 채워 연다 (/record/:id?edit=1)
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../store/AppStore';
 import { usePullRefresh } from '../lib/pullRefresh';
-import { Btn, Screen, TabBar } from '../components/ui';
+import { Btn, Screen, StatusBadge, TabBar } from '../components/ui';
 import ServerPhoto from '../components/ServerPhoto';
-import { IconCheck16, IconImage, IconMore, IconShare } from '../components/icons';
+import { Ico } from '../components/figma';
 import { DEPT_CLASS, SCORE_LABEL, SECTIONS, deptsOf, doneAt } from '../lib/fieldcheck';
 import './Result.css';
 
@@ -41,7 +41,7 @@ export default function Result() {
     ? rec.photoIds.map((id, i) => ({ key: `s${id}`, label: PHOTO_LABELS[i] ?? `현장 사진 ${i + 1}`, node: <ServerPhoto id={id} alt={`현장 사진 ${i + 1}`} /> }))
     : rec.photos.map((src, i) => ({ key: `l${i}`, label: PHOTO_LABELS[i] ?? `현장 사진 ${i + 1}`, node: <img src={src} alt={`현장 사진 ${i + 1}`} /> }));
   const empty = photos.length === 0;
-  const slides = empty ? PHOTO_LABELS.map((l) => ({ key: l, label: l, node: <IconImage width={40} height={40} /> })) : photos;
+  const slides = empty ? PHOTO_LABELS.map((l) => ({ key: l, label: l, node: <Ico name="image40" size={40} /> })) : photos;
   const go = (i: number) => {
     setIdx(i);
     const el = strip.current;
@@ -79,8 +79,8 @@ export default function Result() {
       className="result"
       right={
         <div className="result__tools">
-          <button aria-label="공유하기" onClick={share}><IconShare /></button>
-          <button aria-label="더 보기" aria-expanded={menu} onClick={() => setMenu((v) => !v)}><IconMore /></button>
+          <button aria-label="공유하기" onClick={share}><Ico name="share" size={22} /></button>
+          <button aria-label="더 보기" aria-expanded={menu} onClick={() => setMenu((v) => !v)}><Ico name="more" size={22} /></button>
           {menu && (
             <>
               <button className="result__menu-dim" aria-label="닫기" onClick={() => setMenu(false)} />
@@ -107,14 +107,16 @@ export default function Result() {
       <div className="result__thumbs">
         {slides.map((p, i) => (
           <button key={p.key} className={`${i === idx ? 'is-on' : ''} ${empty ? 'is-empty' : ''}`} aria-label={`${i + 1}번째 사진 · ${p.label}`} onClick={() => go(i)}>
-            {empty ? <IconImage width={18} height={18} /> : p.node}
+            {empty ? <Ico name="image20" size={20} /> : p.node}
           </button>
         ))}
       </div>
 
-      <span className="result__badge"><i />확인 완료</span>
-      <h2 className="result__title">{b.gu} {b.dong}</h2>
-      <p className="result__sub">{[b.type, when, rec.author].filter(Boolean).join(' · ')}{rec.fromWeb && ' · 웹에서 등록'}</p>
+      <div className="result__head">
+        <StatusBadge status="done" />
+        <h2 className="result__title">{b.gu} {b.dong}</h2>
+        <p className="result__sub">{[b.type, when, rec.author].filter(Boolean).join(' · ')}{rec.fromWeb && ' · 웹에서 등록'}</p>
+      </div>
 
       <section className="card result__card">
         <div className="result__card-head">
@@ -126,7 +128,7 @@ export default function Result() {
           {factors.map(([name, v]) => (
             <li key={name}>
               <span>{name}</span>
-              {v === true ? <span className="result__chip is-yes"><IconCheck16 color="currentColor" width={12} height={12} />맞음</span>
+              {v === true ? <span className="result__chip is-yes"><Ico name="checkGreen14" size={14} />맞음</span>
                 : v === false ? <span className="result__chip is-no">아님</span>
                 : <span className="result__chip">미확인</span>}
             </li>
@@ -139,13 +141,13 @@ export default function Result() {
           <h3>건물 상태</h3>
           {rec.resident && <span className={`result__resident is-${rec.resident}`}>거주자 {rec.resident}</span>}
         </div>
-        <ul className="result__rows">
+        <ul className="result__rows result__rows--kv">
           {SECTIONS.flatMap((s) => s.items).map((it) => {
             const v = rec.scores[it.key];
             return (
               <li key={it.key}>
                 <span>{it.label}</span>
-                {v != null ? <span className={`result__score lv${v}`}>{v} · {SCORE_LABEL[v]}</span> : <span className="result__chip">선택 안 함</span>}
+                {v != null ? <b className={`result__score ${v >= 4 ? 'is-bad' : ''}`}>{v}점 · {SCORE_LABEL[v]}</b> : <span className="result__chip">선택 안 함</span>}
               </li>
             );
           })}
@@ -167,7 +169,7 @@ export default function Result() {
         <p className="result__memo">{rec.memo || '메모 없음'}</p>
       </section>
 
-      <Btn className="result__edit" onClick={edit}>확인 내용 수정</Btn>
+      <Btn variant="line" className="result__edit" onClick={edit}><Ico name="editDark" size={18} />확인 내용 수정</Btn>
       <TabBar />
     </Screen>
   );

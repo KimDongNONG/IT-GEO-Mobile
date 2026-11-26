@@ -1,46 +1,65 @@
-.home { padding-top: var(--top); }
+.home { display: flex; flex-direction: column; gap: 16px; padding-top: calc(var(--top) + 8px); }
 
-/* 인사 줄 : 날짜(· 시연) · 로그아웃 / "안녕하세요, 이름 님". 오른쪽 위 SOS 자리는 비운다 */
-.home__top { margin-bottom: 18px; padding-right: var(--sos-space); }
-.home__date { display: flex; align-items: center; gap: 10px; min-height: 24px; font-size: 13px; color: var(--sub); }
-.home__out { margin-left: auto; font-size: 12px; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
-.home__hello { margin-top: 4px; font-size: 22px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 인사 : 날짜 13 Medium · "안녕하세요, 이름 님" 22 Bold. 오른쪽 위 SOS 자리는 비운다 */
+.home__head { display: flex; flex-direction: column; gap: 2px; padding: 6px var(--sos-space) 2px 0; }
+.home__date { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; letter-spacing: -0.195px; color: var(--sub); }
+.home__out { font-size: 12px; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+.home__hello { font-size: 22px; font-weight: 700; letter-spacing: -0.33px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* ---------- 전체 현장 확인 카드 (접고 펼치기) : 다크 바탕에 메인 색을 살짝 섞은 카드 ---------- */
-.hstat {
-  border-radius: 12px; overflow: hidden;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 30%, var(--panel)), color-mix(in srgb, var(--primary) 12%, var(--panel)));
-  border: 1px solid color-mix(in srgb, var(--primary) 40%, var(--line));
+/* ---------- 이번 주 현장 확인 (메인 그라데이션 카드) ---------- */
+.hprog {
+  display: flex; flex-direction: column; gap: 14px; padding: 20px; border-radius: 20px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-2));
+  box-shadow: 0 8px 20px -6px rgba(31, 79, 154, 0.28);
+  color: var(--white);
 }
-.hstat__head { width: 100%; display: flex; align-items: center; gap: 8px; padding: 16px 14px 16px 18px; text-align: left; }
-.hstat__title { font-size: 14px; font-weight: 500; color: var(--text); }
-.hstat__mini { font-size: 13px; color: var(--sub); }
-.hstat__mini b { font-size: 15px; color: var(--text); }
-.hstat__badge {
-  margin-left: auto; height: 24px; padding: 0 10px; border-radius: 12px;
-  display: inline-flex; align-items: center;
-  background: rgba(255, 255, 255, 0.1); font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap;
-}
-.hstat__body { padding: 0 18px 18px; }
-.hstat__big { font-size: 17px; font-weight: 700; color: var(--text); }
-.hstat__big b { font-size: 40px; line-height: 48px; margin-right: 4px; }
-.hstat__bar { height: 8px; margin: 14px 0 16px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
-.hstat__bar i { display: block; height: 100%; border-radius: 4px; background: var(--white); transition: width .3s; }
-.hstat__nums { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0; }
-.hstat__nums dt { font-size: 12px; color: var(--sub); }
-.hstat__nums dd { margin: 4px 0 0; font-size: 18px; font-weight: 700; color: var(--text); }
+.hprog__top { display: flex; align-items: center; }
+.hprog__title { flex: 1; font-size: 14px; font-weight: 500; letter-spacing: -0.21px; opacity: .9; }
+.hprog__badge { padding: 4px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.2); font-size: 12px; font-weight: 700; letter-spacing: -0.18px; white-space: nowrap; }
+.hprog__big { display: flex; align-items: baseline; gap: 6px; }
+.hprog__big b { font-size: 40px; font-weight: 900; letter-spacing: -0.8px; line-height: 1.2; }
+.hprog__big span { font-size: 18px; font-weight: 700; letter-spacing: -0.18px; }
+.hprog__bar { height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.25); }
+.hprog__bar i { border-radius: 4px; background: var(--white); }
+.hprog__nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0; }
+.hprog__nums div { display: flex; flex-direction: column; gap: 2px; }
+.hprog__nums dt { font-size: 12px; font-weight: 500; letter-spacing: -0.18px; opacity: .8; }
+.hprog__nums dd { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.255px; }
 
-/* 삭제 확인 창 */
-.dlg__title { font-size: 18px; font-weight: 700; color: var(--text); }
-.dlg__desc { margin-top: 10px; font-size: 13px; line-height: 20px; color: var(--sub); }
-.dlg__target {
-  display: flex; gap: 8px; margin-top: 16px; padding: 12px 14px;
-  background: var(--el); border: 1px solid var(--line); border-radius: 8px;
+.home__lh { padding-top: 6px; }
+.home__empty { padding: 32px 8px; text-align: center; white-space: pre-line; font-size: 14px; line-height: 1.6; color: var(--sub); }
+
+/* ---------- 현장 확인 리스트 카드 ---------- */
+.hl { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; border: 1.5px solid transparent; }
+.hl.is-open { padding: 18px 18px 16px; border-color: rgba(31, 79, 154, 0.5); }
+.hl__head { display: flex; align-items: flex-start; gap: 8px; width: 100%; text-align: left; }
+.hl__tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hl__meta { font-size: 12px; font-weight: 500; letter-spacing: -0.18px; color: var(--sub); }
+.hl__title { font-size: 17px; font-weight: 700; letter-spacing: -0.255px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hl__prog { display: flex; align-items: center; gap: 10px; }
+.hl__bar { flex: 1; }
+.hl__prog b { font-size: 13px; font-weight: 700; color: var(--text-2); }
+
+.hl__sub { display: flex; align-items: center; }
+.hl__sub > span { flex: 1; font-size: 13px; font-weight: 700; letter-spacing: -0.195px; color: var(--sub); }
+.hl__map { display: inline-flex; align-items: center; gap: 2px; font-size: 13px; font-weight: 700; letter-spacing: -0.195px; color: var(--primary); }
+
+.hl__rows > li + li { border-top: 1px solid var(--line); }
+.hl__none { padding: 12px 0; font-size: 13px; color: var(--sub); }
+.hl__row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 0; text-align: left; }
+.hl__no {
+  flex: none; width: 28px; height: 28px; border-radius: 14px;
+  display: grid; place-items: center;
+  background: var(--primary-soft); color: var(--primary); font-size: 13px; font-weight: 700;
 }
-.dlg__target .dot { margin-top: 6px; }
-.dlg__target-name { font-size: 15px; font-weight: 700; }
-.dlg__target-sub { margin-top: 6px; font-size: 12px; color: var(--sub); }
-.dlg__actions { display: flex; gap: 8px; margin-top: 20px; }
-.dlg__actions .btn { height: 52px; }
-.dlg__actions .btn:first-child { flex: 0 0 120px; }
-.dlg__actions .btn:last-child { flex: 1; }
+.hl__no.is-cur { background: var(--primary); color: var(--white); }
+.hl__no.is-done { background: #9aa1ab; }
+.hl__btx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hl__name { font-size: 15px; font-weight: 700; letter-spacing: -0.225px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hl__addr { font-size: 12px; letter-spacing: -0.18px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hl__right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
+.hl__right b { font-size: 15px; font-weight: 700; color: var(--text); }
+.hl__row.is-done .hl__name, .hl__row.is-done .hl__right b { color: var(--sub); }
+
+.hl__btns { display: flex; gap: 8px; padding-top: 4px; }
+.hl__btns .btn { flex: 1; font-size: 14px; letter-spacing: -0.21px; }

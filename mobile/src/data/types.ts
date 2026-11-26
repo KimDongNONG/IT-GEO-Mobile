@@ -75,6 +75,7 @@ export interface FieldRecord {
   recordId?: number;
   photoIds?: number[];   // 서버에 저장된 사진 (api/mobile/photo.do)
   fromWeb?: boolean;     // 웹 05 화면에서 저장한 기록
+  visitResult?: string;  // 방문 결과 (만남 · 부재 · 거부 · 기타, 서버 기록의 result)
 }
 
 // ---------- 확인 탭 달력 (api/mobile/schedule.do) ----------

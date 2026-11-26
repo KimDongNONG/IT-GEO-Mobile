@@ -4,6 +4,7 @@ import type { Building, Group } from '../data/types';
 import { useStore } from '../store/AppStore';
 import { guOffice } from '../api/itgeo';
 import NaverMap, { useWalk } from './NaverMap';
+import { FIG } from './figma';
 import './RouteMap.css';
 
 const W = 350;
@@ -73,8 +74,8 @@ function SchematicMap({ buildings, selectedId }: { buildings: Building[]; select
   return (
     <div className="rmap">
       <svg className="rmap__svg" viewBox={`${vx} ${vy} ${vw} ${vh}`} preserveAspectRatio="none" aria-hidden>
-        <path d={`M${-W} ${-H}L${W * 2} ${H * 2}M${W * 2} ${-H}L${-W} ${H * 2}`} stroke="#2C2D31" vectorEffect="non-scaling-stroke" />
-        <polyline points={points} fill="none" stroke="#448EDE" strokeWidth={3} strokeDasharray="6 5" vectorEffect="non-scaling-stroke" />
+        <path d={`M${-W} ${-H}L${W * 2} ${H * 2}M${W * 2} ${-H}L${-W} ${H * 2}`} stroke="#FFFFFF" strokeWidth={10} vectorEffect="non-scaling-stroke" />
+        <polyline points={points} fill="none" stroke="#1F4F9A" strokeWidth={4} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
       </svg>
 
       {buildings.map((b, i) => {
@@ -82,8 +83,8 @@ function SchematicMap({ buildings, selectedId }: { buildings: Building[]; select
         const done = b.status === 'done';
         return (
           <div key={b.id} className={`rmap__pin ${isSel ? 'is-sel' : ''} ${sel && !isSel ? 'is-dim' : ''}`} style={toPct(b)}>
-            {isSel && <span className="rmap__halo" />}
-            <span className={`rmap__marker ${done ? 'is-done' : i === curIdx || isSel ? 'is-fill' : ''}`}>{done ? '✓' : i + 1}</span>
+            {isSel && <span className="rmap__halo"><img src={FIG.markerHalo} width={60} height={60} alt="" /></span>}
+            <span className={`rmap__marker ${done ? 'is-done' : i === curIdx || isSel ? 'is-fill' : ''}`}>{done ? <img src={FIG.checkWhite16} width={16} height={16} alt="" /> : i + 1}</span>
             {isSel && <span className="rmap__label">{b.dong}</span>}
           </div>
         );

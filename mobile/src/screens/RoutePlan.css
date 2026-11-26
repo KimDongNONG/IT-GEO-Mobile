@@ -1,97 +1,76 @@
-/* 동선 화면 : 위 = 지도(화면 폭 가득), 아래 = 방문 순서 시트 (다크 토큰 · styles/tokens.css) */
+/* M2 동선 : 위 = 지도(화면 폭 가득), 아래 = 끌어올린 하단 시트(방문 순서) */
 .rt { padding: 0 0 calc(var(--tabbar-h) + var(--safe-bottom) + 16px); }
-.route .screen__head { margin-bottom: 19px; }   /* 리스트가 없을 때 (Screen 틀) */
 
 /* ---------- 지도 ---------- */
-.rt__map { position: relative; height: max(300px, 46vh); background: var(--el); }
-/* RouteMap 기본(비율 · 테두리 · 아래 요약 칩)을 이 화면에 맞게 : 지도는 칸을 가득 채우고, 요약은 시트의 칩으로 */
-.rt__map .rmap { position: absolute; inset: 0; aspect-ratio: auto; border: 0; border-radius: 0; }
+.rt__map { position: relative; height: max(380px, 57vh); background: #e9ecf1; }
+/* RouteMap 기본(비율 · 모서리 · 아래 요약 칩)을 이 화면에 맞게 : 지도는 칸을 가득 채우고, 요약은 시트의 칩으로 */
+.rt__map .rmap { position: absolute; inset: 0; aspect-ratio: auto; border-radius: 0; }
 .rt__map .rmap__chip { display: none; }
 
 .rt__top {
-  position: absolute; z-index: 5; left: 0; right: 0; top: max(var(--safe-top), 40px);   /* 오른쪽 위 SOS 와 같은 줄, SOS 자리는 비움 */
+  position: absolute; z-index: 5; left: 0; right: 0; top: calc(max(var(--safe-top), 40px) + 8px);   /* 오른쪽 위 SOS 자리는 비움 */
   display: flex; align-items: center; gap: 8px; padding: 0 calc(16px + var(--sos-space)) 0 16px;
 }
 .rt__fab {
-  flex: none; width: 44px; height: 44px; border-radius: 50%;
+  flex: none; width: 44px; height: 44px; border-radius: 22px;
   display: grid; place-items: center;
-  background: rgba(20, 20, 22, 0.92); border: 1px solid var(--line);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  background: var(--white); box-shadow: var(--shadow);
 }
-.rt__fab.is-on { border-color: var(--primary); }
-.rt__fab.is-on svg { stroke: var(--primary); }
+.rt__fab.is-on { box-shadow: 0 0 0 2px var(--primary), var(--shadow); }
 .rt__title {
   flex: 1; min-width: 0; height: 44px; padding: 0 16px; border-radius: 22px;
-  display: flex; align-items: center; gap: 10px;
-  background: rgba(20, 20, 22, 0.92); border: 1px solid var(--line);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  display: flex; align-items: center; gap: 8px;
+  background: var(--white); box-shadow: var(--shadow);
 }
-.rt__title-tx { flex: 1; min-width: 0; font-size: 15px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rt__title-cnt { flex: none; font-size: 14px; color: var(--primary); }
-/* 오른쪽 아래 : 경로 안내 (시트에 가리지 않게 시트가 덮는 높이만큼 위로) */
-.rt__guide { position: absolute; z-index: 5; right: 16px; bottom: 40px; background: var(--primary); border-color: var(--primary); }
+.rt__title-tx { flex: 1; min-width: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.225px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rt__title-cnt { flex: none; font-size: 13px; font-weight: 700; color: var(--primary); }
+/* 오른쪽 아래 : 경로 안내 (시트가 덮는 높이만큼 위로) */
+.rt__guide { position: absolute; z-index: 5; right: 16px; bottom: 106px; }
 
-/* ---------- 방문 순서 시트 ---------- */
+/* ---------- 하단 시트 ---------- */
 .rt__sheet {
-  position: relative; z-index: 6; margin-top: -20px; padding: 10px var(--gutter) 8px;
-  background: var(--panel); border-top: 1px solid var(--line); border-radius: 18px 18px 0 0;
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
+  position: relative; z-index: 6; margin-top: -90px; padding: 10px var(--gutter) 12px;
+  display: flex; flex-direction: column; gap: 14px;
+  background: var(--panel); border-radius: 24px 24px 0 0;
+  box-shadow: 0 -4px 20px rgba(16, 24, 40, 0.1);
 }
-.rt__grip { display: block; width: 40px; height: 4px; margin: 0 auto 14px; border-radius: 2px; background: var(--line); }
+.rt__grip { align-self: center; width: 40px; height: 5px; border-radius: 3px; background: #d9dde3; }
 .rt__head { display: flex; align-items: center; gap: 10px; }
-.rt__head h2 { font-size: 18px; font-weight: 700; color: var(--text); }
+.rt__head h2 { flex: 1; font-size: 18px; font-weight: 700; letter-spacing: -0.27px; color: var(--text); }
 .rt__hint { font-size: 12px; color: var(--primary); }
-.rt__edit { margin-left: auto; height: 30px; padding: 0 4px; font-size: 14px; font-weight: 700; color: var(--primary); }
-.rt__edit.is-on { padding: 0 12px; border-radius: 6px; background: var(--primary); color: var(--white); }
-.rt__chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 6px; }
-.rt__chip {
-  height: 28px; padding: 0 10px; border-radius: 6px;
-  display: inline-flex; align-items: center;
-  background: var(--el); border: 1px solid var(--soft); font-size: 12px; color: var(--sub);
-}
+.rt__edit { font-size: 14px; font-weight: 700; letter-spacing: -0.21px; color: var(--primary); }
 .rt__empty { padding: 24px 0; font-size: 13px; color: var(--sub); text-align: center; }
 
-/* 방문 순서 : 왼쪽 세로선으로 이어진 번호 · 건물 · 상태 */
+/* 방문 순서 : 번호(28) 아래로 이어지는 세로선 + 건물 */
 .rt__list { list-style: none; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-.rt__item { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; background: var(--panel); }
-.rt__item + .rt__item { border-top: 1px solid var(--soft); }
-/* 번호 사이 세로선 (마지막 줄은 없음) */
-.rt__item:not(:last-child)::after {
-  content: ''; position: absolute; left: 14px; top: 44px; bottom: -10px; width: 2px; background: var(--line);
-}
-.rt__item.is-done:not(:last-child)::after { background: var(--muted); }
+.rt__item { position: relative; display: flex; align-items: stretch; gap: 14px; background: var(--panel); }
+.rt__rail { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .rt__no {
-  position: relative; z-index: 1; flex: none; width: 30px; height: 30px; margin-top: 2px; border-radius: 50%;
+  flex: none; width: 28px; height: 28px; border-radius: 14px;
   display: grid; place-items: center;
-  background: var(--panel); border: 2px solid var(--primary); color: var(--text); font-size: 13px; font-weight: 700;
+  background: var(--white); border: 2px solid var(--primary); color: var(--primary); font-size: 13px; font-weight: 700;
 }
-.rt__item.is-cur .rt__no { background: var(--primary); color: var(--white); box-shadow: 0 0 0 4px rgba(68, 142, 222, 0.22); }
-.rt__item.is-done .rt__no { background: var(--muted); border-color: var(--muted); }
+.rt__item.is-cur .rt__no { background: var(--primary); border: 0; color: var(--white); }
+.rt__item.is-done .rt__no { background: #9aa1ab; border: 0; }
+.rt__line { flex: 1; width: 2px; min-height: 8px; background: var(--line); }
+.rt__item.is-done .rt__line { background: #c4c9d0; }
+.rt__item:last-child .rt__line { display: none; }
 
-.rt__body { flex: 1; min-width: 0; }
-.rt__row { width: 100%; display: flex; align-items: flex-start; gap: 8px; text-align: left; }
-.rt__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding-top: 2px; }
-.rt__name { font-size: 16px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rt__sub { font-size: 12.5px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rt__body { flex: 1; min-width: 0; padding: 3px 0 18px; }
+.rt__row { width: 100%; display: flex; flex-direction: column; gap: 4px; text-align: left; }
+.rt__line1 { display: flex; align-items: center; gap: 8px; width: 100%; }
+.rt__name { flex: 1; min-width: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.225px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rt__sub { font-size: 12px; letter-spacing: -0.18px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rt__item.is-done .rt__name { color: var(--sub); }
-.rt__item.is-done .rt__sub { color: var(--muted); }
-.rt__row .badge { margin-top: 2px; }
 
-.rt__acts { display: flex; gap: 8px; margin-top: 12px; }
-.rbtn {
-  flex: 1; height: 46px; border-radius: 8px;
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  background: var(--el); border: 1px solid var(--line);
-  font-size: 14px; font-weight: 700; color: var(--text);
-}
-.rbtn--primary { background: var(--primary); border-color: var(--primary); color: var(--white); }
+.rt__acts { display: flex; gap: 8px; padding-top: 12px; }
+.rt__acts .btn { flex: 1; height: 40px; font-size: 14px; letter-spacing: -0.21px; }
 
 /* 순서 편집 : 오른쪽 손잡이 · 끼워 넣을 위치 표시 */
 .rt__handle { flex: none; width: 32px; height: 40px; display: grid; place-items: center; touch-action: none; cursor: grab; }
-.rt__item.is-dragging { z-index: 5; opacity: 0.92; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
-.rt__item.is-dragging::after { display: none; }
+.rt__item.is-dragging { z-index: 5; opacity: 0.95; border-radius: 12px; box-shadow: 0 8px 24px rgba(16, 24, 40, 0.16); }
 .rt__item.drop-before::before, .rt__item.drop-after::after {
   content: ''; position: absolute; left: 0; right: 0; height: 3px; border-radius: 2px; background: var(--primary);
 }
 .rt__item.drop-before::before { top: -2px; }
-.rt__item.drop-after::after { top: auto; bottom: -2px; width: auto; }
+.rt__item.drop-after::after { bottom: -2px; }

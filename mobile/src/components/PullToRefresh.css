@@ -6,9 +6,9 @@
   width: 40px; height: 40px;
   display: grid; place-items: center;
   border-radius: 50%;
-  background: var(--el);
-  border: 1px solid var(--line-2);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 14px rgba(16, 24, 40, 0.12);
   color: var(--sub);
   pointer-events: none;
   transition: transform 0.25s ease, opacity 0.25s ease;

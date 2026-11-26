@@ -15,19 +15,19 @@ const base = (w: number, color: string | undefined, sw: number) => ({
   'aria-hidden': true,
 });
 
-export const IconUp = ({ color = '#9B9BA2', ...p }: P) => (
+export const IconUp = ({ color = '#8A919C', ...p }: P) => (
   <svg {...base(22, color, 2.2)} {...p}><path d="M16.5 13.75L11 8.25L5.5 13.75" /></svg>
 );
-export const IconDown = ({ color = '#9B9BA2', ...p }: P) => (
+export const IconDown = ({ color = '#8A919C', ...p }: P) => (
   <svg {...base(22, color, 2.2)} {...p}><path d="M5.5 8.25L11 13.75L16.5 8.25" /></svg>
 );
-export const IconDownSm = ({ color = '#9B9BA2', ...p }: P) => (
+export const IconDownSm = ({ color = '#8A919C', ...p }: P) => (
   <svg {...base(16, color, 1.6)} {...p}><path d="M4 6L8 10L12 6" /></svg>
 );
-export const IconBack = ({ color = '#E2E2E5', ...p }: P) => (
+export const IconBack = ({ color = '#17191C', ...p }: P) => (
   <svg {...base(24, color, 2.2)} {...p}><path d="M19 12H5" /><path d="M12 19L5 12L12 5" /></svg>
 );
-export const IconSearch = ({ color = '#9B9BA2', ...p }: P) => (
+export const IconSearch = ({ color = '#8A919C', ...p }: P) => (
   <svg {...base(20, color, 1.8)} {...p}>
     <path d="M9 15C12.3137 15 15 12.3137 15 9C15 5.68629 12.3137 3 9 3C5.68629 3 3 5.68629 3 9C3 12.3137 5.68629 15 9 15Z" strokeLinejoin="miter" strokeLinecap="butt" />
     <path d="M13.5 13.5L17 17" />
@@ -63,14 +63,14 @@ export const IconTabChat = ({ color, ...p }: P) => (
 );
 
 // 동선 화면
-export const IconDoc = ({ color = '#E2E2E5', ...p }: P) => (
+export const IconDoc = ({ color = '#17191C', ...p }: P) => (
   <svg {...base(17, color, 2)} {...p}>
     <path d="M9.91665 2.125H4.24998C3.87426 2.125 3.51392 2.27426 3.24824 2.53993C2.98257 2.80561 2.83331 3.16594 2.83331 3.54167V13.4583C2.83331 13.8341 2.98257 14.1944 3.24824 14.4601C3.51392 14.7257 3.87426 14.875 4.24998 14.875H12.75C13.1257 14.875 13.486 14.7257 13.7517 14.4601C14.0174 14.1944 14.1666 13.8341 14.1666 13.4583V6.375L9.91665 2.125Z" />
     <path d="M9.91669 2.125V6.375H14.1667" />
     <path d="M5.66669 9.2085H11.3334M5.66669 12.0418H9.20835" />
   </svg>
 );
-export const IconNav = ({ color = '#E2E2E5', ...p }: P) => (
+export const IconNav = ({ color = '#17191C', ...p }: P) => (
   <svg {...base(17, color, 2)} {...p}><path d="M2.125 7.7915L15.5833 1.4165L9.20833 14.8748L7.79167 9.20817L2.125 7.7915Z" /></svg>
 );
 export const IconRoute16 = ({ color = '#FFFFFF', ...p }: P) => (
@@ -105,14 +105,14 @@ export const IconTurn = ({ color = '#FFFFFF', ...p }: P) => (
     <path d="M4.66669 23.3333V15.1667C4.66669 13.929 5.15835 12.742 6.03352 11.8668C6.90869 10.9917 8.09568 10.5 9.33335 10.5H23.3334" />
   </svg>
 );
-export const IconLocate = ({ color = '#E2E2E5', ...p }: P) => (
+export const IconLocate = ({ color = '#17191C', ...p }: P) => (
   <svg {...base(20, color, 2)} {...p}>
     <path d="M10 15.8337C13.2217 15.8337 15.8334 13.222 15.8334 10.0003C15.8334 6.77866 13.2217 4.16699 10 4.16699C6.77836 4.16699 4.16669 6.77866 4.16669 10.0003C4.16669 13.222 6.77836 15.8337 10 15.8337Z" />
     <path d="M9.99998 11.6663C10.9205 11.6663 11.6666 10.9201 11.6666 9.99967C11.6666 9.0792 10.9205 8.33301 9.99998 8.33301C9.07951 8.33301 8.33331 9.0792 8.33331 9.99967C8.33331 10.9201 9.07951 11.6663 9.99998 11.6663Z" />
     <path d="M10 1.66699V4.16699M10 15.8337V18.3337M1.66669 10.0003H4.16669M15.8334 10.0003H18.3334" />
   </svg>
 );
-export const IconCheck16 = ({ color = '#E2E2E5', ...p }: P) => (
+export const IconCheck16 = ({ color = '#17191C', ...p }: P) => (
   <svg {...base(16, color, 2.5)} {...p}><path d="M3.33331 8.33366L6.33331 11.3337L12.6666 4.66699" /></svg>
 );
 
@@ -123,7 +123,7 @@ export const IconBuilding = ({ color = '#FFFFFF', ...p }: P) => (
     <path d="M7.5 5H8.33333M11.6667 5H12.5M7.5 8.33333H8.33333M11.6667 8.33333H12.5M7.5 11.6667H8.33333M11.6667 11.6667H12.5M8.33333 18.3333V15H11.6667V18.3333" />
   </svg>
 );
-export const IconUsers = ({ color = '#9B9BA2', ...p }: P) => (
+export const IconUsers = ({ color = '#8A919C', ...p }: P) => (
   <svg {...base(20, color, 2)} {...p}>
     <path d="M13.3333 17.5V15.8333C13.3333 14.9493 12.9821 14.1014 12.357 13.4763C11.7319 12.8512 10.884 12.5 9.99996 12.5H4.99996C4.1159 12.5 3.26806 12.8512 2.64294 13.4763C2.01782 14.1014 1.66663 14.9493 1.66663 15.8333V17.5" />
     <path d="M7.49996 9.16667C9.34091 9.16667 10.8333 7.67428 10.8333 5.83333C10.8333 3.99238 9.34091 2.5 7.49996 2.5C5.65901 2.5 4.16663 3.99238 4.16663 5.83333C4.16663 7.67428 5.65901 9.16667 7.49996 9.16667Z" />
@@ -131,13 +131,13 @@ export const IconUsers = ({ color = '#9B9BA2', ...p }: P) => (
     <path d="M13.3334 2.5835C14.0698 2.75133 14.7274 3.16431 15.1985 3.75477C15.6695 4.34524 15.926 5.07817 15.926 5.8335C15.926 6.58882 15.6695 7.32176 15.1985 7.91222C14.7274 8.50268 14.0698 8.91566 13.3334 9.0835" />
   </svg>
 );
-export const IconCamera = ({ color = '#E2E2E5', ...p }: P) => (
+export const IconCamera = ({ color = '#17191C', ...p }: P) => (
   <svg {...base(24, color, 2)} {...p}>
     <path d="M14.5 4H9.5L7 7H4C3.46957 7 2.96086 7.21071 2.58579 7.58579C2.21071 7.96086 2 8.46957 2 9V18C2 18.5304 2.21071 19.0391 2.58579 19.4142C2.96086 19.7893 3.46957 20 4 20H20C20.5304 20 21.0391 19.7893 21.4142 19.4142C21.7893 19.0391 22 18.5304 22 18V9C22 8.46957 21.7893 7.96086 21.4142 7.58579C21.0391 7.21071 20.5304 7 20 7H17L14.5 4Z" />
     <path d="M12 16.5C13.933 16.5 15.5 14.933 15.5 13C15.5 11.067 13.933 9.5 12 9.5C10.067 9.5 8.5 11.067 8.5 13C8.5 14.933 10.067 16.5 12 16.5Z" />
   </svg>
 );
-export const IconUpload = ({ color = '#E2E2E5', ...p }: P) => (
+export const IconUpload = ({ color = '#17191C', ...p }: P) => (
   <svg {...base(24, color, 2)} {...p}>
     <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" />
     <path d="M17 8L12 3L7 8" />
@@ -147,7 +147,7 @@ export const IconUpload = ({ color = '#E2E2E5', ...p }: P) => (
 
 // 순서 핸들 (점 6개)
 export const DragHandle = () => (
-  <svg width="10" height="16" viewBox="0 0 10 16" fill="#65656C" aria-hidden>
+  <svg width="10" height="16" viewBox="0 0 10 16" fill="#B4BAC3" aria-hidden>
     <circle cx="2" cy="2" r="1.5" /><circle cx="8" cy="2" r="1.5" />
     <circle cx="2" cy="8" r="1.5" /><circle cx="8" cy="8" r="1.5" />
     <circle cx="2" cy="14" r="1.5" /><circle cx="8" cy="14" r="1.5" />
@@ -163,26 +163,26 @@ export const IconTabCalendar = ({ color, ...p }: P) => (
 );
 
 // 확인 완료 · 확인 결과
-export const IconImage = ({ color = '#9B9BA2', ...p }: P) => (
+export const IconImage = ({ color = '#8A919C', ...p }: P) => (
   <svg {...base(24, color, 1.8)} {...p}>
     <rect x="3" y="3" width="18" height="18" rx="2" />
     <circle cx="8.5" cy="8.5" r="1.5" />
     <path d="M21 15L16 10L5 21" />
   </svg>
 );
-export const IconChevronRight = ({ color = '#65656C', ...p }: P) => (
+export const IconChevronRight = ({ color = '#B4BAC3', ...p }: P) => (
   <svg {...base(20, color, 2)} {...p}><path d="M7.5 15L12.5 10L7.5 5" /></svg>
 );
-export const IconFilter = ({ color = '#9B9BA2', ...p }: P) => (
+export const IconFilter = ({ color = '#8A919C', ...p }: P) => (
   <svg {...base(20, color, 2)} {...p}><path d="M3.33 5.83H16.67M5.83 10H14.17M8.33 14.17H11.67" /></svg>
 );
-export const IconShare = ({ color = '#E2E2E5', ...p }: P) => (
+export const IconShare = ({ color = '#17191C', ...p }: P) => (
   <svg {...base(22, color, 1.8)} {...p}>
     <path d="M11 13.75V2.75M7.33 6.42L11 2.75L14.67 6.42" />
     <path d="M3.67 11V17.42C3.67 17.9 3.86 18.37 4.2 18.71C4.55 19.05 5.01 19.25 5.5 19.25H16.5C16.99 19.25 17.45 19.05 17.8 18.71C18.14 18.37 18.33 17.9 18.33 17.42V11" />
   </svg>
 );
-export const IconMore = ({ color = '#E2E2E5', ...p }: P) => (
+export const IconMore = ({ color = '#17191C', ...p }: P) => (
   <svg width={22} height={22} viewBox="0 0 22 22" fill={color} aria-hidden {...p}>
     <circle cx="11" cy="4.6" r="1.7" /><circle cx="11" cy="11" r="1.7" /><circle cx="11" cy="17.4" r="1.7" />
   </svg>

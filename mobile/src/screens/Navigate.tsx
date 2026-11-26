@@ -15,9 +15,9 @@ import './Navigate.css';
 
 const MW = 390, MH = 772;
 const ROADS: [string, string, number][] = [
-  ['M0 520L390 430', '#2A2B30', 18], ['M120 0L170 772', '#2A2B30', 14], ['M0 260L390 300', '#2A2B30', 12],
-  ['M300 0L250 772', '#2A2B30', 10], ['M0 650L390 690', '#232428', 7], ['M60 0L40 772', '#232428', 7],
-  ['M0 120L390 90', '#232428', 7], ['M200 0L215 772', '#202125', 5],
+  ['M0 520L390 430', '#FFFFFF', 18], ['M120 0L170 772', '#FFFFFF', 14], ['M0 260L390 300', '#FFFFFF', 12],
+  ['M300 0L250 772', '#FFFFFF', 10], ['M0 650L390 690', '#F7F8FA', 7], ['M60 0L40 772', '#F7F8FA', 7],
+  ['M0 120L390 90', '#F7F8FA', 7], ['M200 0L215 772', '#F7F8FA', 5],
 ];
 const LEG = 'M154 528L151 485L270 457L279 330';
 const FULL = 'M154 528L151 485L270 457L279 330L283 289L210 282L137 274L132 180';
@@ -32,8 +32,8 @@ function MapCanvas({ path, children }: { path: string; children: React.ReactNode
     <div className="nmap">
       <svg viewBox={`0 0 ${MW} ${MH}`} preserveAspectRatio="xMidYMid slice" className="nmap__svg" aria-hidden>
         {ROADS.map(([d, c, w]) => <path key={d} d={d} stroke={c} strokeWidth={w} />)}
-        <path d={path} stroke="#0B0B0C" strokeWidth={11} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        <path d={path} stroke="#448EDE" strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <path d={path} stroke="#FFFFFF" strokeWidth={11} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <path d={path} stroke="#1F4F9A" strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
       </svg>
       <div className="nmap__layer">
         {children}
@@ -193,7 +193,7 @@ export function NavigateAll() {
       ) : <MapCanvas path={FULL}>
         {buildings.slice(0, 4).map((b, i) => {
           const p = pct(STOPS[i]);
-          if (i < nextIdx) return <span key={b.id} className="npin npin--done" style={p}><IconCheck16 /></span>;
+          if (i < nextIdx) return <span key={b.id} className="npin npin--done" style={p}><IconCheck16 color="#FFFFFF" /></span>;
           if (i === nextIdx)
             return (
               <span key={b.id} className="npin npin--sel" style={p}>
@@ -225,7 +225,7 @@ export function NavigateAll() {
         <ol className="steps" style={{ ['--done' as string]: buildings.length > 1 ? nextIdx / (buildings.length - 1) : 0 }}>
           {buildings.map((b, i) => (
             <li key={b.id} className={i < nextIdx ? 'is-done' : i === nextIdx ? 'is-now' : ''}>
-              <span className="steps__dot">{i < nextIdx ? <IconCheck16 /> : i + 1}</span>
+              <span className="steps__dot">{i < nextIdx ? <IconCheck16 color="#FFFFFF" /> : i + 1}</span>
               <span className="steps__name">{b.dong.replace(/^\S+\s/, '')}</span>
             </li>
           ))}

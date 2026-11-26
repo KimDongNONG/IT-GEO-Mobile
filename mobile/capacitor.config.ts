@@ -4,7 +4,7 @@ const config: CapacitorConfig = {
   appId: 'kr.itgeo.mobile',
   appName: 'ItGEO',
   webDir: 'dist',
-  backgroundColor: '#0b0b0c',
+  backgroundColor: '#1f4f9a',
   plugins: {
     // fetch 를 네이티브 통신으로: 다른 주소의 스프링 서버에도 CORS 없이 붙고, 세션 쿠키(JSESSIONID)가 유지돼요
     CapacitorHttp: { enabled: true },
