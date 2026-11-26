@@ -86,7 +86,8 @@ export default function Record() {
     }
   };
 
-  const back = () => (groupId ? navigate(`/route/${groupId}`) : navigate(-1));
+  // 뒤로 = 들어온 화면으로 (홈 · 동선 · 캘린더 …). 바로 열린 경우(이전 기록 없음)만 홈으로
+  const back = () => ((window.history.state?.idx ?? 0) > 0 ? navigate(-1) : navigate('/', { replace: true }));
   const saveDraft = () => {
     try {
       localStorage.setItem(draftKey(b.id), JSON.stringify({ ...rec, photos: [] }));

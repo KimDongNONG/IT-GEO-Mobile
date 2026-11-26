@@ -1,7 +1,8 @@
 // M1 홈 · 오늘의 현장 확인
 //   위 = 날짜 · 인사, 이번 주 현장 확인(진행률 카드 : 완료 / 전체 동 · 남은 건물 · 확인 완료 · 오늘 방문)
 //   아래 = 현장 확인 리스트 (진행중 | 완료됨). 리스트 카드를 누르면 펼쳐져서 동선 순서 · 동선 보기 · 현장 확인 시작
-//   건물 줄 : 확인한 곳은 결과, 아직이면 현장 기록으로
+//   건물 줄을 누르면 그 줄이 선택(강조)되고, 아래 버튼이 '동선 보기' → '지도에서 보기'로 바뀐다. '현장 확인 시작'은 고른 건물로 (안 고르면 지금 갈 곳)
+//   지도에서 보기 = 동선 화면을 그 건물로 확대해서 연다 (/route/:groupId?open=건물). 길찾기는 거기 목록의 '길찾기'로
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Building, Group, WorkStatus } from '../data/types';
@@ -45,8 +46,7 @@ export default function Home() {
 
   const [tab, setTab] = useState<'doing' | 'done'>('doing');
   const shown = tab === 'doing' ? doing : finished;
-  const [openId, setOpenId] = useState<string | null>(null);   // null = 아직 안 정함 → 첫 리스트를 펼쳐 둔다
-  const opened = openId ?? shown[0]?.g.id ?? '';
+  const [openId, setOpenId] = useState<string | null>(null);   // 펼친 리스트 (처음엔 모두 접힘)
 
   return (
     <div className="screen screen--tabs home">
@@ -87,10 +87,11 @@ export default function Home() {
         <ListCard
           key={x.g.id}
           row={x}
-          open={opened === x.g.id}
-          onToggle={() => setOpenId(opened === x.g.id ? '' : x.g.id)}
+          open={openId === x.g.id}
+          onToggle={() => setOpenId(openId === x.g.id ? null : x.g.id)}
           onOpenBuilding={(b) => navigate(b.status === 'done' ? `/result/${b.id}` : `/record/${b.id}?group=${x.g.id}`)}
           onRoute={() => navigate(`/route/${x.g.id}`)}
+          onMap={(b) => navigate(`/route/${x.g.id}?open=${b.id}`)}
         />
       ))}
 
@@ -99,13 +100,16 @@ export default function Home() {
   );
 }
 
-function ListCard({ row, open, onToggle, onOpenBuilding, onRoute }: {
-  row: Row; open: boolean; onToggle: () => void; onOpenBuilding: (b: Building) => void; onRoute: () => void;
+function ListCard({ row, open, onToggle, onOpenBuilding, onRoute, onMap }: {
+  row: Row; open: boolean; onToggle: () => void; onOpenBuilding: (b: Building) => void; onRoute: () => void; onMap: (b: Building) => void;
 }) {
   const { g, no, bs, size, done, status } = row;
   const first = bs[0];
   const area = first ? `${first.gu} ${first.dong.split(' ')[0]}` : '';
   const current = bs.find((b) => b.status !== 'done');          // 지금 갈 곳 = 아직 확인 안 한 첫 건물
+  const [pickedId, setPickedId] = useState<string | null>(null);  // 누른 건물 (한 번 더 누르면 해제)
+  const picked = bs.find((b) => b.id === pickedId);
+  const target = picked ?? current;                              // '현장 확인 시작' 대상
 
   return (
     <section className={`hl card ${open ? 'is-open' : ''}`}>
@@ -129,18 +133,16 @@ function ListCard({ row, open, onToggle, onOpenBuilding, onRoute }: {
       {open && (
         <>
           <hr className="divider" />
-          <div className="hl__sub">
-            <span>동선 순서</span>
-            <button className="hl__map" onClick={onRoute}>지도에서 보기 <Ico name="chevRightPrimary" size={16} /></button>
-          </div>
+          <p className="hl__sub">동선 순서</p>
           <ul className="hl__rows">
             {bs.length === 0 && <li className="hl__none">건물을 불러오는 중이에요.</li>}
             {bs.map((b, i) => {
               const isDone = b.status === 'done';
               const isCur = b.id === current?.id;
+              const isPicked = b.id === pickedId;
               return (
-                <li key={b.id}>
-                  <button className={`hl__row ${isDone ? 'is-done' : ''}`} onClick={() => onOpenBuilding(b)}>
+                <li key={b.id} className={isPicked ? 'is-picked' : ''}>
+                  <button className={`hl__row ${isDone ? 'is-done' : ''}`} aria-pressed={isPicked} onClick={() => setPickedId(isPicked ? null : b.id)}>
                     <span className={`hl__no ${isDone ? 'is-done' : isCur ? 'is-cur' : ''}`}>
                       {isDone ? <Ico name="checkWhite" size={15} /> : i + 1}
                     </span>
@@ -158,10 +160,14 @@ function ListCard({ row, open, onToggle, onOpenBuilding, onRoute }: {
             })}
           </ul>
           <div className="hl__btns">
-            <button className="btn btn--ghost" onClick={onRoute}><Ico name="route" size={18} />동선 보기</button>
-            {current && (
-              <button className="btn btn--primary hl__start" onClick={() => onOpenBuilding(current)}><Ico name="editWhite" size={18} />현장 확인 시작</button>
-            )}
+            {picked
+              ? <button className="btn btn--soft" onClick={() => onMap(picked)}><Ico name="locate" size={18} />지도에서 보기</button>
+              : <button className="btn btn--ghost" onClick={onRoute}><Ico name="route" size={18} />동선 보기</button>}
+            {target && (target.status === 'done' ? (
+              <button className="btn btn--primary hl__start" onClick={() => onOpenBuilding(target)}>결과 보기</button>
+            ) : (
+              <button className="btn btn--primary hl__start" onClick={() => onOpenBuilding(target)}><Ico name="editWhite" size={18} />현장 확인 시작</button>
+            ))}
           </div>
         </>
       )}

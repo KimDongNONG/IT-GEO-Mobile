@@ -2,7 +2,7 @@
 //   방문 순서(세로 타임라인) : 확인한 곳(회색 체크) → 지금 갈 곳(처음부터 펼침 : 길찾기 · 현장 기록) → 남은 곳. 줄을 누르면 그 건물을 펼치고 지도도 그 건물로 확대
 //   순서 편집 : 오른쪽 손잡이를 끌어서 순서를 바꾼다 (서버 저장은 AppStore.reorder)
 //   거리 : 서버 모드는 TMAP 도보 경로(구간별 legs, 구청 출발), 시연 모드는 도식 지도 거리
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Building } from '../data/types';
 import { useGroup, useStore } from '../store/AppStore';
@@ -65,6 +65,7 @@ export default function RoutePlan() {
   const [focusId, setFocusId] = useState<string | null>(openParam || null);
 
   const [editing, setEditing] = useState(false);
+  useEffect(() => { window.scrollTo(0, 0); }, []);   // 홈에서 스크롤한 채로 들어와도 지도부터 보이게
 
   // ---- 끌어서 순서 바꾸기 (편집 모드에서만 손잡이가 보인다) ----
   const listRef = useRef<HTMLOListElement>(null);

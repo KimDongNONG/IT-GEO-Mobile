@@ -16,7 +16,6 @@ import chevDown16 from '../assets/figma/chev-down-16.svg';
 import chevDown18 from '../assets/figma/chev-down-18.svg';
 import chevLeftDark from '../assets/figma/chev-left-dark.svg';
 import chevRightDark from '../assets/figma/chev-right-dark.svg';
-import chevRightPrimary from '../assets/figma/chev-right-primary.svg';
 import chevRightSub from '../assets/figma/chev-right-sub.svg';
 import chevUp from '../assets/figma/chev-up.svg';
 import clockSm from '../assets/figma/clock-sm.svg';
@@ -67,7 +66,7 @@ import volume from '../assets/figma/volume.svg';
 
 export const FIG = {
   arrowRightSub, back, back24, building, camera, checkGreen, checkGreen14, checkWhite, checkWhite16, checkWhite32,
-  chevDown, chevDown14, chevDown16, chevDown18, chevLeftDark, chevRightDark, chevRightPrimary, chevRightSub, chevUp,
+  chevDown, chevDown14, chevDown16, chevDown18, chevLeftDark, chevRightDark, chevRightSub, chevUp,
   clockSm, close24, closeX, copy, dotBefore, dotDoing, dotDone, editDark, editWhite, expand, filter, image, image20, image40,
   infoSub, infoWarn, locate, lock, logoGeo, logoIt, markerHalo, mic, more, navBtn, navDark, navPrimary, pin,
   route, routeSm, search, segBuildingOn, segUsersOff, share, sort, swap,
