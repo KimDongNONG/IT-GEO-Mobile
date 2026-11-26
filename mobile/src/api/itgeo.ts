@@ -26,6 +26,7 @@ export interface RecordTO {
   recordId: number; visitedAt: string; result: string; userNm: string | null; content: string; scoreAdj: number | null;
   checks: Record<string, 'Y' | 'N' | '?'>; added: string[]; source: string | null; residentStatus: string | null;
   scores: Record<string, number>; supports: string[]; photos: PhotoTO[];
+  transcript?: string | null;   // 녹취록 (survey_record_detail.transcript)
 }
 export interface ArchiveDetailTO {
   building: BuildingTO; residents: { hhCnt: number; mbrCnt: number; summary: string } | null; planId: number | null; records: RecordTO[];
@@ -90,6 +91,7 @@ export async function saveRecord(b: Building, rec: FieldRecord, onPhoto?: (done:
     bldId: b.id,
     result: rec.resident === '부재' ? 'ABSENT' : 'MET',
     content: rec.memo.trim() || undefined,
+    transcript: rec.transcript?.trim() || undefined,
     scoreAdj: warn,
     resident: rec.resident,
     supports: rec.supports,
@@ -221,6 +223,7 @@ export function recordFromServer(bldId: string, r: RecordTO, b?: Building): Fiel
     resident: (r.residentStatus as ResidentStatus) ?? (r.result === 'ABSENT' ? '부재' : undefined),
     supports: r.supports ?? [],
     memo: r.content ?? '',
+    transcript: r.transcript ?? undefined,
     photos: [],
     photoIds: (r.photos ?? []).map((p) => p.photoId),
     factorChecks,

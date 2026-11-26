@@ -68,6 +68,7 @@ export interface FieldRecord {
   resident?: ResidentStatus;
   supports: string[];
   memo: string;
+  transcript?: string;        // 녹취록 (가구 탭 녹음 → 음성 인식 글자, 녹음 파일은 남기지 않음)
   photos: string[];                 // data URL 또는 파일 경로
   factorChecks: Record<string, boolean | null>; // 요인 → 맞음(true) · 아님(false) · 미확인(null)
   savedAt?: string;

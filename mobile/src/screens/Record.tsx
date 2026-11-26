@@ -1,7 +1,7 @@
 // M3 현장 기록 · M4 제출 확인
 //   위 = 건물 요약(방문 순번 · 점검 진행 n / 5 항목), 사전 탐지 요인 확인(맞음 / 아님), 건물 | 가구 세그먼트
 //   건물 탭 : 섹션 카드(안전 · 위생)마다 1~5 점 큰 버튼 (1 양호 ~ 5 위험). 다 고른 섹션은 접히고 초록 체크
-//   가구 탭 : 거주자 상태 · 필요한 지원
+//   가구 탭 : 거주자 상태 · 필요한 지원 · 녹음(음성 인식 → 녹취록 글자, 저장할 때 웹으로 같이 보냄)
 //   사진 · 메모 섹션은 두 탭 모두 맨 아래. 오른쪽 위 '임시 저장' = 폰에 잠깐 보관 (사진 제외), 다시 들어오면 이어서 쓴다
 //   '저장하고 완료' → 요인을 다 고르지 않았으면 토스트로 알리고 요인 칸으로 이동, 다 골랐으면 제출 확인 시트(M4)
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -12,10 +12,12 @@ import { useStore } from '../store/AppStore';
 import { FIG, Ico } from '../components/figma';
 import { ActionBar, Bar, Btn, Screen, Sheet } from '../components/ui';
 import { SECTIONS, SUPPORTS } from '../lib/fieldcheck';
+import { canDictate, startDictation, type Dictation } from '../lib/speech';
 import './Record.css';
 
 const RESIDENT: ResidentStatus[] = ['양호', '주의', '긴급', '부재'];
 const ITEM_COUNT = SECTIONS.reduce((n, s) => n + s.items.length, 0);
+const TRANSCRIPT_MAX = 100_000;   // 서버(MobileService.TRANSCRIPT_MAX)와 같은 최대 글자 수
 const draftKey = (buildingId: string) => `itgeo.mobile.draft.${buildingId}`;
 
 /** 임시 저장한 기록 (사진은 용량 때문에 빼고 저장) */
@@ -133,13 +135,16 @@ export default function Record() {
     }
   };
 
-  const memoSection = (num: number) => (
+  const memoSection = (num: number, withRecorder = false) => (
     <section className="sec card">
       <header className="sec__head">
         <span className="sec__num">{num}</span>
-        <h2 className="sec__title">사진 · 메모<small>사진 {rec.photos.length}장</small></h2>
+        <h2 className="sec__title">{withRecorder ? '녹음 · 사진 · 메모' : '사진 · 메모'}<small>사진 {rec.photos.length}장</small></h2>
       </header>
       <div className="sec__body sec__body--memo">
+        {withRecorder && (
+          <Recorder value={rec.transcript ?? ''} onChange={(t) => setRec((r) => ({ ...r, transcript: t }))} onError={act.toast} />
+        )}
         <ul className="rec__photos">
           <li>
             <button className="rec__add" onClick={() => setPicking(true)}>
@@ -276,7 +281,7 @@ export default function Record() {
               </div>
             </div>
           </Section>
-          {memoSection(2)}
+          {memoSection(2, true)}
         </>
       )}
 
@@ -388,5 +393,65 @@ function SubmitSheet({ rec, onCancel, onSubmit, saving }: { rec: FieldRecord; on
         <Btn variant={saving ? 'disabled' : 'primary'} disabled={!!saving} onClick={onSubmit}>{saving ?? '제출하기'}</Btn>
       </div>
     </Sheet>
+  );
+}
+
+/** 가구 탭 녹음 : 누르면 음성 인식으로 말한 내용이 녹취록 칸에 글자로 적힌다 (녹음 파일은 남기지 않음) */
+function Recorder({ value, onChange, onError }: { value: string; onChange: (t: string) => void; onError: (m: string) => void }) {
+  const [on, setOn] = useState(false);
+  const [partial, setPartial] = useState('');
+  const [sec, setSec] = useState(0);
+  const dict = useRef<Dictation | null>(null);
+  const val = useRef(value);
+  useEffect(() => { val.current = value; }, [value]);
+  useEffect(() => () => { dict.current?.stop(); }, []);
+  useEffect(() => {
+    if (!on) return;
+    const t = setInterval(() => setSec((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [on]);
+
+  const toggle = async () => {
+    if (on) { await dict.current?.stop(); dict.current = null; setOn(false); setPartial(''); return; }
+    if (!canDictate()) { onError('이 기기에서는 음성 인식을 쓸 수 없어요. 아래 칸에 직접 적어 주세요.'); return; }
+    try {
+      setSec(0);
+      dict.current = await startDictation('ko-KR', {
+        onFinal: (t) => {
+          const next = `${val.current}${val.current && !/\s$/.test(val.current) ? ' ' : ''}${t}`.slice(0, TRANSCRIPT_MAX);
+          val.current = next;
+          onChange(next);
+          setPartial('');
+        },
+        onPartial: setPartial,
+        onEnd: () => { setOn(false); setPartial(''); },
+        onError,
+      });
+      setOn(true);
+    } catch (e) {
+      onError(e instanceof Error ? e.message : '녹음을 시작하지 못했어요.');
+    }
+  };
+  const mm = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+
+  return (
+    <div className={`rec__voice ${on ? 'is-on' : ''}`}>
+      <div className="rec__voice-top">
+        <button type="button" className="rec__voice-btn" onClick={toggle} aria-pressed={on}>
+          {on ? <span className="rec__voice-dot" aria-hidden /> : <Ico name="mic" size={20} />}
+          {on ? `녹음 멈추기 · ${mm}` : value ? '이어서 녹음' : '녹음 시작'}
+        </button>
+        {value && !on && <button type="button" className="rec__voice-clear" onClick={() => onChange('')}>지우기</button>}
+      </div>
+      <p className="rec__voice-help">말하는 내용이 아래 칸에 글자로 적혀요. 녹음 파일은 남기지 않고, 녹취록은 저장할 때 웹 기록으로 같이 보내요.</p>
+      <textarea
+        className="rec__memo rec__transcript"
+        value={on && partial ? `${value}${value ? ' ' : ''}${partial}` : value}
+        readOnly={on}
+        onChange={(e) => onChange(e.target.value.slice(0, TRANSCRIPT_MAX))}
+        placeholder="녹취록 (녹음하면 여기에 적혀요. 직접 고칠 수도 있어요)"
+        aria-label="녹취록"
+      />
+    </div>
   );
 }

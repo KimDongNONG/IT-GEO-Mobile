@@ -137,3 +137,17 @@
 .sbar.is-warn i { background: var(--st-doing); }
 .sbar.is-bad b { color: var(--red); }
 .sbar.is-bad i { background: var(--red); }
+
+/* 가구 탭 녹음 · 녹취록 */
+.rec__voice { display: flex; flex-direction: column; gap: 8px; padding-bottom: 14px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
+.rec__voice-top { display: flex; align-items: center; gap: 8px; }
+.rec__voice-btn {
+  flex: 1; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--primary-soft); color: var(--primary); font-size: 15px; font-weight: 700; letter-spacing: -0.225px;
+}
+.rec__voice-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--red); animation: rec-blink 1s steps(2, start) infinite; }
+.rec__voice.is-on .rec__voice-btn { background: #fdecec; color: var(--red); box-shadow: inset 0 0 0 1.5px var(--red); }
+@keyframes rec-blink { to { visibility: hidden; } }
+.rec__voice-clear { flex: none; height: 50px; padding: 0 12px; font-size: 13px; font-weight: 500; color: var(--sub); text-decoration: underline; text-underline-offset: 2px; }
+.rec__voice-help { font-size: 12px; line-height: 1.5; letter-spacing: -0.18px; color: var(--sub); }
+.rec__transcript { min-height: 120px; }
