@@ -1,0 +1,20 @@
+/* 당겨서 새로고침 표시 : 화면 위 안전영역 아래에서 내려오는 동그란 버튼 */
+.ptr {
+  position: fixed; z-index: 70;
+  top: max(var(--safe-top), 0px);
+  left: 50%;
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--el);
+  border: 1px solid var(--line-2);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  color: var(--sub);
+  pointer-events: none;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.ptr.is-dragging { transition: none; }
+.ptr.is-ready, .ptr.is-busy { color: var(--primary); }
+.ptr.is-busy .ptr__icon { animation: ptr-spin 0.8s linear infinite; }
+
+@keyframes ptr-spin { to { transform: rotate(360deg); } }

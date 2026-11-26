@@ -13,6 +13,7 @@ import Talk from './screens/Talk';
 import Calendar from './screens/Calendar';
 import Done from './screens/Done';
 import Emergency from './components/Emergency';
+import PullToRefresh from './components/PullToRefresh';
 
 // Capacitor 앱 안에서는 파일 기반으로 열리므로 HashRouter를 씀
 export default function App() {
@@ -36,6 +37,9 @@ function Gate() {
   if (!state.ready) return <div className="screen screen--none" />;
   if (state.mode === 'none') return <Login />;
   return (
+    <>
+          {/* 화면 맨 위에서 아래로 당기면 새로고침 */}
+          <PullToRefresh />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/archive" element={<Archive />} />
@@ -50,5 +54,6 @@ function Gate() {
             <Route path="/talk" element={<Talk />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+    </>
   );
 }

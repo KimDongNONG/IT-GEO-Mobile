@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/AppStore';
+import { usePullRefresh } from '../lib/pullRefresh';
 import { Screen, TabBar } from '../components/ui';
 import ServerPhoto from '../components/ServerPhoto';
 import { IconChevronRight, IconFilter, IconImage, IconSearch } from '../components/icons';
@@ -40,6 +41,19 @@ export default function Done() {
     })();
     return () => { alive = false; };
   }, [state.mode, missing, act]);
+
+  // 당겨서 새로고침 : 웹에서 고친 기록(담당자 · 부서 이관 · 사진)까지 다시 읽기 (최근 것부터 40건, 4개씩 동시에)
+  usePullRefresh(async () => {
+    if (state.mode !== 'server') return;
+    const ids = [...rows].sort((a, b) => (b.at?.getTime() ?? 0) - (a.at?.getTime() ?? 0)).slice(0, 40).map((r) => r.b.id);
+    const next = async (): Promise<void> => {
+      const id = ids.shift();
+      if (!id) return;
+      await act.loadBuilding(id).catch(() => undefined);
+      return next();
+    };
+    await Promise.all([next(), next(), next(), next()]);
+  });
 
   const guCounts = useMemo(() => {
     const m = new Map<string, number>();

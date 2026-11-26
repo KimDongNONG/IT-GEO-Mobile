@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/AppStore';
+import { usePullRefresh } from '../lib/pullRefresh';
 import { TabBar } from '../components/ui';
 import { WEEKDAYS, dayRows, dayStats, monthGrid, nowHm, shortDate, STATUS_CLASS, ymd, type DayRow } from '../lib/schedule';
 import type { ScheduleItem } from '../data/types';
@@ -50,6 +51,7 @@ export default function Calendar() {
   useEffect(() => {
     act.loadSchedule(grid.key, grid.start, grid.end);
   }, [act, grid, state.mode]);
+  usePullRefresh(() => act.loadSchedule(grid.key, grid.start, grid.end));
 
   // 날짜별로 묶기 : 칸에는 리스트 이름(중복 제거)과 건물 수
   const byDate = useMemo(() => {
