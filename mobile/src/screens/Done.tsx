@@ -60,12 +60,25 @@ function matches(r: Row, f: Filter) {
   return true;
 }
 
+/** 조회 조건(기간 · 정렬)은 결과 화면에 들어갔다 나와도 그대로 (앱을 닫기 전까지) */
+const VIEW_KEY = 'itgeo.mobile.doneView';
+function loadView(): { period: Period; oldFirst: boolean } {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(VIEW_KEY) ?? 'null');
+    if (v && v.period in PERIOD_LABEL) return { period: v.period, oldFirst: !!v.oldFirst };
+  } catch { /* 무시 */ }
+  return { period: 'week', oldFirst: false };
+}
+
 export default function Done() {
   const { state, act } = useStore();
   const navigate = useNavigate();
   const [q, setQ] = useState('');
-  const [period, setPeriod] = useState<Period>('week');
-  const [oldFirst, setOldFirst] = useState(false);
+  const [period, setPeriod] = useState<Period>(() => loadView().period);
+  const [oldFirst, setOldFirst] = useState(() => loadView().oldFirst);
+  useEffect(() => {
+    try { sessionStorage.setItem(VIEW_KEY, JSON.stringify({ period, oldFirst })); } catch { /* 무시 */ }
+  }, [period, oldFirst]);
   const [filter, setFilter] = useState<Filter>(NO_FILTER);
   const [sheet, setSheet] = useState<'period' | 'filter' | null>(null);
 

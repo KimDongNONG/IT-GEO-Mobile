@@ -1,6 +1,5 @@
 .login { display: flex; flex-direction: column; padding-top: calc(var(--top) + 64px); }
-.login__logo { font-size: 30px; font-weight: 400; letter-spacing: -0.5px; color: var(--text); }
-.login__logo b { font-weight: 700; color: var(--primary); }
+.login__logo { display: flex; }
 .login__desc { margin-top: 14px; font-size: 14px; line-height: 1.6; color: var(--sub); }
 .login__form { margin-top: 40px; display: flex; flex-direction: column; gap: 16px; }
 .login__field { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--sub); }

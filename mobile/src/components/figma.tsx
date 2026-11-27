@@ -45,6 +45,7 @@ import navBtn from '../assets/figma/nav-btn.svg';
 import navDark from '../assets/figma/nav-dark.svg';
 import navPrimary from '../assets/figma/nav-primary.svg';
 import pin from '../assets/figma/pin.svg';
+import plus from '../assets/figma/plus.svg';
 import route from '../assets/figma/route.svg';
 import routeSm from '../assets/figma/route-sm.svg';
 import search from '../assets/figma/search.svg';
@@ -68,7 +69,7 @@ export const FIG = {
   arrowRightSub, back, back24, building, camera, checkGreen, checkGreen14, checkWhite, checkWhite16, checkWhite32,
   chevDown, chevDown14, chevDown16, chevDown18, chevLeftDark, chevRightDark, chevRightSub, chevUp,
   clockSm, close24, closeX, copy, dotBefore, dotDoing, dotDone, editDark, editWhite, expand, filter, image, image20, image40,
-  infoSub, infoWarn, locate, lock, logoGeo, logoIt, markerHalo, mic, more, navBtn, navDark, navPrimary, pin,
+  infoSub, infoWarn, locate, lock, logoGeo, logoIt, markerHalo, mic, more, navBtn, navDark, navPrimary, pin, plus,
   route, routeSm, search, segBuildingOn, segUsersOff, share, sort, swap,
   tabCalendarOff, tabCalendarOn, tabCheckOff, tabCheckOn, tabHomeOff, tabHomeOn, tabTalkOff, tabTalkOn, text, volume,
 };

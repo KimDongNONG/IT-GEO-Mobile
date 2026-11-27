@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useStore } from '../store/AppStore';
 import { API_BASE } from '../api/client';
 import { Btn } from '../components/ui';
+import Logo from '../components/Logo';
 import './Login.css';
 
 export default function Login() {
@@ -28,7 +29,7 @@ export default function Login() {
 
   return (
     <div className="screen screen--none login">
-      <p className="login__logo"><b>W</b>ell<b>FAIR</b></p>
+      <h1 className="login__logo"><Logo height={44} /></h1>
       <p className="login__desc">웹 ItGEO 와 같은 계정으로 로그인하면<br />현장확인 리스트와 기록이 그대로 이어져요.</p>
 
       <form className="login__form" onSubmit={submit}>

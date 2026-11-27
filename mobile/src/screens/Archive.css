@@ -66,3 +66,19 @@
 .arow__score { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
 .arow__score b { font-size: 20px; font-weight: 700; color: var(--red); }
 .arow__score span { font-size: 11px; color: var(--muted); }
+
+/* 추가 모드 (M1 + 버튼) : 담을 리스트 고르기 · 여러 개 체크 */
+.archive__to { position: relative; gap: 12px; }
+.archive__to span { flex: none; }
+.archive__to select {
+  flex: 1; min-width: 0; height: 100%; padding: 0 26px 0 0; border: 0; background: none;
+  appearance: none; -webkit-appearance: none; font-size: 15px; font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.archive__to .ico { position: absolute; right: 14px; pointer-events: none; }
+.arow--multi .arow__radio { border-radius: 6px; }
+.arow--multi.is-on .arow__radio { background: var(--primary); }
+.arow--multi.is-on .arow__radio::after {
+  width: 10px; height: 5px; border-radius: 0; background: none;
+  border: solid var(--white); border-width: 0 0 2px 2px; transform: translateY(-1px) rotate(-45deg);
+}

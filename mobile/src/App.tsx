@@ -1,4 +1,6 @@
-import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
+import { HashRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { App as CapApp } from '@capacitor/app';
 import { AppStoreProvider, useStore } from './store/AppStore';
 import { Toast } from './components/ui';
 import Loading from './screens/Loading';
@@ -22,6 +24,7 @@ export default function App() {
     <AppStoreProvider>
       <HashRouter>
         <div className="app">
+          <BackButton />
           <Gate />
           <Toast />
           {/* 긴급신고 SOS : 로그인 화면을 포함한 모든 화면 오른쪽 위 */}
@@ -30,6 +33,24 @@ export default function App() {
       </HashRouter>
     </AppStoreProvider>
   );
+}
+
+/** 폰의 뒤로가기 버튼 : 언제나 전 페이지로. 더 갈 곳이 없으면 홈으로, 홈(또는 로그인)에서는 앱을 닫는다 */
+function BackButton() {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const { state } = useStore();
+  const loggedOut = state.mode === 'none';
+  useEffect(() => {
+    const sub = CapApp.addListener('backButton', () => {
+      if (loggedOut) CapApp.exitApp();
+      else if ((window.history.state?.idx ?? 0) > 0) navigate(-1);
+      else if (pathname !== '/') navigate('/', { replace: true });
+      else CapApp.exitApp();
+    });
+    return () => { sub.then((h) => h.remove()); };
+  }, [navigate, pathname, loggedOut]);
+  return null;
 }
 
 /** 로그인 상태 확인 중 = M0 로딩, 로그인(또는 시연 모드) 전에는 로그인 화면만 */

@@ -1,7 +1,7 @@
 /* M5 확인 저장 완료 */
 .saved { display: flex; flex-direction: column; gap: 16px; padding-top: calc(var(--top) + 52px); }
 .saved__bar {
-  position: absolute; top: calc(var(--top) + 6px); right: calc(12px + var(--sos-space));   /* 오른쪽 위 SOS 바로 왼쪽 */
+  position: absolute; top: calc(var(--top) + 6px); right: 12px;   /* 오른쪽 끝 (긴급신고 '!' 는 이 화면에서 X 아래로 비킴) */
 }
 .saved__close { width: 40px; height: 40px; display: grid; place-items: center; }
 
