@@ -3,6 +3,7 @@
 //   아래 = 현장 확인 리스트 (진행중 | 완료됨). 리스트 카드를 누르면 펼쳐져서 동선 순서 · 동선 보기 · 현장 확인 시작
 //   건물 줄을 누르면 그 줄이 선택(강조)되고, 아래 버튼이 '동선 보기' → '지도에서 보기'로 바뀐다. '현장 확인 시작'은 고른 건물로 (안 고르면 지금 갈 곳)
 //   지도에서 보기 = 동선 화면을 그 건물로 확대해서 연다 (/route/:groupId?open=건물). 길찾기는 거기 목록의 '길찾기'로
+//   리스트 머리의 + = 보관함 건물을 리스트에 추가 (/archive?add=리스트 : 펼친 리스트, 없으면 첫 진행중 리스트)
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Building, Group, WorkStatus } from '../data/types';
@@ -73,7 +74,18 @@ export default function Home() {
         </dl>
       </section>
 
-      <h2 className="section-title home__lh">현장 확인 리스트</h2>
+      <div className="home__lh">
+        <h2 className="section-title">현장 확인 리스트</h2>
+        <button
+          className="home__add"
+          aria-label="보관함 건물 추가"
+          onClick={() => {
+            const to = openId ?? doing[0]?.g.id ?? rows[0]?.g.id;
+            if (!to) { act.toast('건물을 담을 현장확인 리스트가 없어요.'); return; }
+            navigate(`/archive?add=${to}`);
+          }}
+        ><Ico name="plus" size={22} /></button>
+      </div>
       <Segment
         value={tab}
         onChange={(v) => { setTab(v); setOpenId(null); }}

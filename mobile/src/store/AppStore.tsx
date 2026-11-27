@@ -37,6 +37,7 @@ type Action =
   | { type: 'reorder'; groupId: string; from: number; to: number }
   | { type: 'removeFromGroup'; groupId: string; buildingId: string }
   | { type: 'replaceInGroup'; groupId: string; oldId: string; archiveId: string }
+  | { type: 'addToGroup'; groupId: string; archiveIds: string[] }
   | { type: 'saveRecord'; record: FieldRecord }
   | { type: 'patchBuilding'; building: Building }
   | { type: 'setRecord'; record: FieldRecord }
@@ -147,6 +148,22 @@ function reducer(state: State, action: Action): State {
       );
       return { ...state, groups, archive, buildings: { ...state.buildings, [a.id]: building } };
     }
+    case 'addToGroup': {
+      const g = state.groups.find((x) => x.id === action.groupId);
+      if (!g) return state;
+      const buildings = { ...state.buildings };
+      const ids = [...g.buildingIds];
+      for (const aid of action.archiveIds) {
+        const a = state.archive.find((x) => x.id === aid);
+        if (!a || ids.includes(a.id)) continue;
+        const last = buildings[ids[ids.length - 1]]?.pos ?? { x: 50, y: 50 };   // 시연 지도 : 마지막 건물 옆에 놓는다
+        buildings[a.id] = buildings[a.id] ?? buildingFromArchive(a, { x: Math.min(90, last.x + 6), y: Math.min(90, last.y + 4) });
+        ids.push(a.id);
+      }
+      const groups = state.groups.map((x) => (x.id === g.id ? { ...x, buildingIds: ids } : x));
+      const archive = state.archive.map((x) => (action.archiveIds.includes(x.id) ? { ...x, state: 'inGroup' as const } : x));
+      return { ...state, groups, archive, buildings };
+    }
     case 'saveRecord': {
       const b = state.buildings[action.record.buildingId];
       return {
@@ -181,6 +198,7 @@ export interface Actions {
   reorder: (groupId: string, from: number, to: number) => void;
   remove: (groupId: string, buildingId: string) => Promise<void>;
   replace: (groupId: string, oldId: string, archiveId: string) => Promise<void>;
+  add: (groupId: string, archiveIds: string[]) => Promise<void>;
   saveRecord: (rec: FieldRecord, onPhoto?: (done: number, total: number) => void) => Promise<{ failedPhotos: number }>;
   loadBuilding: (buildingId: string) => Promise<void>;
   loadSchedule: (month: string, start: string, end: string) => Promise<void>;
@@ -302,6 +320,20 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         if (!g?.surveyId || b?.factorId == null || a?.factorId == null) return;
         await W.replaceItem(g.surveyId, b.factorId, a.factorId);
         await load();
+      },
+      // 보관함 건물을 리스트 끝에 추가 (M1 + 버튼). 서버는 한 건씩 넣는다
+      async add(groupId, archiveIds) {
+        if (!isServer()) { dispatch({ type: 'addToGroup', groupId, archiveIds }); return; }
+        const g = groupOf(groupId);
+        if (!g?.surveyId) return;
+        try {
+          for (const id of archiveIds) {
+            const a = ref.current.archive.find((x) => x.id === id);
+            if (a?.factorId != null) await W.addItem(g.surveyId, a.factorId);
+          }
+        } finally {
+          await load();
+        }
       },
       async saveRecord(rec, onPhoto) {
         const now = new Date();

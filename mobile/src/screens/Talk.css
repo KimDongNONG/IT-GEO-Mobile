@@ -7,16 +7,12 @@
   background: var(--primary-soft); font-size: 14px; font-weight: 700; letter-spacing: -0.21px; color: var(--primary);
 }
 
-.talk__card { display: flex; flex-direction: column; gap: 14px; padding: 18px; }
-.talk__card-head { display: flex; align-items: center; gap: 8px; }
-.talk__card-head h2, .talk__h { flex: 1; font-size: 16px; font-weight: 700; letter-spacing: -0.24px; color: var(--text); }
-.talk__card .talk__h { flex: none; }
-.talk__ko { font-size: 17px; font-weight: 500; line-height: 1.5; letter-spacing: -0.255px; color: var(--text); }
-.talk__tr { font-size: 15px; line-height: 1.55; letter-spacing: -0.225px; color: var(--text-2); }
-.talk__langs { display: flex; flex-wrap: wrap; gap: 8px 6px; }
-.talk__langs .pill { padding: 8px 11px; }
+/* 입력 박스 · 자주 쓰는 표현 박스 */
+.talk__in { display: flex; flex-direction: column; gap: 12px; padding: 14px 18px 18px; }
+.talk__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 30px; padding-bottom: 4px; }
+.talk__head h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.24px; color: var(--text); }
+.talk__head .minibtn { gap: 4px; }
 
-/* 문장 직접 입력 */
 .talk__pair { display: flex; align-items: center; gap: 8px; }
 .talk__sel { position: relative; flex: 1; min-width: 0; height: 42px; display: flex; align-items: center; border-radius: 10px; background: var(--el); }
 .talk__sel select {
@@ -25,9 +21,10 @@
 }
 .talk__sel .ico { position: absolute; right: 10px; pointer-events: none; }
 .talk__swap { flex: none; width: 22px; height: 22px; display: grid; place-items: center; }
+
 .talk__box { position: relative; }
 .talk__input {
-  width: 100%; height: 104px; padding: 12px 14px 28px; border: 0; border-radius: 12px; resize: none;
+  display: block; width: 100%; height: 104px; padding: 12px 54px 28px 14px; border: 0; border-radius: 12px; resize: none;
   background: var(--el); font-size: 14px; letter-spacing: -0.21px; color: var(--text);
 }
 .talk__input::placeholder { color: var(--muted); }
@@ -38,17 +35,23 @@
   display: grid; place-items: center; background: var(--white); box-shadow: var(--shadow);
 }
 .talk__mic.is-on { box-shadow: 0 0 0 2px var(--primary), var(--shadow); }
-.talk__go { height: 48px; font-size: 15px; }
-.talk__tools { display: flex; gap: 8px; }
-.talk__tools .btn { flex: 1; min-width: 0; height: 40px; padding: 0 8px; font-size: 13px; letter-spacing: -0.195px; }
+.talk__go { height: 48px; font-size: 15px; letter-spacing: -0.225px; }
 
-/* 현장 표현 */
-.talk__phrases li { display: flex; align-items: center; gap: 8px; padding: 12px 0; }
-.talk__phrases li + li { border-top: 1px solid var(--line); }
-.talk__phrase { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; text-align: left; }
-.talk__phrase span { font-size: 15px; font-weight: 700; letter-spacing: -0.225px; color: var(--text); }
-.talk__phrase small { font-size: 13px; color: var(--text-2); }
-.talk__speak { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--el); }
+/* 자주 쓰는 표현 목록 */
+.talk__phrases { display: flex; flex-direction: column; gap: 8px; }
+.talk__phrase {
+  width: 100%; padding: 12px 14px; border-radius: 12px; background: var(--el); text-align: left;
+  font-size: 14px; font-weight: 500; line-height: 1.45; letter-spacing: -0.21px; color: var(--text);
+}
+.talk__phrase.is-on { background: var(--primary-tint); box-shadow: inset 0 0 0 1.5px rgba(31, 79, 154, 0.35); font-weight: 700; color: var(--primary); }
+
+/* 출력 박스 : 번역문 18 Medium + 한글 발음 13, 기능 버튼 3개 */
+.talk__out { display: flex; flex-direction: column; gap: 18px; padding: 20px 18px 18px; }
+.talk__res { display: flex; flex-direction: column; gap: 6px; word-break: break-word; }
+.talk__tr { font-size: 18px; font-weight: 500; line-height: 1.55; letter-spacing: -0.27px; color: var(--text); }
+.talk__pron { font-size: 13px; line-height: 1.5; color: var(--sub); white-space: pre-line; }
+.talk__tools { display: flex; gap: 8px; }
+.talk__tools .btn { flex: 1; min-width: 0; height: 40px; padding: 0 8px; gap: 6px; font-size: 13px; letter-spacing: -0.195px; }
 
 .talk__notice { display: flex; gap: 6px; padding: 0 4px; font-size: 12px; line-height: 1.5; letter-spacing: -0.18px; color: var(--sub); }
 .talk__notice .ico { margin-top: 1px; }
@@ -56,8 +59,9 @@
 /* 크게 보여주기 */
 .talk__large {
   position: fixed; inset: 0; z-index: 75;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
   padding: 32px 24px; background: var(--white); text-align: center;
 }
-.talk__large span { font-size: 34px; font-weight: 700; line-height: 1.45; color: var(--text); word-break: keep-all; }
+.talk__large span { font-size: 34px; font-weight: 700; line-height: 1.45; color: var(--text); word-break: keep-all; overflow-wrap: anywhere; }
+.talk__large em { font-style: normal; font-size: 18px; line-height: 1.5; color: var(--sub); white-space: pre-line; }
 .talk__large small { font-size: 14px; color: var(--sub); }
