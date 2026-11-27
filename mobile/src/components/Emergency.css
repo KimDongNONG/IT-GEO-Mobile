@@ -9,11 +9,16 @@
   width: var(--sos-size); height: var(--sos-size); border-radius: 50%;
   display: grid; place-items: center;
   background: var(--red); color: var(--white);
-  font-size: 13px; font-weight: 800; letter-spacing: 0.02em;
+  font-size: 24px; font-weight: 900; line-height: 1;
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   border: 2px solid rgba(255, 255, 255, 0.85);
   box-shadow: 0 4px 14px rgba(229, 72, 77, 0.4), 0 2px 6px rgba(16, 24, 40, 0.15);
 }
 .sos:active { transform: scale(0.94); }
+/* 저장 완료 화면 : 오른쪽 위 X(높이 40) 바로 아래 */
+.sos--below { top: calc(max(var(--safe-top), 40px) + 54px); }
+/* 꾸욱 눌러 옮기는 중 : 살짝 키워서 들린 느낌 */
+.sos.is-dragging { transform: scale(1.15); box-shadow: 0 10px 24px rgba(229, 72, 77, 0.45), 0 4px 10px rgba(16, 24, 40, 0.2); }
 
 /* 신고 창 : 화면 아래에서 올라오는 시트 (다른 모달보다 위) */
 .sos-sheet { position: fixed; inset: 0; z-index: 80; display: flex; align-items: flex-end; justify-content: center; }

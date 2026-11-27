@@ -94,7 +94,7 @@ export default function NaverMap({
       .then((naver) => {
         if (!alive || !el.current || map.current) return;
         map.current = new naver.maps.Map(el.current, {
-          zoom: 15, scaleControl: false, mapDataControl: false, logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+          zoom: 15, scaleControl: false, mapDataControl: false, logoControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
         });
         setFailed(false);
         draw();

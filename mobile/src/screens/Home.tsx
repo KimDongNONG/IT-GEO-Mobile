@@ -10,6 +10,7 @@ import type { Building, Group, WorkStatus } from '../data/types';
 import { useStore } from '../store/AppStore';
 import { usePullRefresh } from '../lib/pullRefresh';
 import { Ico } from '../components/figma';
+import Logo from '../components/Logo';
 import { Bar, Chip, Segment, StatusBadge, TabBar } from '../components/ui';
 import { WEEKDAYS, fromYmd, weekOf, ymd } from '../lib/schedule';
 import './Home.css';
@@ -52,6 +53,7 @@ export default function Home() {
   return (
     <div className="screen screen--tabs home">
       <header className="home__head">
+        <Logo height={24} className="home__logo" />
         <p className="home__date">
           {now.getMonth() + 1}월 {now.getDate()}일 {WEEKDAYS[now.getDay()]}요일{state.mode === 'demo' && ' · 시연'}
           <button className="home__out" onClick={act.logout}>{state.mode === 'demo' ? '나가기' : '로그아웃'}</button>

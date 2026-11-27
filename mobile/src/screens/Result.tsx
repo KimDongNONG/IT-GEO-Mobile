@@ -21,7 +21,6 @@ export default function Result() {
   const b = state.buildings[buildingId];
   const rec = state.records[buildingId];
   const [idx, setIdx] = useState(0);
-  const [menu, setMenu] = useState(false);
   const strip = useRef<HTMLDivElement>(null);
   // 웹에서 새로 남긴 기록까지 최신으로
   useEffect(() => { act.loadBuilding(buildingId).catch(() => undefined); }, [buildingId, act]);
@@ -55,44 +54,11 @@ export default function Result() {
   const when = rec.savedAt ?? (at ? `${at.getMonth() + 1}월 ${at.getDate()}일` : '');
   const edit = () => navigate(`/record/${b.id}?edit=1`);
 
-  const share = async () => {
-    setMenu(false);
-    const lines = [
-      `[현장 확인 결과] ${b.gu} ${b.dong} ${b.type}`,
-      `확인: ${[when, rec.author].filter(Boolean).join(' · ')}`,
-      factors.length ? `사전 탐지 요인: ${factors.map(([n, v]) => `${n} ${v === true ? '맞음' : v === false ? '아님' : '미확인'}`).join(', ')}` : '',
-      rec.supports.length ? `필요한 지원: ${rec.supports.join(', ')}${depts.length ? ` → ${depts.join(', ')}` : ''}` : '',
-      rec.memo ? `메모: ${rec.memo}` : '',
-    ].filter(Boolean).join('\n');
-    try {
-      if (navigator.share) await navigator.share({ title: '현장 확인 결과', text: lines });
-      else { await navigator.clipboard.writeText(lines); act.toast('확인 결과를 복사했어요.'); }
-    } catch {
-      /* 사용자가 취소 */
-    }
-  };
-
   return (
     <Screen
       title="확인 결과"
       back
       className="result"
-      right={
-        <div className="result__tools">
-          <button aria-label="공유하기" onClick={share}><Ico name="share" size={22} /></button>
-          <button aria-label="더 보기" aria-expanded={menu} onClick={() => setMenu((v) => !v)}><Ico name="more" size={22} /></button>
-          {menu && (
-            <>
-              <button className="result__menu-dim" aria-label="닫기" onClick={() => setMenu(false)} />
-              <ul className="result__menu" role="menu">
-                <li><button role="menuitem" onClick={() => { setMenu(false); edit(); }}>확인 내용 수정</button></li>
-                <li><button role="menuitem" onClick={share}>공유하기</button></li>
-                <li><button role="menuitem" onClick={() => navigate('/done')}>확인 완료 목록</button></li>
-              </ul>
-            </>
-          )}
-        </div>
-      }
     >
       <div className="result__gallery">
         <div

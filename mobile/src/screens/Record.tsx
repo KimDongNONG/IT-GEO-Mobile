@@ -99,11 +99,11 @@ export default function Record() {
   const answered = SECTIONS.reduce((n, s) => n + s.items.filter((it) => rec.scores[it.key] != null).length, 0);
   const visitNo = groupId ? (state.groups.find((g) => g.id === groupId)?.buildingIds.indexOf(b.id) ?? -1) + 1 : 0;
   const toggle = (k: string) => setClosed((c) => ({ ...c, [k]: !c[k] }));
-  /** 점수 고르기 : 그 섹션을 다 채우면 접는다 */
-  const setScores = (sectionKey: string, values: Record<string, number>) => {
+  /** 점수 고르기 : 그 섹션을 다 채우면 접는다 ('모두 양호'는 접지 않음 : 바로 고쳐 고를 수 있게) */
+  const setScores = (sectionKey: string, values: Record<string, number>, autoClose = true) => {
     const next = { ...rec.scores, ...values };
     const sec = SECTIONS.find((s) => s.key === sectionKey);
-    if (sec && sec.items.every((it) => next[it.key] != null) && sec.items.some((it) => rec.scores[it.key] == null)) {
+    if (autoClose && sec && sec.items.every((it) => next[it.key] != null) && sec.items.some((it) => rec.scores[it.key] == null)) {
       setClosed((c) => ({ ...c, [sectionKey]: true }));
     }
     setRec((r) => ({ ...r, scores: { ...r.scores, ...values } }));
@@ -234,7 +234,7 @@ export default function Record() {
                 count={full ? `${n} / ${s.items.length} 완료` : `${n} / ${s.items.length}`}
                 closed={closed[s.key]}
                 onToggle={() => toggle(s.key)}
-                extra={<button className="minibtn" onClick={() => setScores(s.key, Object.fromEntries(s.items.map((it) => [it.key, 1])))}>모두 양호</button>}
+                extra={<button className="minibtn" onClick={() => setScores(s.key, Object.fromEntries(s.items.map((it) => [it.key, 1])), false)}>모두 양호</button>}
               >
                 {s.items.map((it) => (
                   <ScoreRow key={it.key} label={it.label} value={rec.scores[it.key]} onChange={(v) => setScores(s.key, { [it.key]: v })} />

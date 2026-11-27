@@ -1,0 +1,5 @@
+/* itGEO 로고 : 원래 크기(364 × 92.28)로 짜고 scale 로 줄인다 */
+.logo { position: relative; display: inline-block; flex: none; overflow: hidden; }
+.logo__in { position: absolute; left: 0; top: 0; width: 364px; height: 92.28px; transform-origin: 0 0; }
+.logo__it { position: absolute; left: 0; top: 0; display: block; }
+.logo__geo { position: absolute; left: 100px; top: 0; display: block; }
